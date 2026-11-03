@@ -17,7 +17,7 @@ type AdminCalendarEditorProps = {
 const CATEGORIES: { value: EpisodeRole | ''; label: string }[] = [
   { value: '', label: 'Automática (según la emisión)' },
   { value: 'regular', label: 'Emisión normal' },
-  { value: 'series_premiere', label: 'Estreno de serie' },
+  { value: 'series_premiere', label: 'Estreno Serie' },
   { value: 'season_premiere', label: 'Estreno de temporada' },
   { value: 'mid_season_finale', label: 'Final de mitad de temporada' },
   { value: 'season_finale', label: 'Final de temporada' },
