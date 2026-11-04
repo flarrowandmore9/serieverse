@@ -146,6 +146,9 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
   const res = await fetchTvmaze(`/shows/${show.tvmaze_id}?embed[]=episodes&embed[]=cast`);
   if (!res.ok) throw new Error(`TVMaze ${res.status} para ${show.title}`);
   const data = (await res.json()) as TvmazeShow;
+  if (!isNamedNetwork(data)) {
+    return;
+  }
   const episodesData = data._embedded?.episodes ?? [];
 
   const { error: updateError } = await supabase
