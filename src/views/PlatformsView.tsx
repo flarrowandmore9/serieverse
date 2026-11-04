@@ -55,12 +55,11 @@ export default function PlatformsView({ onOpenShow, onRequireLogin }: PlatformsV
   const [category, setCategory] = useState<Category>('networks');
   const [platform, setPlatform] = useState<Choice | null>(null);
   const options = useAsyncData(fetchPlatformOptions, []);
-  const allNames = options.data?.[region] ?? [];
-  const choices = CHOICES[region][category].filter((choice) => choice.names.some((name) => allNames.includes(name)));
+  const choices = CHOICES[region][category];
 
   useEffect(() => {
     setPlatform(choices[0] ?? null);
-  }, [region, category, options.data]);
+  }, [region, category]);
 
   const shows = useAsyncData(
     () => (platform ? fetchShowsForPlatform(platform.names, region) : Promise.resolve([])),

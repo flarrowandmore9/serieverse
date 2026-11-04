@@ -1,10 +1,32 @@
-import { X } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { Send, X } from 'lucide-react';
+import { submitSuggestion } from '@/lib/userData';
 
 type ContactModalProps = {
   onClose: () => void;
 };
 
 export default function ContactModal({ onClose }: ContactModalProps) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!message.trim()) return;
+    setStatus('sending');
+    try {
+      await submitSuggestion({ name: name.trim() || 'Anónimo', email: email.trim(), message: message.trim() });
+      setStatus('sent');
+      setName('');
+      setEmail('');
+      setMessage('');
+    } catch {
+      setStatus('error');
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 p-4 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true" aria-labelledby="contact-title">
       <div className="w-full max-w-lg space-y-5 rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 sm:p-8">
@@ -22,12 +44,13 @@ export default function ContactModal({ onClose }: ContactModalProps) {
             <X className="h-5 w-5" />
           </button>
         </div>
+
         <div className="space-y-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
           <p>¿Tienes alguna duda, sugerencia o problema con la aplicación? Escríbenos por cualquiera de estos medios:</p>
           <div className="space-y-3 rounded-xl bg-pastel-cream/70 p-4 dark:bg-slate-800/70">
             <p className="font-semibold text-slate-900 dark:text-white">Flarrow & More</p>
             <p>
-              Correo: <a href="mailto:flarrowandmore@gmail.com" className="font-semibold text-pastel-accent hover:underline">flarrowandmore@gmail.com</a>
+              Correo: <a href="mailto:flarrowandmoreweb@gmail.com" className="font-semibold text-pastel-accent hover:underline">flarrowandmoreweb@gmail.com</a>
             </p>
             <div className="flex flex-wrap gap-3 pt-1">
               <a href="https://instagram.com/flarrowandmore" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-pastel-rose px-3 py-2 text-xs font-bold text-slate-800 transition hover:opacity-80 dark:text-slate-100">
@@ -36,16 +59,70 @@ export default function ContactModal({ onClose }: ContactModalProps) {
               <a href="https://twitter.com/flarrowandmore" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-pastel-lavender px-3 py-2 text-xs font-bold text-slate-800 transition hover:opacity-80 dark:text-slate-100">
                 X / Twitter
               </a>
-              <a href="https://tiktok.com/@flarrowandmore" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-pastel-sage px-3 py-2 text-xs font-bold text-emerald-800 transition hover:opacity-80 dark:text-emerald-100">
-                TikTok
-              </a>
             </div>
           </div>
         </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Formulario de contacto</h3>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Tu nombre</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={60}
+              placeholder="Tu nombre o apodo..."
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Correo electrónico (opcional)</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              maxLength={120}
+              placeholder="tuemail@ejemplo.com"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">Mensaje *</label>
+            <textarea
+              required
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              maxLength={2000}
+              rows={4}
+              placeholder="¿Qué te gustaría decirnos?"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            />
+          </div>
+          {status === 'sent' && (
+            <p className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+              ¡Mensaje enviado con éxito! Te responderemos lo antes posible.
+            </p>
+          )}
+          {status === 'error' && (
+            <p className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 dark:bg-rose-900/30 dark:text-rose-300">
+              No se pudo enviar el mensaje. Inténtalo de nuevo más tarde.
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={status === 'sending'}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-pastel-accent px-4 py-2.5 text-sm font-bold text-white transition hover:bg-pastel-accentHover disabled:opacity-60"
+          >
+            <Send className="h-4 w-4" />
+            {status === 'sending' ? 'Enviando...' : 'Enviar mensaje'}
+          </button>
+        </form>
+
         <button
           type="button"
           onClick={onClose}
-          className="w-full rounded-xl bg-pastel-accent px-4 py-2.5 text-sm font-bold text-white transition hover:bg-pastel-accentHover"
+          className="w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
         >
           Cerrar
         </button>

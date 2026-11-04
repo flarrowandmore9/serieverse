@@ -13,9 +13,9 @@ type CatalogViewProps = {
 const SORT_OPTIONS: { value: CatalogSort; label: string }[] = [
   { value: 'all', label: 'Todas' },
   { value: 'popular', label: 'Populares' },
-  { value: 'visited', label: 'Más visitadas' },
   { value: 'recent', label: 'Últimas añadidas' },
-  ];
+  { value: 'visited', label: 'Más visitadas' },
+];
 
 const GENRE_OPTIONS: { value: string; label: string }[] = [
   { value: 'Drama', label: 'Drama' },
