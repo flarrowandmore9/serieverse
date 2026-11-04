@@ -1,4 +1,4 @@
-const CACHE_NAME = 'serieverse-shell-v4';
+const CACHE_NAME = 'serieverse-shell-v7';
 const SHELL_URLS = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/icon-180.png', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
