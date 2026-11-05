@@ -68,7 +68,7 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
                   return (
                     <li key={episode.tvmaze_episode_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="mr-1.5 text-pastel-accent">E{episode.number}</span>
+                        <span className="shrink-0 mr-1.5 font-bold text-pastel-accent">E{episode.number}</span>
                         <span className="truncate text-xs font-bold text-slate-900 dark:text-white">{episode.name ?? 'Sin título'}</span>
                         {showRoleBadge && (
                           <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_STYLES[role]}`}>{ROLE_LABELS[role]}</span>
