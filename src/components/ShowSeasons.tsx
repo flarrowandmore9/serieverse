@@ -57,7 +57,7 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Temporada {season} · {list.length} episodios </p>
                 
               </div>
-              <ChevronDown className={`h-4 w-4 text-pastel-accent transition ${isOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
               <ul className="divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-700 dark:border-slate-700">
