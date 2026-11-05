@@ -16,19 +16,19 @@ type AdminCalendarEditorProps = {
 
 const CATEGORIES: { value: EpisodeRole | ''; label: string }[] = [
   { value: '', label: 'Automática (según la emisión)' },
-  { value: 'regular', label: 'Emisión normal' },
-  { value: 'series_premiere', label: 'Estreno de serie' },
-  { value: 'season_premiere', label: 'Estreno de temporada' },
-  { value: 'mid_season_finale', label: 'Final de mitad de temporada' },
-  { value: 'season_finale', label: 'Final de temporada' },
+  { value: 'regular', label: 'Emisión Normal' },
+  { value: 'series_premiere', label: 'Estreno Serie' },
+  { value: 'season_premiere', label: 'Estreno Temporada' },
+  { value: 'mid_season_finale', label: 'Final Mitad Temporada' },
+  { value: 'season_finale', label: 'Final Temporada' },
 ];
 
 const SPECIAL_TAGS: { value: SpecialTag; label: string }[] = [
   { value: null, label: 'Episodio normal' },
   { value: 'crossover', label: 'Crossover' },
-  { value: 'halloween', label: 'Episodio de Halloween' },
-  { value: 'christmas', label: 'Episodio de Navidad' },
-  { value: 'special', label: 'Episodio especial' },
+  { value: 'halloween', label: 'Episodio Halloween' },
+  { value: 'christmas', label: 'Episodio Navidad' },
+  { value: 'special', label: 'Episodio Especial' },
 ];
 
 const inputClass = 'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
