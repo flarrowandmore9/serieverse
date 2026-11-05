@@ -10,16 +10,16 @@ type ShowSeasonsProps = {
 
 const ROLE_LABELS: Partial<Record<EpisodeRole, string>> = {
   series_premiere: 'Estreno',
-  season_premiere: 'Estreno T.',
-  season_finale: 'Final T.',
-  mid_season_finale: 'Final Mitad T',
+  season_premiere: 'Estreno Temporada',
+  mid_season_finale: 'Final Mitad Temporada',
+  season_finale: 'Final Temporada',
 };
 
 const ROLE_STYLES: Partial<Record<EpisodeRole, string>> = {
-  series_premiere: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100',
-  season_premiere: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100',
-  season_finale: 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-100',
-  mid_season_finale: 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-100',
+  series_premiere: 'mt-1 ml-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-100',
+  season_premiere: 'mt-1 ml-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100',
+   mid_season_finale: 'mt-1 ml-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-100',
+  season_finale: 'mt-1 ml-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-100 ',
 };
 
 export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
