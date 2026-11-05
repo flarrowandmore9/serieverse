@@ -54,7 +54,7 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
               className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-pastel-cream/60 dark:hover:bg-slate-800"
             >
               <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Temporada {season} · {list.length} episodios </p>
+                <p className="text-xs font-black uppercase tracking-wide text-pastel-accent">Temporada {season} · {list.length} episodios </p>
                 
               </div>
               <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
