@@ -40,7 +40,7 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4 rounded-2xl border border-pastel-accent/25 bg-pastel-cream/60 p-4 dark:bg-slate-800/60">
       {seasons.map(([season, list]) => {
         const isOpen = openSeason === season;
         const firstAirdate = list[0]?.airdate ?? null;
