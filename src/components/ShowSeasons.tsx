@@ -41,6 +41,7 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
 
   return (
     <div className="space-y-3">
+      {error && <p role="alert" className="text-xs font-semibold text-rose-700">{error}</p>}
       {seasons.map(([season, list]) => {
         const isOpen = openSeason === season;
         const firstAirdate = list[0]?.airdate ?? null;
@@ -57,10 +58,10 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Temporada {season} · {list.length} episodios </p>
                 
               </div>
-              <ChevronDown className={`h-4 w-4 text-pastel-accent transition ${isOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-700 dark:border-slate-700">
                 {list.map((episode) => {
                   const role = episode.role_override ?? 'regular';
                   const showRoleBadge = role !== 'regular';
