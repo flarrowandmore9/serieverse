@@ -68,7 +68,7 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
         </div>
         <button type="button" onClick={() => setAdding(true)} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-pastel-accent px-3 py-2 text-xs font-bold text-white transition hover:bg-pastel-accentHover">
           <Plus className="h-3.5 w-3.5" />
-          Añadir episodio
+          Añadir Episodio
         </button>
       </div>
       {adding && (
