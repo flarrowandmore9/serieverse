@@ -117,7 +117,7 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
                             </span>
                           )}
                           {episode.special_tag && (
-                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${SPECIAL_TAG_STYLES[episode.special_tag]}`}>{SPECIAL_TAG_LABELS[episode.special_tag]}</span>
+                            <span className={`shrink-0 mt-1 ml-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${SPECIAL_TAG_STYLES[episode.special_tag]}`}>{SPECIAL_TAG_LABELS[episode.special_tag]}</span>
                           )}
                           <p className="w-full mt-1 text-[11px] text-slate-500">{formatDate(episode.airdate)} · {episode.runtime ? `${episode.runtime} min` : 'Duración por confirmar'}</p>
                         </div>
