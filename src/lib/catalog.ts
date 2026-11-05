@@ -121,5 +121,5 @@ export const SPECIAL_TAG_STYLES: Record<NonNullable<SpecialTag>, string> = {
   crossover: 'mt-1 ml-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-100',
   halloween: 'mt-1 ml-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-100 text-amber-800 dark:bg-zinc-900/60 dark:text-amber-100',
   christmas: 'mt-1 ml-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100',
-  special: 'mt-1 ml-1 rounded-md px-1.5 py-0.5 text-[10px] bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-100',
+  special: 'mt-1 ml-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-100',
 };
