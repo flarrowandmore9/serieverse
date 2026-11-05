@@ -12,7 +12,7 @@ type AdminEpisodeEditorProps = {
   onChanged: () => void;
 };
 
-const inputClass = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
+const inputClass = 'overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900';
 
 export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminEpisodeEditorProps) {
   const [adding, setAdding] = useState(false);
