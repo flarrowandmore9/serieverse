@@ -41,8 +41,7 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
 
   return (
     <div className="space-y-3">
-      {error && <p role="alert" className="text-xs font-semibold text-rose-700">{error}</p>}
-      {seasons.map(([season]) => {
+      {seasons.map(([season, list]) => {
         const isOpen = openSeason === season;
         const firstAirdate = list[0]?.airdate ?? null;
         const lastAirdate = list[list.length - 1]?.airdate ?? null;
@@ -55,9 +54,10 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
               className="flex w-full items-center justify-between gap-3 bg-pastel-cream px-4 py-3 text-left transition hover:bg-pastel-rose/40 dark:bg-slate-800 dark:hover:bg-slate-700"
             >
               <div>
-                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Temporada {season} · </p>
+                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Temporada {season}</p>
                 <p className="text-xs text-slate-500">
-                  {list.length} episodios ·</p>
+                  {list.length} episodios · {formatDate(firstAirdate)} al {formatDate(lastAirdate)}
+                </p>
               </div>
               <ChevronDown className={`h-4 w-4 text-pastel-accent transition ${isOpen ? 'rotate-180' : ''}`} />
             </button>
