@@ -67,7 +67,7 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
                   const showSpecialBadge = episode.special_tag !== null && episode.special_tag !== undefined;
                   return (
                     <li key={episode.tvmaze_episode_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                      <div className="flex min-w-0 items-center gap-2">
+                      <div className="truncate text-xs font-bold text-slate-900 dark:text-white">
                         <span className="shrink-0 mr-1.5 font-bold text-pastel-accent">E{episode.number}</span>
                         <span className="truncate text-xs font-bold text-slate-900 dark:text-white">{episode.name ?? 'Sin título'}</span>
                         {showRoleBadge && (
