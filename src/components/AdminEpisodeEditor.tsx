@@ -113,7 +113,7 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
                           <p className="truncate text-xs font-bold text-slate-900 dark:text-white"><span className="mr-1.5 text-pastel-accent">E{episode.number}</span>{episode.name ?? 'Sin título'}</p>
                           {episode.role_override && episode.role_override !== 'regular' && (
                             <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100">
-                              {episode.role_override === 'series_premiere' ? 'Estreno' : episode.role_override === 'season_premiere' ? 'Estreno T.' : episode.role_override === 'season_finale' ? 'Final T.' : 'Final mid-season'}
+                              {episode.role_override === 'series_premiere' ? 'Estreno' : episode.role_override === 'season_premiere' ? 'Estreno T.' : episode.role_override === 'season_finale' ? 'Final T.' : 'Final Mitad T.'}
                             </span>
                           )}
                           {episode.special_tag && (
