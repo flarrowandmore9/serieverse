@@ -83,11 +83,11 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
 
               <div className="flex flex-col divide-y divide-slate-200 rounded-xl bg-slate-50 text-sm sm:flex-row sm:divide-x sm:divide-y-0 dark:divide-slate-700 dark:bg-slate-800/80">
                 <p className="flex-1 px-4 py-2.5">
-                  <span className="font-semibold text-slate-600 dark:text-slate-300">Donde ver en EE.UU:</span>{' '}
+                  <span className="font-semibold text-slate-600 dark:text-slate-300">Ver en EE.UU:</span>{' '}
                   <span className="font-bold text-slate-900 dark:text-slate-100">{formatPlatforms(show.us_platforms)}</span>
                 </p>
                 <p className="flex-1 px-4 py-2.5">
-                  <span className="font-semibold text-slate-600 dark:text-slate-300">Donde ver en España:</span>{' '}
+                  <span className="font-semibold text-slate-600 dark:text-slate-300">Ver en España:</span>{' '}
                   <span className="font-bold text-slate-900 dark:text-slate-100">{formatPlatforms(show.es_platforms)}</span>
                 </p>
               </div>
