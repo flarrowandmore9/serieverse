@@ -108,7 +108,18 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
                       </form>
                     ) : (
                       <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0"><p className="truncate text-xs font-bold text-slate-900 dark:text-white"><span className="mr-2 text-pastel-accent">E{episode.number}</span>{episode.name ?? 'Sin título'}</p><p className="mt-1 text-[11px] text-slate-500">{formatDate(episode.airdate)} · {episode.runtime ? `${episode.runtime} min` : 'Duración por confirmar'}</p></div>
+                        <div className="min-w-0 flex items-center gap-2 flex-wrap">
+                          <p className="truncate text-xs font-bold text-slate-900 dark:text-white"><span className="mr-1.5 text-pastel-accent">E{episode.number}</span>{episode.name ?? 'Sin título'}</p>
+                          {episode.role_override && episode.role_override !== 'regular' && (
+                            <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100">
+                              {episode.role_override === 'series_premiere' ? 'Estreno' : episode.role_override === 'season_premiere' ? 'Estreno T.' : episode.role_override === 'season_finale' ? 'Final T.' : 'Final mid-season'}
+                            </span>
+                          )}
+                          {episode.special_tag && (
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${SPECIAL_TAG_STYLES[episode.special_tag]}`}>{SPECIAL_TAG_LABELS[episode.special_tag]}</span>
+                          )}
+                          <p className="w-full mt-1 text-[11px] text-slate-500">{formatDate(episode.airdate)} · {episode.runtime ? `${episode.runtime} min` : 'Duración por confirmar'}</p>
+                        </div>
                         <div className="flex shrink-0 gap-1"><button type="button" aria-label="Editar episodio" onClick={() => setEditingId(episode.tvmaze_episode_id)} className="rounded-lg p-2 text-slate-500 hover:bg-pastel-rose hover:text-pastel-accent"><Pencil className="h-3.5 w-3.5" /></button><button type="button" aria-label="Eliminar episodio" onClick={() => remove(episode)} disabled={busyId === episode.tvmaze_episode_id} className="rounded-lg p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="h-3.5 w-3.5" /></button></div>
                       </div>
                     )}

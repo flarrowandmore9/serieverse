@@ -1,10 +1,25 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { formatDate } from '@/lib/format';
-import type { Episode } from '@/lib/types';
+import { SPECIAL_TAG_LABELS, SPECIAL_TAG_STYLES } from '@/lib/catalog';
+import type { Episode, EpisodeRole } from '@/lib/types';
 
 type ShowSeasonsProps = {
   episodes: Episode[];
+};
+
+const ROLE_LABELS: Partial<Record<EpisodeRole, string>> = {
+  series_premiere: 'Estreno',
+  season_premiere: 'Estreno T.',
+  season_finale: 'Final T.',
+  mid_season_finale: 'Final mid-season',
+};
+
+const ROLE_STYLES: Partial<Record<EpisodeRole, string>> = {
+  series_premiere: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100',
+  season_premiere: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100',
+  season_finale: 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-100',
+  mid_season_finale: 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-100',
 };
 
 export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
@@ -48,18 +63,29 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
             </button>
             {isOpen && (
               <ul className="divide-y divide-slate-100">
-                {list.map((episode) => (
-                  <li key={episode.tvmaze_episode_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    <span className="min-w-0 truncate text-slate-800 dark:text-slate-200">
-                      <span className="mr-2 font-bold text-pastel-accent">E{episode.number}</span>
-                      {episode.name ?? 'Sin título'}
-                    </span>
-                    <span className="shrink-0 text-xs text-slate-500">
-                      {formatDate(episode.airdate)}
-                      {episode.runtime ? ` · ${episode.runtime} min` : ''}
-                    </span>
-                  </li>
-                ))}
+                {list.map((episode) => {
+                  const role = episode.role_override ?? 'regular';
+                  const showRoleBadge = role !== 'regular';
+                  const showSpecialBadge = episode.special_tag !== null && episode.special_tag !== undefined;
+                  return (
+                    <li key={episode.tvmaze_episode_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="shrink-0 font-bold text-pastel-accent">E{episode.number}</span>
+                        <span className="truncate text-slate-800 dark:text-slate-200">{episode.name ?? 'Sin título'}</span>
+                        {showRoleBadge && (
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_STYLES[role]}`}>{ROLE_LABELS[role]}</span>
+                        )}
+                        {showSpecialBadge && episode.special_tag !== null && (
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${SPECIAL_TAG_STYLES[episode.special_tag]}`}>{SPECIAL_TAG_LABELS[episode.special_tag]}</span>
+                        )}
+                      </div>
+                      <span className="shrink-0 text-xs text-slate-500">
+                        {formatDate(episode.airdate)}
+                        {episode.runtime ? ` · ${episode.runtime} min` : ''}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
