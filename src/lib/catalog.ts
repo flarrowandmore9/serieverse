@@ -118,7 +118,7 @@ export const SPECIAL_TAG_LABELS: Record<NonNullable<SpecialTag>, string> = {
 };
 
 export const SPECIAL_TAG_STYLES: Record<NonNullable<SpecialTag>, string> = {
-  crossover: 'bg-violet-100 text-violet-800 dark:bg-violet-900/60 dark:text-violet-100',
+  crossover: 'mt-1 ml-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-violet-100 text-violet-800 dark:bg-violet-900/60 dark:text-violet-100',
   halloween: 'bg-orange-100 text-orange-800 dark:bg-orange-900/60 dark:text-orange-100',
   christmas: 'bg-red-100 text-red-800 dark:bg-red-900/60 dark:text-red-100',
   special: 'bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-100',
