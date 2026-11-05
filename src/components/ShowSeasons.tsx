@@ -46,12 +46,12 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
         const firstAirdate = list[0]?.airdate ?? null;
         const lastAirdate = list[list.length - 1]?.airdate ?? null;
         return (
-          <div key={season} className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div key={season} className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
             <button
               type="button"
               onClick={() => setOpenSeason(isOpen ? null : season)}
               aria-expanded={isOpen}
-              className="flex w-full items-center justify-between gap-3 bg-pastel-cream px-4 py-3 text-left transition hover:bg-pastel-rose/40 dark:bg-slate-800 dark:hover:bg-slate-700"
+              className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-pastel-cream/60 dark:hover:bg-slate-800"
             >
               <div>
                 <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Temporada {season} · {list.length} episodios </p>
