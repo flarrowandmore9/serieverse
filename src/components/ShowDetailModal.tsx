@@ -164,9 +164,10 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
               )}
             </section>
           ) : (
-            <section className="space-y-4 rounded-2xl border border-pastel-accent/25 bg-pastel-cream/60 p-4 dark:bg-slate-800/604">
+          <p className="text-sm text-slate-500 dark:text-slate-400">Consulta el desglose de cada temporada, con las fechas de emisión y la duración real de cada episodio.</p>  
+          <section className="space-y-4 rounded-2xl border border-pastel-accent/25 bg-pastel-cream/60 p-4 dark:bg-slate-800/604">
               <h3 className="sr-only">Temporadas</h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">Consulta el desglose de cada temporada, con las fechas de emisión y la duración real de cada episodio.</p>
+              
               {isAdmin ? (
                 <AdminEpisodeEditor show={{ id: show.id, title: show.title }} episodes={detail.data?.episodes ?? []} onChanged={detail.reload} />
               ) : (
