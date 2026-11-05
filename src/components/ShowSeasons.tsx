@@ -46,20 +46,21 @@ export default function ShowSeasons({ episodes }: ShowSeasonsProps) {
         const isOpen = openSeason === season;
         const seasonEpisodes = episodes.filter((episode) => episode.season === season);
         return (
-          <div key={season} className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+          <div key={season} className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
             <button
               type="button"
-              aria-expanded={isOpen}
               onClick={() => setOpenSeason(isOpen ? null : season)}
+              aria-expanded={isOpen}
               className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-pastel-cream/60 dark:hover:bg-slate-800"
             >
               <div>
-                <span className="text-xs font-black uppercase tracking-wide text-pastel-accent">Temporada {season} · {seasonEpisodes.length} episodios</span>
+                <p className="text-xs font-black uppercase tracking-wide text-pastel-accent">Temporada {season} · {seasonEpisodes.length} episodios</p>
+                
               </div>
-              <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 text-pastel-accent transition ${isOpen ? 'rotate-180' : ''}`} />
             </button>
             {isOpen && (
-              <ul className="divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-700 dark:border-slate-700">
+              <ul className="divide-y divide-slate-100">
                 {list.map((episode) => {
                   const role = episode.role_override ?? 'regular';
                   const showRoleBadge = role !== 'regular';
