@@ -75,7 +75,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                 <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Estreno:</span> {formatDate(show.premiered)}</span>
                   <span aria-hidden="true">·</span>
-                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Cadena original:</span> {show.network_name ?? 'Sin datos'}</span>
+                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Cadena Original:</span> {show.network_name ?? 'Sin datos'}</span>
                   <span aria-hidden="true">·</span>
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
                 </p>
