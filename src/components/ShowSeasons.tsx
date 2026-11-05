@@ -12,7 +12,7 @@ const ROLE_LABELS: Partial<Record<EpisodeRole, string>> = {
   series_premiere: 'Estreno',
   season_premiere: 'Estreno T.',
   season_finale: 'Final T.',
-  mid_season_finale: 'Final mid-season',
+  mid_season_finale: 'Final Mitad T',
 };
 
 const ROLE_STYLES: Partial<Record<EpisodeRole, string>> = {
