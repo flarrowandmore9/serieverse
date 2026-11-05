@@ -169,6 +169,20 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
               <p className="text-sm text-slate-500 dark:text-slate-400">Consulta el desglose de cada temporada, con las fechas de emisión y la duración real de cada episodio.</p>
               {isAdmin ? (
                 <AdminEpisodeEditor show={{ id: show.id, title: show.title }} episodes={detail.data?.episodes ?? []} onChanged={detail.reload} />
+
+              {error && <p role="alert" className="text-xs font-semibold text-rose-700">{error}</p>}
+      {seasons.map((season) => {
+        const isOpen = openSeason === season;
+        const seasonEpisodes = episodes.filter((episode) => episode.season === season);
+        return (
+          <section key={season} className="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+            <button
+              type="button"
+              aria-expanded={isOpen}
+              onClick={() => setOpenSeason(isOpen ? null : season)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-pastel-cream/60 dark:hover:bg-slate-800"
+            >
+              <span className="text-xs font-black uppercase tracking-wide text-pastel-accent">Temporada {season} · {seasonEpisodes.length} episodios</span>
               ) : (
                 <ShowSeasons episodes={detail.data?.episodes ?? []} />
               )}
