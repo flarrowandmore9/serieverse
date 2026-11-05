@@ -164,13 +164,15 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
               )}
             </section>
           ) : (
-            <section class="space-y-4">
-            <h3 class="sr-only">Temporadas</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">Consulta el desglose de cada temporada, con las fechas de emisión y la duración real de cada episodio.</p>
-            <div class="space-y-4 rounded-2xl border border-pastel-accent/25 bg-pastel-cream/60 p-4 dark:bg-slate-800/60">
-            <section class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"><button type="button" aria-expanded="false" class="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-pastel-cream/60 dark:hover:bg-slate-800">
-              <span className="text-xs font-black uppercase tracking-wide text-pastel-accent">Temporada {season} · {seasonEpisodes.length} episodios</span>
-              </section></div></section>
+            <section className="space-y-4">
+              <h3 className="sr-only">Temporadas</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Consulta el desglose de cada temporada, con las fechas de emisión y la duración real de cada episodio.</p>
+              {isAdmin ? (
+                <AdminEpisodeEditor show={{ id: show.id, title: show.title }} episodes={detail.data?.episodes ?? []} onChanged={detail.reload} />
+              ) : (
+                <ShowSeasons episodes={detail.data?.episodes ?? []} />
+              )}
+            </section>
           )}
         </div>
       )}
