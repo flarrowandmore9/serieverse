@@ -1,9 +1,9 @@
 {
-  "projectId": "72519730",
+  "projectId": "72636423",
   "functions": {
     "sync-catalog": {
       "hasChanged": false,
-      "hash": "6c73241a2581c2f968c18879eb987dfb3229472b37f6ce585d1f9e06f81f5972"
+      "hash": "76b818f3f7f9efe94d1dfb70841465362094a8c9f7a8e909b69f08590eeac2c5"
     }
   }
 }

@@ -3,6 +3,7 @@ import { ChevronDown, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import AdminCalendarEditor from '@/components/AdminCalendarEditor';
 import { formatDate, toIsoDate } from '@/lib/format';
 import { deleteEpisode, updateEpisode } from '@/lib/admin';
+import { SPECIAL_TAG_LABELS, SPECIAL_TAG_STYLES } from '@/lib/catalog';
 import type { Episode } from '@/lib/types';
 
 type AdminEpisodeEditorProps = {

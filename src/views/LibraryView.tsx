@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Plus, Trash2, Tv } from 'lucide-react';
+import { ArrowDownAZ, Plus, Trash2, Tv } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingState } from '@/components/PageStates';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { createFolder, deleteFolder, fetchFolders, fetchListEntries, moveListItem, removeListItem } from '@/lib/userData';
@@ -8,7 +8,7 @@ type LibraryViewProps = {
   onOpenShow: (showId: number) => void;
 };
 
-const FIXED_FILTERS = ['Todas', 'Favoritas'] as const;
+type SortMode = 'recent' | 'title';
 
 export default function LibraryView({ onOpenShow }: LibraryViewProps) {
   const folders = useAsyncData(fetchFolders, []);
@@ -17,19 +17,21 @@ export default function LibraryView({ onOpenShow }: LibraryViewProps) {
   const [newFolder, setNewFolder] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
-
-  const visible = useMemo(
-    () => (entries.data ?? []).filter((entry) => activeFolder === 'Todas' || entry.folder === activeFolder),
-    [entries.data, activeFolder],
-  );
-
-  const countFor = (folder: string) =>
-    (entries.data ?? []).filter((entry) => folder === 'Todas' || entry.folder === folder).length;
+  const [sortMode, setSortMode] = useState<SortMode>('recent');
+  const [manageMode, setManageMode] = useState(false);
 
   const folderNames = useMemo(() => {
     const names = folders.data ?? [];
     return names.includes('Favoritas') ? ['Favoritas', ...names.filter((name) => name !== 'Favoritas')] : names;
   }, [folders.data]);
+
+  const visible = useMemo(() => {
+    const filtered = (entries.data ?? []).filter((entry) => activeFolder === 'Todas' || entry.folder === activeFolder);
+    if (sortMode === 'title') {
+      return [...filtered].sort((a, b) => a.show.title.localeCompare(b.show.title, 'es'));
+    }
+    return filtered;
+  }, [entries.data, activeFolder, sortMode]);
 
   const handleCreateFolder = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -85,6 +87,8 @@ export default function LibraryView({ onOpenShow }: LibraryViewProps) {
     }
   };
 
+  const tabs = ['Todas', ...folderNames];
+
   return (
     <section className="space-y-8">
       <header className="space-y-2">
@@ -101,11 +105,15 @@ export default function LibraryView({ onOpenShow }: LibraryViewProps) {
       {folders.data && entries.data && (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center gap-2">
-            {[...FIXED_FILTERS, ...folderNames.filter((name) => !FIXED_FILTERS.includes(name as (typeof FIXED_FILTERS)[number]))].map((name) => (
-              <div key={name} className="flex items-center gap-1 rounded-full bg-white ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
-                <button type="button" onClick={() => setActiveFolder(name)} className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeFolder === name ? 'bg-pastel-accent text-white shadow-sm' : 'text-slate-700 hover:bg-pastel-rose/40 dark:text-slate-300'}`}>{name} <span className="opacity-70">({countFor(name)})</span></button>
-                {!FIXED_FILTERS.includes(name as (typeof FIXED_FILTERS)[number]) && <button type="button" aria-label={`Eliminar carpeta ${name}`} onClick={() => removeFolder(name)} className="mr-1 rounded-full p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="h-3.5 w-3.5" /></button>}
-              </div>
+            {tabs.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setActiveFolder(name)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeFolder === name ? 'bg-pastel-accent text-white shadow-sm' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-pastel-rose/40 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700'}`}
+              >
+                {name}
+              </button>
             ))}
             <form onSubmit={handleCreateFolder} className="flex items-center gap-2">
               <input
@@ -123,7 +131,47 @@ export default function LibraryView({ onOpenShow }: LibraryViewProps) {
                 <Plus className="h-4 w-4" />
               </button>
             </form>
+            <button
+              type="button"
+              aria-label={sortMode === 'recent' ? 'Ordenar alfabéticamente' : 'Ordenar por recientes'}
+              title={sortMode === 'recent' ? 'Ordenar A-Z' : 'Ordenar por recientes'}
+              onClick={() => setSortMode((prev) => (prev === 'recent' ? 'title' : 'recent'))}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-600 ring-1 ring-slate-200 transition hover:bg-pastel-rose/40 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
+            >
+              <ArrowDownAZ className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label={manageMode ? 'Salir de modo gestión' : 'Eliminar carpetas'}
+              title={manageMode ? 'Salir de gestión' : 'Eliminar carpetas'}
+              onClick={() => setManageMode((prev) => !prev)}
+              className={`flex h-9 w-9 items-center justify-center rounded-full ring-1 transition ${manageMode ? 'bg-rose-100 text-rose-700 ring-rose-300 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-800' : 'bg-white text-slate-600 ring-slate-200 hover:bg-pastel-rose/40 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700'}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           </div>
+
+          {manageMode && (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/40">
+              <p className="mb-3 text-xs font-bold text-rose-700 dark:text-rose-300">Modo gestión — pulsa el botón para eliminar una carpeta personal:</p>
+              <div className="flex flex-wrap gap-2">
+                {folderNames.filter((name) => name !== 'Favoritas').map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => removeFolder(name)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-bold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100 dark:bg-slate-800 dark:text-rose-300 dark:ring-rose-800"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {name}
+                  </button>
+                ))}
+                {folderNames.filter((name) => name !== 'Favoritas').length === 0 && (
+                  <p className="text-xs text-slate-500">No hay carpetas personales para eliminar.</p>
+                )}
+              </div>
+            </div>
+          )}
 
           {actionError && <p role="alert" className="text-sm font-medium text-rose-700">{actionError}</p>}
 

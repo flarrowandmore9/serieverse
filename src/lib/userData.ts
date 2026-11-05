@@ -13,8 +13,8 @@ export async function createFolder(name: string): Promise<void> {
 }
 
 export async function deleteFolder(name: string): Promise<void> {
-  if (name === 'Favoritas' || name === 'General' || name === 'Viendo' || name === 'Pendientes') {
-    throw new Error('Las carpetas predeterminadas no se pueden eliminar.');
+  if (name === 'Favoritas') {
+    throw new Error('La carpeta Favoritas no se puede eliminar.');
   }
   const { error } = await supabase.from('user_folders').delete().eq('name', name);
   if (error) throw new Error('Vacía la carpeta antes de eliminarla.');
