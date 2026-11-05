@@ -160,7 +160,7 @@ export default function AdminCalendarEditor({ episode, lockedShow, defaultDate, 
             </select>
           </label>
           <label className="space-y-1.5 sm:col-span-2">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Episodio especial</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Etiqueta</span>
             <select value={specialTag ?? ''} onChange={(e) => setSpecialTag((e.target.value || null) as SpecialTag)} className={inputClass}>
               {SPECIAL_TAGS.map((tag) => (
                 <option key={tag.label} value={tag.value ?? ''}>{tag.label}</option>
