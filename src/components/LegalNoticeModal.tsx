@@ -24,7 +24,7 @@ export default function LegalNoticeModal({ onClose }: LegalNoticeModalProps) {
         </div>
         <div className="space-y-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
           <p>SerieVerse es un proyecto informativo, sin ánimo de lucro, creado por Flarrow & More.</p>
-          <p>Los datos de series y episodios proceden de las APIs de TVMaze e TMDB (The Movie Database), o han sido añadidos manualmente por Flarrow & More.</p>
+          <p>Los datos de series y episodios proceden de las APIs de TVMaze y TMDB (The Movie Database), o han sido añadidos manualmente por Flarrow & More.</p>
           <p>Los títulos, carátulas, logotipos y marcas registradas pertenecen a sus respectivos dueños. Esta web no está afiliada ni avalada por ellos.</p>
           <p>Las plataformas y cadenas se mencionan únicamente como referencia informativa.</p>
         </div>
