@@ -43,7 +43,7 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
         es_platforms: parsePlatformInput(esPlatforms),
       });
       setTvmazeId('');
-      setthemoviedbId('');
+      setimdbId('');
       setTitle('');
       setUsPlatforms('');
       setEsPlatforms('');
