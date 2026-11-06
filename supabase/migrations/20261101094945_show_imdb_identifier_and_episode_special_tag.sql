@@ -1,8 +1,8 @@
 /*
-# Add optional IMDb identifiers and a general special episode tag
+# Add optional TMDB identifiers and a general special episode tag
 
 1. Modified tables
-- `shows`: adds nullable `imdb_id` for an optional IMDb series identifier.
+- `shows`: adds nullable `TMDB_id` for an optional TMDB series identifier.
 - `episodes`: documents `special_tag` values including crossover, Halloween, Christmas and special.
 
 2. Security
@@ -13,4 +13,4 @@
 - Additive only. Existing rows remain unchanged.
 */
 
-ALTER TABLE shows ADD COLUMN IF NOT EXISTS imdb_id text;
+ALTER TABLE shows ADD COLUMN IF NOT EXISTS TMDB_id text;
