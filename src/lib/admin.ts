@@ -3,7 +3,7 @@ import type { Character, Episode, EpisodeRole, Profile, ShowListItem, SpecialTag
 
 export type ShowInput = {
   tvmaze_id: number | null;
-  imdb_id: string | null;
+  TMDB_id: string | null;
   title: string;
   synopsis_es: string | null;
   us_platforms: string[];
