@@ -43,7 +43,7 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
         es_platforms: parsePlatformInput(esPlatforms),
       });
       setTvmazeId('');
-      setImdbId('');
+      setTMDBId('');
       setTitle('');
       setUsPlatforms('');
       setEsPlatforms('');
@@ -83,7 +83,7 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
             <input inputMode="numeric" value={tvmazeId} onChange={(e) => setTvmazeId(e.target.value)} className={inputClass} />
           </label>
           <label className="space-y-1.5">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de IMDb (opcional)</span>
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de TMDB (opcional)</span>
             <input value={imdbId} onChange={(e) => setImdbId(e.target.value)} placeholder="tt1234567" className={inputClass} />
           </label>
           <label className="space-y-1.5">
