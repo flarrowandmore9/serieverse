@@ -83,7 +83,7 @@ export default function App() {
       <footer className="mt-12 border-t border-slate-200/80 bg-white py-8 text-center transition-colors dark:border-slate-800/80 dark:bg-slate-950">
         <p className="text-sm font-extrabold text-slate-900 dark:text-white">SerieVerse</p>
         <p className="mt-1 text-xs text-slate-500">
-          Creada por <strong className="font-bold text-pastel-accent">Flarrow & More</strong> · Datos de TVMaze e IMDb, actualizados cada día
+          Creada por <strong className="font-bold text-pastel-accent">Flarrow & More</strong> · Datos de TVMaze y TMDB, actualizados cada día
         </p>
         <button
           type="button"
