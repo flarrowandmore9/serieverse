@@ -84,7 +84,7 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de TMDB (opcional)</span>
-            <input value={themoviedbId} onChange={(e) => setImdbId(e.target.value)} placeholder="tt1234567" className={inputClass} />
+            <input value={imdbId} onChange={(e) => setImdbId(e.target.value)} placeholder="tt1234567" className={inputClass} />
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título (referencia)</span>
