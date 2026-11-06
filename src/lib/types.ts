@@ -15,7 +15,7 @@ export type ShowListItem = {
   premiered: string | null;
   rating: number | null;
   is_miniseries: boolean;
-  TMDB_id: string | null;
+  themoviedb_id: string | null;
   network_name: string | null;
   us_platforms: string[];
   es_platforms: string[];
