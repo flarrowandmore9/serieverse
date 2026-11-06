@@ -16,7 +16,7 @@ const inputClass =
 export default function AdminShows({ onOpenShow }: AdminShowsProps) {
   const shows = useAsyncData(() => fetchCatalog({ search: '', genre: '', sort: 'recent' }, 1000), []);
   const [tvmazeId, setTvmazeId] = useState('');
-  const [TMDBId, setthemoviedbId] = useState('');
+  const [TMDBId, setimdbId] = useState('');
   const [title, setTitle] = useState('');
   const [usPlatforms, setUsPlatforms] = useState('');
   const [esPlatforms, setEsPlatforms] = useState('');
