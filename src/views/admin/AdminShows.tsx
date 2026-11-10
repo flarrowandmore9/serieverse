@@ -16,7 +16,7 @@ const inputClass =
 export default function AdminShows({ onOpenShow }: AdminShowsProps) {
   const shows = useAsyncData(() => fetchCatalog({ search: '', genre: '', sort: 'recent' }, 1000), []);
   const [tvmazeId, setTvmazeId] = useState('');
-  const [TmdbId, setTmdbId] = useState('');
+  const [TmdbId, setimdbId] = useState('');
   const [title, setTitle] = useState('');
   const [usPlatforms, setUsPlatforms] = useState('');
   const [esPlatforms, setEsPlatforms] = useState('');
@@ -43,7 +43,7 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
         es_platforms: parsePlatformInput(esPlatforms),
       });
       setTvmazeId('');
-      setTmdbId('');
+      setimdbId('');
       setTitle('');
       setUsPlatforms('');
       setEsPlatforms('');
