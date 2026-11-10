@@ -16,7 +16,7 @@ const inputClass =
 export default function AdminShows({ onOpenShow }: AdminShowsProps) {
   const shows = useAsyncData(() => fetchCatalog({ search: '', genre: '', sort: 'recent' }, 1000), []);
   const [tvmazeId, setTvmazeId] = useState('');
-  const [TmdbId, setimdbId] = useState('');
+  const [TmdbId, setTmdbId] = useState('');
   const [title, setTitle] = useState('');
   const [usPlatforms, setUsPlatforms] = useState('');
   const [esPlatforms, setEsPlatforms] = useState('');
@@ -43,7 +43,7 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
         es_platforms: parsePlatformInput(esPlatforms),
       });
       setTvmazeId('');
-      setimdbId('');
+      setTmdbId('');
       setTitle('');
       setUsPlatforms('');
       setEsPlatforms('');
@@ -84,7 +84,7 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de TMDB (opcional)</span>
-            <input value={imdbId} onChange={(e) => setImdbId(e.target.value)} placeholder="tt1234567" className={inputClass} />
+            <input value={imdbId} onChange={(e) => setTmdbId(e.target.value)} placeholder="tt1234567" className={inputClass} />
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título (referencia)</span>
