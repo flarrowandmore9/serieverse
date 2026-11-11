@@ -4,6 +4,20 @@ import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import type { ViewId } from '@/lib/types';
 
+const handleSyncTVMaze = async () => {
+    setIsSyncingTVMaze(true);
+    try {
+      await runTmdbSync();
+      await reloadCatalog();
+      setCatalogError('');
+    } catch (cause) {
+      console.error('tvmaze sync failed', cause);
+      setCatalogError('No hemos podido actualizar desde TVMaze. Revisa que la clave esté configurada e inténtalo de nuevo.');
+    } finally {
+      setIsSyncingTMDB(false);
+    }
+  };
+
 type NavbarProps = {
   view: ViewId;
   onNavigate: (view: ViewId) => void;
