@@ -36,7 +36,7 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
     try {
       await addShow({
         tvmaze_id: id,
-        imdb_id: TmdbId.trim() || null,
+        imdb_id: imdbId.trim() || null,
         title: title.trim(),
         synopsis_es: null,
         us_platforms: parsePlatformInput(usPlatforms),
