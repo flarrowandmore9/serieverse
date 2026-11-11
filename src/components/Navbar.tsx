@@ -14,7 +14,7 @@ const handleSyncTVMaze = async () => {
       console.error('tvmaze sync failed', cause);
       setCatalogError('No hemos podido actualizar desde TVMaze. Revisa que la clave esté configurada e inténtalo de nuevo.');
     } finally {
-      setIsSyncingTMDB(false);
+      setIsSyncingTVMaze(false);
     }
   };
 
