@@ -4,20 +4,6 @@ import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import type { ViewId } from '@/lib/types';
 
-const handleSyncTVMaze = async () => {
-    setIsSyncingTVMaze(true);
-    try {
-      await runTmdbSync();
-      await reloadCatalog();
-      setCatalogError('');
-    } catch (cause) {
-      console.error('tvmaze sync failed', cause);
-      setCatalogError('No hemos podido actualizar desde TVMaze. Revisa que la clave esté configurada e inténtalo de nuevo.');
-    } finally {
-      setIsSyncingTVMaze(false);
-    }
-  };
-
 type NavbarProps = {
   view: ViewId;
   onNavigate: (view: ViewId) => void;
@@ -66,19 +52,6 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
           <NavButton item={{ id: 'suggestions', label: settings.nav_suggestions ?? 'Sugerencias', icon: MessageSquare }} active={view === 'suggestions'} onClick={() => onNavigate('suggestions')} />
         </nav>
 
-        <div className="flex items-center gap-2 font-sans-body">
-        {isAdmin && (
-              <button
-                onClick={handleSyncTVMaze}
-                disabled={isSyncingTVMaze}
-                title="Actualizar el catálogo desde TVMaze"
-                className="hidden lg:flex items-center gap-1.5 bg-[#184E3A] hover:bg-[#123D2D] text-white px-3.5 py-1.5 rounded-full text-xs font-bold transition-all disabled:opacity-60"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingTVMaze ? 'animate-spin' : ''}`} />
-                {isSyncingTVMaze ? 'Actualizando…' : 'Actualizar TVMaze'}
-              </button>
-            )}
-        
         <div className="flex items-center gap-2">
           <button
             type="button"
