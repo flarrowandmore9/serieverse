@@ -1,5 +1,5 @@
 const CACHE_NAME = 'serieverse-shell-v8';
-const SHELL_URLS = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg', '/icon-180.png', '/icon-192.png', '/icon-512.png'];
+const SHELL_URLS = ['/', '/index.html', '/manifest.webmanifest', '/icon.pn', '/icon-180.png', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS)));
