@@ -97,7 +97,6 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
     </svg>
   </button>
 )}
-          
 
           {isAdmin && (
             <button
