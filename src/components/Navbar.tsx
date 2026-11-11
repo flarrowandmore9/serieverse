@@ -60,22 +60,7 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
   </button>
 </div>
 
-      async function triggerManualSync() {
-  try {
-    alert("Iniciando sincronización manual...");
-    // Aquí se conecta a tu función existente de actualización
-    if (typeof fetchShowsFromAPI === 'function') {
-      await fetchShowsFromAPI();
-      alert("¡Sincronización completada con éxito!");
-      location.reload();
-    } else {
-      alert("La función de sincronización no está disponible en este archivo.");
-    }
-  } catch (error) {
-    console.error(error);
-    alert("Hubo un error al sincronizar.");
-  }
-}  
+        
         
         <div className="flex items-center gap-2">
           <button
