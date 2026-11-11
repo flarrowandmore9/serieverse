@@ -52,6 +52,7 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
           <NavButton item={{ id: 'suggestions', label: settings.nav_suggestions ?? 'Sugerencias', icon: MessageSquare }} active={view === 'suggestions'} onClick={() => onNavigate('suggestions')} />
         </nav>
 
+        <div className="flex items-center gap-2 font-sans-body">
         {isAdmin && (
               <button
                 onClick={handleSyncTMDB}
