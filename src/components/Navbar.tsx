@@ -52,6 +52,31 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
           <NavButton item={{ id: 'suggestions', label: settings.nav_suggestions ?? 'Sugerencias', icon: MessageSquare }} active={view === 'suggestions'} onClick={() => onNavigate('suggestions')} />
         </nav>
 
+<div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 mt-4">
+  <h4 class="text-xs font-bold uppercase text-slate-700 dark:text-slate-200 tracking-wider mb-2">Sincronización Manual</h4>
+  <p class="text-[11px] text-slate-500 mb-3">Fuerza la actualización de episodios y datos desde las APIs externas.</p>
+  <button onclick="triggerManualSync()" class="py-2 px-4 bg-indigo-600 text-white font-bold rounded-xl text-xs hover:bg-indigo-700 transition flex items-center gap-2">
+    🔄 Actualizar Catálogo Ahora
+  </button>
+</div>
+
+      async function triggerManualSync() {
+  try {
+    alert("Iniciando sincronización manual...");
+    // Aquí se conecta a tu función existente de actualización
+    if (typeof fetchShowsFromAPI === 'function') {
+      await fetchShowsFromAPI();
+      alert("¡Sincronización completada con éxito!");
+      location.reload();
+    } else {
+      alert("La función de sincronización no está disponible en este archivo.");
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Hubo un error al sincronizar.");
+  }
+}  
+        
         <div className="flex items-center gap-2">
           <button
             type="button"
