@@ -55,13 +55,13 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
         <div className="flex items-center gap-2 font-sans-body">
         {isAdmin && (
               <button
-                onClick={handleSyncTMDB}
-                disabled={isSyncingTMDB}
-                title="Actualizar el catálogo desde TMDB"
+                onClick={handleSyncTVMaze}
+                disabled={isSyncingTVMaze}
+                title="Actualizar el catálogo desde TVMaze"
                 className="hidden lg:flex items-center gap-1.5 bg-[#184E3A] hover:bg-[#123D2D] text-white px-3.5 py-1.5 rounded-full text-xs font-bold transition-all disabled:opacity-60"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingTMDB ? 'animate-spin' : ''}`} />
-                {isSyncingTMDB ? 'Actualizando…' : 'Actualizar TMDB'}
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingTVMaze ? 'animate-spin' : ''}`} />
+                {isSyncingTVMaze ? 'Actualizando…' : 'Actualizar TVMaze'}
               </button>
             )}
         
