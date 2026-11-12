@@ -133,9 +133,7 @@ function catalogFields(data: TvmazeShow) {
 }
 
 function isNamedNetwork(show: TvmazeShow): boolean {
-  return [show.network?.name, show.webChannel?.name]
-    .filter((name): name is string => typeof name === "string")
-    .some((name) => US_NETWORKS.has(name.toLowerCase()) || ES_NETWORKS.has(name.toLowerCase()));
+  return true;
 }
 
 function isSeries(show: TvmazeShow): boolean {
