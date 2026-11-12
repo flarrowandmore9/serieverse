@@ -58,9 +58,21 @@ export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps
               {show.rating}
             </span>
           ) : <span />}
-          <div className="flex min-w-0 items-center gap-1">
+          <div className="flex min-w-0 items-center gap-1 flex-wrap justify-end">
             {show.is_miniseries && (
               <span className="shrink-0 rounded-full bg-pastel-gold px-1.5 py-px text-[8px] font-bold text-amber-800 dark:bg-pastel-goldDark dark:text-amber-200">Miniserie</span>
+            )}
+            {show.is_spinoff && (
+              <span className="shrink-0 rounded-full bg-amber-100 px-1.5 py-px text-[8px] font-bold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Spin-off</span>
+            )}
+            {show.is_reboot && (
+              <span className="shrink-0 rounded-full bg-purple-100 px-1.5 py-px text-[8px] font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">Reboot</span>
+            )}
+            {show.is_secuela && (
+              <span className="shrink-0 rounded-full bg-blue-100 px-1.5 py-px text-[8px] font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Secuela</span>
+            )}
+            {show.is_prequel && (
+              <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-px text-[8px] font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">Precuela</span>
             )}
             <span className={`shrink-0 rounded-full px-1.5 py-px text-[8px] font-bold ${status.className}`}>{status.label}</span>
           </div>
