@@ -28,6 +28,8 @@ export async function fetchCatalog({ search, genre, sort }: CatalogQuery, limit:
 
   const { data, error } = await query.order('title').limit(limit);
   if (error) throw new Error(error.message);
+  
+  console.log("Series encontradas en Supabase:", data); // <-- Añade esto
   return (data ?? []) as ShowListItem[];
 }
 
