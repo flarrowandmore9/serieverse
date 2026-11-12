@@ -123,7 +123,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
             Secuela
           </label>
           <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition">
-            <input type="checkbox" checked={isSecuela} onChange={(e) => setIsSecuela(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
+            <input type="checkbox" checked={isSecuela} onChange={(e) => setIsPrecuela(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
             Precuela
           </label>
           <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition">
