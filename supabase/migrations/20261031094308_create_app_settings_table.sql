@@ -58,5 +58,5 @@ INSERT INTO app_settings (key, value) VALUES
   ('nav_suggestions', 'Sugerencias'),
   ('hero_title', 'SerieVerse'),
   ('hero_subtitle', 'Tu catálogo de series de televisión de EE. UU. y España'),
-  ('btn_download', 'Descargar App')
+  ('btn_download', 'Instalar App')
 ON CONFLICT (key) DO NOTHING;
