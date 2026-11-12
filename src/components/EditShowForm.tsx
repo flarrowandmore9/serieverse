@@ -66,8 +66,10 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           .filter((member) => member.actor),
       });
       onSaved(updated);
-    } catch {
-      setError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
+    } catch (err: any) {
+      // AQUÍ ESTÁ EL CAMBIO: Mostramos el error real en pantalla y en la consola
+      console.error("Error detallado al guardar:", err);
+      setError('Error real: ' + (err.message || JSON.stringify(err)));
     } finally {
       setSaving(false);
     }
