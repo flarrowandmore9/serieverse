@@ -6,7 +6,7 @@
 - Each run refreshes only a batch of shows that have never been synced or whose data is older than 20 hours, within a time limit, so the whole catalog stays current without timing out.
 
 2. Scheduled jobs
-- Removes `serieverse-daily-sync` (daily at 03:00 UTC).
+- Removes `serieverse-daily-sync` (daily at 04:00 UTC).
 - Adds `serieverse-catalog-sync` (every 2 minutes) calling the catalog sync function in sync mode.
 
 3. Security
