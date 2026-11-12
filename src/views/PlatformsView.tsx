@@ -18,7 +18,7 @@ const REGIONS: { value: Region; label: string }[] = [
 const CHOICES: Record<Region, Record<Category, Choice[]>> = {
   es: {
     networks: [
-      { label: 'RTVE', names: ['RTVE', 'TVE', 'La 1'] },
+      { label: 'RTVE', names: ['RTVE', 'TVE', 'La 1', 'La 2'] },
       { label: 'Antena 3', names: ['Antena 3'] },
       { label: 'Atresplayer', names: ['Atresplayer', 'Atresplayer Premium'] },
       { label: 'Cuatro', names: ['Cuatro'] },
@@ -49,9 +49,20 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
       { label: 'Showtime', names: ['Showtime'] },
     ],
     platforms: [
-      ...['Netflix', 'Prime Video', 'HBO', 'HBO Max', 'Disney+', 'Hulu', 'Apple TV', 'Apple TV+', "Paramount+", "Peacock"].map((label) => ({ label, names: [label] })),
+      { label: 'Netflix', names: ['Netflix'] },
+      { label: 'Prime Video', names: ['Prime Video'] },
+      { label: 'HBO', names: ['HBO', 'HBO Max'] },
+      { label: 'Disney+', names: ['Disney+', 'Disney'] },
+      { label: 'Hulu', names: ['Hulu'] },
+      { label: 'Apple TV', names: ['Apple TV', 'Apple TV+'] },
+      { label: 'Paramount+', names: ['Paramount+', 'Paramount'] },
+      { label: 'Peacock', names: ['Peacock'] },
     ],
   },
+
+
+      
+     
 };
 
 export default function PlatformsView({ onOpenShow, onRequireLogin }: PlatformsViewProps) {
