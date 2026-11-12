@@ -21,11 +21,12 @@ export type ShowPatch = {
   poster_url: string | null;
   runtime: number | null;
   characters: Character[];
+  is_spinoff: boolean;
+  is_reboot: boolean;
+  is_secuela: boolean;
+  is_prequel: boolean;
   is_miniseries: boolean;
-  is_spinoff?: boolean;
-  is_reboot?: boolean;
-  is_secuela?: boolean;
-  is_prequel?: boolean;
+  
 };
 
 export type EpisodePatch = {
