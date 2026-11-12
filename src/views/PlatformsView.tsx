@@ -53,11 +53,11 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
       { label: 'Netflix', names: ['Netflix'] },
       { label: 'Prime Video', names: ['Prime Video'] },
       { label: 'HBO', names: ['HBO', 'HBO Max', 'Warner Bros.'] },
-      { label: 'Disney+', names: ['Disney+', 'Disney'] },
+      { label: 'Disney+', names: ['Disney+', 'Disney', 'Marvel', 'Star Wars'] },
       { label: 'Hulu', names: ['Hulu'] },
       { label: 'Apple TV', names: ['Apple TV', 'Apple TV+'] },
       { label: 'Paramount', names: ['Paramount', 'Paramount+', 'Paramount Network'] },
-      { label: 'Peacock', names: ['Peacock'] },
+      { label: 'Peacock', names: ['Peacock', 'Universal'] },
     ],
   },
 };
