@@ -66,7 +66,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
                   {show.is_miniseries && (
-                    <span className="rounded-full bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
+                    <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
                   )}
                 </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
