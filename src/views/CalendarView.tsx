@@ -22,9 +22,9 @@ const MAX_CHIPS_PER_DAY = 2;
 
 const ROLE_LEGEND: { role: EpisodeRole; label: string; chip: string; dot: string }[] = [
   { role: 'regular', label: 'Emisión Normal', chip: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-100', dot: 'bg-slate-300 dark:bg-slate-500' },
-  { role: 'season_premiere', label: 'Estreno Temporada', chip: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100', dot: 'bg-emerald-400' },
   { role: 'series_premiere', label: 'Estreno Serie', chip: 'bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-100', dot: 'bg-sky-400' },
-  { role: 'mid_season_finale', label: 'Final Mitad Temporada', chip: 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-100', dot: 'bg-amber-400' },
+  { role: 'season_premiere', label: 'Estreno Temporada', chip: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-100', dot: 'bg-emerald-400' },
+    { role: 'mid_season_finale', label: 'Final Mitad Temporada', chip: 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-100', dot: 'bg-amber-400' },
   { role: 'season_finale', label: 'Final Temporada', chip: 'bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-100', dot: 'bg-rose-400' },
 ];
 
