@@ -68,7 +68,7 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
             className="hidden items-center gap-2 rounded-xl bg-pastel-sage px-3 py-2 text-xs font-semibold text-emerald-800 transition hover:opacity-90 dark:bg-pastel-sageDark dark:text-emerald-200 sm:flex"
           >
             <Download className="h-4 w-4" />
-            {settings.btn_download ?? 'Descargar App'}
+            {settings.btn_download ?? 'Instalar App'}
           </button>
 
           {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
