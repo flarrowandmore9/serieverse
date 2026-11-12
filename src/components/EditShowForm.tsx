@@ -27,8 +27,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
   const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
-  // Nuevo estado para la etiqueta de relación
-  const [relationType, setRelationType] = useState((show as any).relation_type ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,7 +52,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
-        relation_type: relationType || null, // Guardamos la etiqueta seleccionada
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
@@ -100,18 +97,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
         </label>
       </div>
-
-      {/* NUEVO: Selector de Tipo de Relación para la Administradora */}
-      <label className="block space-y-1.5">
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Relación (Opcional)</span>
-        <select value={relationType} onChange={(e) => setRelationType(e.target.value)} className={inputClass}>
-          <option value="">Ninguna (Serie Independiente)</option>
-          <option value="Spin-off">Spin-off</option>
-          <option value="Reboot">Reboot</option>
-          <option value="Secuela">Secuela</option>
-        </select>
-      </label>
-
       <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
         <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
         Miniserie
