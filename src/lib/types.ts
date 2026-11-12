@@ -15,10 +15,10 @@ export type ShowListItem = {
   premiered: string | null;
   rating: number | null;
   is_miniseries: boolean;
-  is_spinoff?: boolean; // <-- Añadido
-  is_reboot?: boolean;  // <-- Añadido
-  is_secuela?: boolean; // <-- Añadido
-  is_prequel?: boolean; // <-- Añadido
+  is_spinoff: boolean; // <-- Añadido
+  is_reboot: boolean;  // <-- Añadido
+  is_secuela: boolean; // <-- Añadido
+  is_prequel: boolean; // <-- Añadido
   imdb_id: string | null;
   network_name: string | null;
   us_platforms: string[];
