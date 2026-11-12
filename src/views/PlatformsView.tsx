@@ -34,7 +34,9 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
       { label: 'Prime Video ᴇs', names: ['Prime Video ᴇs'] },
       { label: 'HBO ᴇs', names: ['HBO ᴇs', 'HBO Max ᴇs'] },
       { label: 'Disney+ ᴇs', names: ['Disney+ ᴇs'] },
+      { label: 'Movistar Plus+', names: ['Movistar Plus+'] },
       { label: 'SkyShowtime', names: ['SkyShowtime'] },
+      { label: 'Filmin', names: ['Filmin'] },
     ],
   },
   us: {
