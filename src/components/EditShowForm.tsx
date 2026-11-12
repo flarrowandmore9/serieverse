@@ -122,13 +122,17 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
             <input type="checkbox" checked={isSecuela} onChange={(e) => setIsSecuela(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
             Secuela
           </label>
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition col-span-2">
+            <input type="checkbox" checked={isPrequel} onChange={(e) => setIsPrequel(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
+            Precuela
+          </label>
           <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition">
             <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
             Miniserie
           </label>
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition col-span-2">
-            <input type="checkbox" checked={isPrequel} onChange={(e) => setIsPrequel(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
-            Precuela
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition">
+            <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
+            Otro
           </label>
         </div>
       </div>
