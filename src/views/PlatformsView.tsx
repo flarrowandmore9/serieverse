@@ -38,14 +38,14 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
   us: {
     networks: [
       { label: 'The CW', names: ['The CW'] },
-      { label: 'CBS', names: ['CBS'] },
-      { label: 'NBC', names: ['NBC'] },
       { label: 'ABC', names: ['ABC'] },
+      { label: 'NBC', names: ['NBC'] },
+      { label: 'CBS', names: ['CBS'] },
       { label: 'FOX', names: ['FOX'] },
       { label: 'AMC', names: ['AMC'] },
     ],
     platforms: [
-      ...['Hulu', 'Apple TV', 'Apple TV+', 'Netflix', 'Prime Video', 'Disney+', 'HBO', 'HBO Max'].map((label) => ({ label, names: [label] })),
+      ...['Netflix', 'Prime Video', 'HBO', 'HBO Max', 'Disney+', 'Hulu', 'Apple TV', 'Apple TV+',   ].map((label) => ({ label, names: [label] })),
     ],
   },
 };
