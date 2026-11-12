@@ -101,6 +101,16 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
         Miniserie
       </label>
+      <!-- Selector para elegir el tipo de relación en el Panel Admin -->
+<div>
+  <label class="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">Tipo de Relación (Opcional)</label>
+  <select id="custom-relation-type" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs">
+    <option value="">Serie Independiente (Normal)</option>
+    <option value="Spin-off">Spin-off</option>
+    <option value="Reboot">Reboot</option>
+    <option value="Secuela">Secuela</option>
+  </select>
+</div>
       <PosterField value={poster} onChange={setPoster} />
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-1.5">
