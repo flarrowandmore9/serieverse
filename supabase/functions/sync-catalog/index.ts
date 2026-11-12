@@ -22,8 +22,8 @@ const US_NETWORKS = new Set(
 
 const ES_NETWORKS = new Set(
   [
-    "RTVE", "RTVE Play", "La 1", "La 2", "TVE", "Antena 3", "Atresplayer", "ATRESplayer PREMIUM",
-    "Cuatro", "Telecinco", "AXN", "FOX", "Divinity", "Energy", "Netflix España", "Prime Video España",
+    "RTVE", "RTVE Play", "La 1", "La 2", "TVE", "Antena 3", "Atresplayer", "ATRESplayer PREMIUM", "Cuatro", "Telecinco",
+     "AXN", "FOX", "Divinity", "Energy", "Netflix España", "Prime Video España",
     "HBO España", "HBO Max España", "Disney+ España", "Warner Bros", "SkyShowtime",
   ].map((name) => name.toLowerCase()),
 );
