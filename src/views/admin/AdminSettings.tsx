@@ -8,7 +8,7 @@ import { refreshAppSettings } from '@/hooks/useAppSettings';
 const SETTING_FIELDS: { key: string; label: string }[] = [
   { key: 'hero_title', label: 'Título de la portada' },
   { key: 'hero_subtitle', label: 'Subtítulo de la portada' },
-  { key: 'btn_download', label: 'Texto del botón Descargar App' },
+  { key: 'btn_download', label: 'Texto del botón Instalar App' },
   { key: 'nav_catalog', label: 'Nombre del botón Catálogo' },
   { key: 'nav_calendar', label: 'Nombre del botón Calendario' },
   { key: 'nav_platforms', label: 'Nombre del botón Plataformas y Cadenas' },
