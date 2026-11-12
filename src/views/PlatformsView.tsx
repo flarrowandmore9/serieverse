@@ -19,8 +19,7 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
   es: {
     networks: [
       { label: 'RTVE', names: ['RTVE', 'TVE', 'La 1', 'La 2'] },
-      { label: 'Antena 3', names: ['Antena 3'] },
-      { label: 'Atresplayer', names: ['Atresplayer', 'Atresplayer Premium'] },
+      { label: 'Antena 3', names: ['Antena 3', 'A3Series'] },
       { label: 'Cuatro', names: ['Cuatro'] },
       { label: 'Telecinco', names: ['Telecinco'] },
       { label: 'AXN', names: ['AXN'] },
@@ -28,6 +27,8 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
     ],
     platforms: [
       { label: 'RTVE Play', names: ['RTVE Play'] },
+      { label: 'Atresplayer', names: ['Atresplayer', 'Atresplayer Premium'] },
+      { label: 'Mediaset', names: ['Mediaset'] },
       { label: 'Netflix ᴇs', names: ['Netflix ᴇs'] },
       { label: 'Prime Video ᴇs', names: ['Prime Video ᴇs'] },
       { label: 'HBO ᴇs', names: ['HBO ᴇs', 'HBO Max ᴇs'] },
@@ -59,10 +60,6 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
       { label: 'Peacock', names: ['Peacock'] },
     ],
   },
-
-
-      
-     
 };
 
 export default function PlatformsView({ onOpenShow, onRequireLogin }: PlatformsViewProps) {
