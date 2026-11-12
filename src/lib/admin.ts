@@ -22,10 +22,10 @@ export type ShowPatch = {
   runtime: number | null;
   characters: Character[];
   is_miniseries: boolean;
-  is_spinoff?: boolean;
-  is_reboot?: boolean;
-  is_secuela?: boolean;
-  is_prequel?: boolean;
+  is_spinoff: boolean;
+  is_reboot: boolean;
+  is_secuela: boolean;
+  is_prequel: boolean;
 };
 
 export type EpisodePatch = {
