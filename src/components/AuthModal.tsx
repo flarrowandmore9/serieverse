@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import Modal from '@/components/Modal';
 import { supabase } from '@/lib/supabase';
 
@@ -27,6 +27,9 @@ export default function AuthModal({ onClose }: AuthModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  
+  // Estado para alternar ver u ocultar contraseña
+  const [showPassword, setShowPassword] = useState(false);
 
   const switchMode = (next: Mode) => {
     setMode(next);
@@ -69,6 +72,24 @@ export default function AuthModal({ onClose }: AuthModalProps) {
     onClose();
   };
 
+  // Función para solicitar el cambio de contraseña
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      setError('Por favor, introduce tu correo electrónico primero.');
+      return;
+    }
+    try {
+      setError(null);
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin,
+      });
+      if (resetError) throw resetError;
+      setNotice('Correo enviado. Revisa tu bandeja de entrada para cambiar la contraseña.');
+    } catch (err: any) {
+      setError('No se pudo enviar el correo de recuperación.');
+    }
+  };
+
   return (
     <Modal title={mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'} onClose={onClose} maxWidth="max-w-md">
       <div className="space-y-5">
@@ -96,23 +117,49 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               <input required value={name} onChange={(e) => setName(e.target.value)} maxLength={60} className={inputClass} placeholder="Tu nombre" />
             </label>
           )}
+          
           <label className="block space-y-1.5">
             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Correo electrónico</span>
             <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} placeholder="correo@ejemplo.com" />
           </label>
-          <label className="block space-y-1.5">
+
+          {/* Campo de Contraseña con botón de Ver/Ocultar */}
+          <div className="space-y-1.5">
             <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contraseña</span>
-            <input
-              required
-              type="password"
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={inputClass}
-              placeholder="Mínimo 6 caracteres"
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            />
-          </label>
+            <div className="relative">
+              <input
+                required
+                type={showPassword ? 'text' : 'password'}
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`${inputClass} pr-10`}
+                placeholder="Mínimo 6 caracteres"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+
+            {/* Enlace de ¿Has olvidado tu contraseña? (Solo aparece en modo login) */}
+            {mode === 'login' && (
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  ¿Has olvidado tu contraseña?
+                </button>
+              </div>
+            )}
+          </div>
 
           {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
           {notice && <p className="rounded-xl bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-800">{notice}</p>}
