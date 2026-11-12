@@ -101,6 +101,10 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
         </label>
       </div>
+
+      <div className="space-y-1.5">
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Clasificación especial</span>
+        <div className="grid grid-cols-2 gap-2.5">
       <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition">
         <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
         Miniserie
@@ -109,6 +113,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <input type="checkbox" checked={isSpinoff} onChange={(e) => setIsSpinoff(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
         Spin-off
       </label>
+</div>
+      </div>
+          
       <PosterField value={poster} onChange={setPoster} />
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-1.5">
