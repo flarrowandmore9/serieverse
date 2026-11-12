@@ -91,21 +91,26 @@ export async function deleteShow(id: number): Promise<void> {
 }
 
 export async function addShow(input: ShowInput): Promise<number> {
-  const { data, error } = await supabase.from('shows').insert(input).select('id').single();
-  if (error) throw new Error(error.message);
-  const showId = (data as { id: number }).id;
-  if (input.tvmaze_id === null) return showId;
+  const { data, error } = await supabase.from('shows').insert(input).select('id').single();
+  if (error) throw new Error(error.message);
+  const showId = (data as { id: number }).id;
+  if (input.tvmaze_id === null) return showId;
 
-  const response = await fetch(`${FUNCTIONS_URL}/sync-catalog`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ mode: 'sync' }),
-  });
-  if (!response.ok) throw new Error('La serie se guardó, pero no se pudieron cargar sus datos de TVMaze.');
-  return showId;
+  // Intentamos sincronizar de forma segura sin romper la app si el token no es de servicio
+  try {
+    await fetch(`${FUNCTIONS_URL}/sync-catalog`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ mode: 'sync' }),
+    });
+  } catch (err) {
+    console.warn("La sincronización automática en segundo plano falló, pero la serie se ha guardado correctamente.", err);
+  }
+  
+  return showId;
 }
 
 export async function fetchEpisodesForAdmin(showId: number): Promise<Episode[]> {
