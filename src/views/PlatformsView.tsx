@@ -22,6 +22,7 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
       { label: 'Antena 3', names: ['Antena 3', 'A3Series'] },
       { label: 'Cuatro', names: ['Cuatro'] },
       { label: 'Telecinco', names: ['Telecinco'] },
+      { label: 'La Sexta', names: ['La Sexta'] },
       { label: 'AXN', names: ['AXN'] },
       { label: 'FOX', names: ['FOX'] },
     ],
