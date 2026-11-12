@@ -26,7 +26,12 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [poster, setPoster] = useState(show.poster_url ?? '');
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
+  // Estados para las casillas de verificación (Cuadrícula)
   const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
+  const [isSpinoff, setIsSpinoff] = useState((show as any).is_spinoff ?? false);
+  const [isReboot, setIsReboot] = useState((show as any).is_reboot ?? false);
+  const [isSecuela, setIsSecuela] = useState((show as any).is_secuela ?? false);
+  const [isPrequel, setIsPrequel] = useState((show as any).is_prequel ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +53,10 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         es_platforms: parsePlatformInput(esPlatforms),
         tv_status: status || null,
         is_miniseries: isMiniseries,
+        is_spinoff: isSpinoff,
+        is_reboot: isReboot,
+        is_secuela: isSecuela,
+        is_prequel: isPrequel,
         genres: genres.trim() || null,
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
@@ -97,10 +106,32 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
         </label>
       </div>
-      <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-        <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
-        Miniserie
-      </label>
+      {/* SECCIÓN DE ETIQUETAS EN CUADRÍCULA (2 COLUMNAS) */}
+      <div className="space-y-1.5">
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Clasificación especial</span>
+        <div className="grid grid-cols-2 gap-2.5">
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition">
+            <input type="checkbox" checked={isSpinoff} onChange={(e) => setIsSpinoff(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
+            Spin-off
+          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition">
+            <input type="checkbox" checked={isReboot} onChange={(e) => setIsReboot(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
+            Reboot
+          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition">
+            <input type="checkbox" checked={isSecuela} onChange={(e) => setIsSecuela(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
+            Secuela
+          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition">
+            <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
+            Miniserie
+          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 cursor-pointer hover:border-pastel-accent transition col-span-2">
+            <input type="checkbox" checked={isPrequel} onChange={(e) => setIsPrequel(e.target.checked)} className="h-4 w-4 accent-pastel-accent rounded" />
+            Precuela
+          </label>
+        </div>
+      </div>
       
       <PosterField value={poster} onChange={setPoster} />
       <div className="grid gap-4 sm:grid-cols-2">
