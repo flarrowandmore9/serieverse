@@ -45,7 +45,7 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
       { label: 'AMC', names: ['AMC'] },
     ],
     platforms: [
-      ...['Netflix', 'Prime Video', 'HBO', 'HBO Max', 'Disney+', 'Hulu', 'Apple TV', 'Apple TV+',   ].map((label) => ({ label, names: [label] })),
+      ...['Netflix', 'Prime Video', 'HBO', 'HBO Max', 'Disney+', 'Hulu', 'Apple TV', 'Apple TV+', "Freeform", "Paramount+", "Peacock", "Showtime", "Starz", "FX"].map((label) => ({ label, names: [label] })),
     ],
   },
 };
