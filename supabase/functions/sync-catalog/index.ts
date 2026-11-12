@@ -16,7 +16,7 @@ const BATCH_SIZE = 500;
 const US_NETWORKS = new Set(
   [
     "The CW", "CBS", "NBC", "ABC", "FOX", "Hulu", "Apple TV", "Apple TV+", "AMC", "Netflix",
-    "Prime Video", "Disney+", "HBO", "HBO Max",
+    "Prime Video", "Disney+", "HBO", "HBO Max", "Freeform", "Paramount+", "Peacock", "Showtime", "Starz", "FX",
   ].map((name) => name.toLowerCase()),
 );
 
