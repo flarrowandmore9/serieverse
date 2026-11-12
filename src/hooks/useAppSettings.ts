@@ -9,7 +9,7 @@ const DEFAULTS: Record<string, string> = {
   nav_suggestions: 'Sugerencias',
   hero_title: 'SerieVerse',
   hero_subtitle: 'Tu catálogo de series de televisión de EE. UU. y España',
-  btn_download: 'Descargar App',
+  btn_download: 'Instalar App',
 };
 
 let cache: Record<string, string> | null = null;
