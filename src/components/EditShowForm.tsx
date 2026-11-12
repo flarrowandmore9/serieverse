@@ -29,10 +29,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   
   // Estados para las casillas de verificación (Cuadrícula)
   const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
-  const [isSpinoff, setIsSpinoff] = useState((show as any).is_spinoff ?? false);
-  const [isReboot, setIsReboot] = useState((show as any).is_reboot ?? false);
-  const [isSecuela, setIsSecuela] = useState((show as any).is_secuela ?? false);
-  const [isPrequel, setIsPrequel] = useState((show as any).is_prequel ?? false);
+
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
