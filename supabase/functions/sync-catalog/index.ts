@@ -132,7 +132,7 @@ function catalogFields(data: TvmazeShow) {
   };
 }
 
-function isNamedNetwork(show: TvmazeShow): boolean {
+function isNamedNetwork(_show: TvmazeShow): boolean {
   return true;
 }
 
