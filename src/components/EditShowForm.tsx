@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Loader2 } from 'lucide-react';
 import CastListEditor from '@/components/CastListEditor';
 import PosterField from '@/components/PosterField';
-import { SHOW_STATUS_OPTIONS, formatPlatforms, parsePlatformInput } from '@/lib/format';
+import { SHOW_STATUS_OPTIONS, formatPlatforms } from '@/lib/format';
 import { updateShow } from '@/lib/admin';
 import type { Character, Show, ShowListItem } from '@/lib/types';
 
@@ -44,8 +44,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       const updated = await updateShow(show.id, {
         title: cleanTitle,
         synopsis_es: synopsis.trim() || null,
-        us_platforms: parsePlatformInput(usPlatforms),
-        es_platforms: parsePlatformInput(esPlatforms),
+        us_platforms: usPlatforms.split(',').map(s => s.trim()).filter(Boolean),
+        es_platforms: esPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         tv_status: status || null,
         is_miniseries: isMiniseries,
         genres: genres.trim() || null,
@@ -71,7 +71,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
       </label>
       <label className="block space-y-1.5">
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en español</span>
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en Español</span>
         <textarea rows={4} value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className={inputClass} />
       </label>
       <CastListEditor value={cast} onChange={setCast} />
@@ -102,7 +102,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         Miniserie
       </label>
       
-      <PosterField value={poster} onChange={setPoster} />
+      <PosterField value={poster} onChange={poster => setPoster(poster)} />
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Plataformas EE.UU. (separadas por comas)</span>
