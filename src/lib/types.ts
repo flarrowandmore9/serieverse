@@ -19,6 +19,8 @@ export type ShowListItem = {
   network_name: string | null;
   us_platforms: string[];
   es_platforms: string[];
+  relation_type: string | null;
+franchise_name: string | null;
 };
 
 export type Show = ShowListItem & {
