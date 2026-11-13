@@ -26,8 +26,6 @@ export type Show = ShowListItem & {
   ended: string | null;
   runtime: number | null;
   characters: Character[] | null;
-  relation_type: string | null;
-franchise_name: string | null;
 };
 
 export type SpecialTag = 'crossover' | 'halloween' | 'christmas' | 'special' | null;
