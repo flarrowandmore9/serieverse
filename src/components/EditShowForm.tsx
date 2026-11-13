@@ -27,6 +27,11 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
   const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
+  
+  // NUEVOS ESTADOS PARA FRANQUICIAS Y RELACIONES
+  const [relationType, setRelationType] = useState(show.relation_type ?? '');
+  const [franchiseName, setFranchiseName] = useState(show.franchise_name ?? '');
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +57,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
+        relation_type: relationType.trim() || null,     // <-- ENVIAR CAMPO
+        franchise_name: franchiseName.trim() || null,  // <-- ENVIAR CAMPO
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
@@ -70,6 +77,31 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Título</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
       </label>
+      
+      {/* NUEVOS CAMPOS DE FRANQUICIA Y RELACIÓN */}
+      <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-slate-200 p-4 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de relación</span>
+          <select value={relationType} onChange={(e) => setRelationType(e.target.value)} className={inputClass}>
+            <option value="">Ninguna (Independiente)</option>
+            <option value="Spin-off">Spin-off</option>
+            <option value="Reboot">Reboot</option>
+            <option value="Secuela">Secuela</option>
+            <option value="Precuela">Precuela</option>
+            <option value="Remake">Remake</option>
+          </select>
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Nombre de la Franquicia</span>
+          <input 
+            value={franchiseName} 
+            onChange={(e) => setFranchiseName(e.target.value)} 
+            className={inputClass} 
+            placeholder="Ej. One Chicago, Breaking Bad..." 
+          />
+        </label>
+      </div>
+
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en Español</span>
         <textarea rows={4} value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className={inputClass} />
