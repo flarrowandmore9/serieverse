@@ -10,7 +10,7 @@ const TVMAZE = "https://api.tvmaze.com";
 const STALE_AFTER_MS = 20 * 60 * 60 * 1000;
 const TIME_BUDGET_MS = 90_000;
 const REQUEST_SPACING_MS = 550;
-const MAX_PAGES_PER_DISCOVER = 80;
+const MAX_PAGES_PER_DISCOVER = 8000;
 const BATCH_SIZE = 500;
 
 const US_NETWORKS = new Set(
