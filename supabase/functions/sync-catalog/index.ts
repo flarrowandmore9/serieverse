@@ -10,7 +10,7 @@ const TVMAZE = "https://api.tvmaze.com";
 const STALE_AFTER_MS = 20 * 60 * 60 * 1000;
 const TIME_BUDGET_MS = 90_000;
 const REQUEST_SPACING_MS = 550;
-const MAX_PAGES_PER_DISCOVER = 8000;
+const MAX_PAGES_PER_DISCOVER = 80;
 const BATCH_SIZE = 500;
 
 const US_NETWORKS = new Set(
@@ -22,8 +22,8 @@ const US_NETWORKS = new Set(
 
 const ES_NETWORKS = new Set(
   [
-    "RTVE", "TVE", "La 1", "La 2", "Antena 3", "A3Series", "Cuatro", "Telecinco", "La Sexta", "AXN", "FOX",
-    "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", "Atresplayer Originals", "Atresmedia Televisión", "Mediaset", "Movistar Plus+", "SkyShowtime", "Filmin", "HBO España", "HBO Max España", "Disney+ España",
+    "RTVE", "TVE", "La 1", "La 2", "Antena 3", 'A3Series', "Cuatro", "Telecinco", "La Sexta", "AXN", "FOX",
+     "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", "Atresplayer Originals", "Atresmedia Televisión", "Mediaset", "Movistar Plus+", "SkyShowtme", "Filmin", "HBO España", "HBO Max España", "Disney+ España",
   ].map((name) => name.toLowerCase()),
 );
 
@@ -107,17 +107,11 @@ function toCharacters(cast: CastMember[] | undefined) {
 }
 
 function platformFields(data: TvmazeShow) {
-  const source = data.network ?? data.webChannel;
-  const name = source?.name ?? null;
-  const countryCode = source?.country?.code ?? null;
+  const name = data.network?.name ?? data.webChannel?.name ?? null;
   const key = name?.toLowerCase() ?? "";
-
-  const isEs = name !== null && (ES_NETWORKS.has(key) || countryCode === "ES");
-  const isUs = name !== null && US_NETWORKS.has(key) && !isEs;
-
   return {
-    us_platforms: isUs ? [name] : [],
-    es_platforms: isEs ? [name] : [],
+    us_platforms: name !== null && US_NETWORKS.has(key) ? [name] : [],
+    es_platforms: name !== null && ES_NETWORKS.has(key) ? [name] : [],
   };
 }
 
@@ -215,7 +209,7 @@ async function discover(supabase: ReturnType<typeof createClient>, fromPage: num
   }
 
   for (let i = 0; i < removeIds.length; i += BATCH_SIZE) {
-    const { error } = await supabase.from("shows").delete().in("tvmaze_id", removeIds.slice(i, i + B_BATCH_SIZE));
+    const { error } = await supabase.from("shows").delete().in("tvmaze_id", removeIds.slice(i, i + BATCH_SIZE));
     if (error) throw new Error(error.message);
   }
 
@@ -263,6 +257,10 @@ Deno.serve(async (req: Request) => {
     );
 
     if (body.mode === "discover") {
+      const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`;
+      if (req.headers.get("Authorization") !== expected) {
+        return json({ error: "No autorizado" }, 403);
+      }
       const fromPage = Number(body.fromPage);
       const toPage = Number(body.toPage);
       if (!Number.isInteger(fromPage) || !Number.isInteger(toPage) || fromPage < 0 || toPage < fromPage || toPage - fromPage >= MAX_PAGES_PER_DISCOVER) {
