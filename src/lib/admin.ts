@@ -77,14 +77,18 @@ export async function deleteSuggestion(id: number): Promise<void> {
 }
 
 export async function updateShow(id: number, patch: ShowPatch): Promise<ShowListItem> {
-  const { data, error } = await supabase
-    .from('shows')
-    .update(patch)
-    .eq('id', id)
-    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, is_miniseries, imdb_id, network_name, us_platforms, es_platforms')
-    .single();
-  if (error) throw new Error(error.message);
-  return data as ShowListItem;
+  const { data, error } = await supabase
+    .from('shows')
+    .update(patch)
+    .eq('id', id)
+    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, is_miniseries, imdb_id, network_name, us_platforms, es_platforms, relation_type, franchise_name') // <-- Asegúrate de incluir los dos campos nuevos aquí también al seleccionar
+    .single();
+    
+  if (error) {
+    console.error("Error detallado al guardar:", error.message); // <-- Esto nos dirá el fallo exacto en la consola
+    throw new Error(error.message);
+  }
+  return data as ShowListItem;
 }
 
 export async function deleteShow(id: number): Promise<void> {
