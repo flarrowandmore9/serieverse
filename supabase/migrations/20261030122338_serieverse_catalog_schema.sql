@@ -130,7 +130,8 @@ INSERT INTO shows (tvmaze_id, title, us_platforms, es_platforms, synopsis_es) VA
   (45840, 'Mayor of Kingstown', '{"Paramount+"}', '{}', 'El jefe de seguridad de una prisión de Michigan se enfrenta al poder y la corrupción local.'),
   (53777, 'Landman', '{"Paramount+"}', '{}', 'Un ejecutivo petrolero de Texas navega por los conflictos del negocio energético.'),
   (13, 'The Flash', '{"The CW"}', '{}', 'Barry Allen adquiere supervelocidad tras un accidente científico y protege Ciudad Central.'),
-  (2243, 'Vis a Vis', '{}', '{"Movistar Plus+"}', 'Una joven empresaria acaba en una prisión de mujeres y aprende a sobrevivir entre rejas.')
+  (2243, 'Vis a Vis', '{}', '{"Movistar Plus+"}', 'Una joven empresaria acaba en una prisión de mujeres y aprende a sobrevivir entre rejas.'),
+  (75026, 'MobLand', '{"Paramount+"}', '{}', 'https://static.tvmaze.com/uploads/images/medium_portrait/500/125000.jpg')
 ON CONFLICT (tvmaze_id) DO NOTHING;
 
 INSERT INTO catalog_sync (id, last_synced_at) VALUES (1, NULL) ON CONFLICT (id) DO NOTHING;
