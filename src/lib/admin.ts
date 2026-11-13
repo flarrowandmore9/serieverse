@@ -22,8 +22,6 @@ export type ShowPatch = {
   runtime: number | null;
   characters: Character[];
   is_miniseries: boolean;
-  relation_type: string | null;     // <-- Comprueba que esté esto
-  franchise_name: string | null;
 };
 
 export type EpisodePatch = {
