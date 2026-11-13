@@ -19,15 +19,15 @@ export type ShowListItem = {
   network_name: string | null;
   us_platforms: string[];
   es_platforms: string[];
-  relation_type: string | null;
-franchise_name: string | null;
-};
+  };
 
 export type Show = ShowListItem & {
   synopsis_source: string | null;
   ended: string | null;
   runtime: number | null;
   characters: Character[] | null;
+  relation_type: string | null;
+franchise_name: string | null;
 };
 
 export type SpecialTag = 'crossover' | 'halloween' | 'christmas' | 'special' | null;
