@@ -69,6 +69,18 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                     <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
                   )}
                 </div>
+
+                {/* ETIQUETA VISUAL DE FRANQUICIA / SPIN-OFF / REBOOT */}
+                {show.relation_type && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <span>🔄</span>
+                    <span>
+                      {show.relation_type}
+                      {show.franchise_name ? ` de la franquicia ${show.franchise_name}` : ''}
+                    </span>
+                  </div>
+                )}
+
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   <span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}
                 </p>
@@ -169,8 +181,6 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
               <p className="text-sm text-slate-500 dark:text-slate-400">Consulta el desglose de cada temporada, con las fechas de emisión y la duración real de cada episodio.</p>
               {isAdmin ? (
                 <AdminEpisodeEditor show={{ id: show.id, title: show.title }} episodes={detail.data?.episodes ?? []} onChanged={detail.reload} />
-
-              
               ) : (
                 <ShowSeasons episodes={detail.data?.episodes ?? []} />
               )}
