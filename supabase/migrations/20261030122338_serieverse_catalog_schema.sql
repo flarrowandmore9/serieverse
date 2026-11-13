@@ -135,3 +135,7 @@ INSERT INTO shows (tvmaze_id, title, us_platforms, es_platforms, synopsis_es) VA
 ON CONFLICT (tvmaze_id) DO NOTHING;
 
 INSERT INTO catalog_sync (id, last_synced_at) VALUES (1, NULL) ON CONFLICT (id) DO NOTHING;
+
+-- Forzar actualización de esquema para franquicias
+ALTER TABLE shows ADD COLUMN IF NOT EXISTS relation_type TEXT;
+ALTER TABLE shows ADD COLUMN IF NOT EXISTS franchise_name TEXT;
