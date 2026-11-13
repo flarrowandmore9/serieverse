@@ -62,11 +62,6 @@ export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps
             {show.is_miniseries && (
               <span className="shrink-0 rounded-full bg-pastel-gold px-1.5 py-px text-[8px] font-bold text-amber-800 dark:bg-pastel-goldDark dark:text-amber-200">Miniserie</span>
             )}
-            {show.relation_type && (
-  <span className="shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400">
-    {show.relation_type}
-  </span>
-)}
             <span className={`shrink-0 rounded-full px-1.5 py-px text-[8px] font-bold ${status.className}`}>{status.label}</span>
           </div>
         </div>

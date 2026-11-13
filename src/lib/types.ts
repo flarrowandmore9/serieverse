@@ -19,7 +19,7 @@ export type ShowListItem = {
   network_name: string | null;
   us_platforms: string[];
   es_platforms: string[];
-  };
+};
 
 export type Show = ShowListItem & {
   synopsis_source: string | null;

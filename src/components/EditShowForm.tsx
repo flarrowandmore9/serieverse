@@ -15,9 +15,6 @@ type EditShowFormProps = {
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
 
-const [relationType, setRelationType] = useState(show.relation_type ?? '');
-const [franchiseName, setFranchiseName] = useState(show.franchise_name ?? '');
-
 export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormProps) {
   const [title, setTitle] = useState(show.title);
   const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
@@ -104,23 +101,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
         Miniserie
       </label>
-
-      <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-slate-200 p-4 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
-  <label className="block space-y-1.5">
-    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de relación</span>
-    <select value={relationType} onChange={(e) => setRelationType(e.target.value)} className={inputClass}>
-      <option value="">Ninguna (Independiente)</option>
-      <option value="Spin-off">Spin-off</option>
-      <option value="Reboot">Reboot</option>
-      <option value="Secuela">Secuela</option>
-      <option value="Precuela">Precuela</option>
-    </select>
-  </label>
-  <label className="block space-y-1.5">
-    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Franquicia</span>
-    <input value={franchiseName} onChange={(e) => setFranchiseName(e.target.value)} className={inputClass} placeholder="Ej. One Chicago" />
-  </label>
-</div>
       
       <PosterField value={poster} onChange={poster => setPoster(poster)} />
       <div className="grid gap-4 sm:grid-cols-2">
