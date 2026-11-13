@@ -104,6 +104,23 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
         Miniserie
       </label>
+
+      <div className="grid gap-4 sm:grid-cols-2 rounded-2xl border border-slate-200 p-4 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/50">
+  <label className="block space-y-1.5">
+    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de relación</span>
+    <select value={relationType} onChange={(e) => setRelationType(e.target.value)} className={inputClass}>
+      <option value="">Ninguna (Independiente)</option>
+      <option value="Spin-off">Spin-off</option>
+      <option value="Reboot">Reboot</option>
+      <option value="Secuela">Secuela</option>
+      <option value="Precuela">Precuela</option>
+    </select>
+  </label>
+  <label className="block space-y-1.5">
+    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Franquicia</span>
+    <input value={franchiseName} onChange={(e) => setFranchiseName(e.target.value)} className={inputClass} placeholder="Ej. One Chicago" />
+  </label>
+</div>
       
       <PosterField value={poster} onChange={poster => setPoster(poster)} />
       <div className="grid gap-4 sm:grid-cols-2">
