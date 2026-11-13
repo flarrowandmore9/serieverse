@@ -15,6 +15,9 @@ type EditShowFormProps = {
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
 
+const [relationType, setRelationType] = useState(show.relation_type ?? '');
+const [franchiseName, setFranchiseName] = useState(show.franchise_name ?? '');
+
 export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormProps) {
   const [title, setTitle] = useState(show.title);
   const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
