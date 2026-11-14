@@ -49,13 +49,13 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         us_platforms: usPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         tv_status: status || null,
+        
         genres: genres.trim() || null,
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
         premiered: premiered.trim() || null,
-show_type?: showType || null,
-franchise?: franchise.trim() || null,
+
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
