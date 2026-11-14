@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Info, Layers, Pencil, Star, Tv } from 'lucide-react';
+import { Info, Layers, Pencil, Star, Tv, GitFork } from 'lucide-react';
 import Modal from '@/components/Modal';
 import ListToggle from '@/components/ListToggle';
 import AdminEpisodeEditor from '@/components/AdminEpisodeEditor';
@@ -15,6 +15,16 @@ type ShowDetailModalProps = {
   showId: number;
   onClose: () => void;
   onRequireLogin: () => void;
+};
+
+// Traducción limpia para mostrar las etiquetas de tipo de serie de forma bonita
+const showTypeLabels: Record<string, string> = {
+  SpinOff: 'Spin-off',
+  Reboot: 'Reboot',
+  Secuela: 'Secuela',
+  Precuela: 'Precuela',
+  Anthology: 'Antología',
+  Miniseries: 'Miniserie',
 };
 
 export default function ShowDetailModal({ showId, onClose, onRequireLogin }: ShowDetailModalProps) {
@@ -65,10 +75,27 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
+                  
                   {show.is_miniseries && (
                     <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
                   )}
+
+                  {/* NUEVO: Etiqueta visual para el Tipo de Serie (Spin-off, Reboot, etc.) */}
+                  {show.show_type && show.show_type !== '' && (
+                    <span className="flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:ring-indigo-800">
+                      <GitFork className="h-3 w-3" />
+                      {showTypeLabels[show.show_type] ?? show.show_type}
+                    </span>
+                  )}
                 </div>
+
+                {/* NUEVO: Línea para mostrar a qué franquicia o serie madre pertenece */}
+                {show.franchise && (
+                  <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                    📂 Franquicia / Serie universo: <span className="font-bold">{show.franchise}</span>
+                  </p>
+                )}
+
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   <span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}
                 </p>
@@ -169,8 +196,6 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
               <p className="text-sm text-slate-500 dark:text-slate-400">Consulta el desglose de cada temporada, con las fechas de emisión y la duración real de cada episodio.</p>
               {isAdmin ? (
                 <AdminEpisodeEditor show={{ id: show.id, title: show.title }} episodes={detail.data?.episodes ?? []} onChanged={detail.reload} />
-
-              
               ) : (
                 <ShowSeasons episodes={detail.data?.episodes ?? []} />
               )}
