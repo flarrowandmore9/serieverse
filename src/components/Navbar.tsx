@@ -76,26 +76,22 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
   <button 
     onClick={async () => {
       try {
-        const response = await fetch('/functions/v1/sync-catalog', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        // Llamada limpia a través del cliente de Supabase
+        const { data, error } = await supabase.functions.invoke('sync-catalog', {
+          body: {}
         });
         
-        const data = await response.json();
-        
-        if (response.ok) {
+        if (error) {
+          console.error('Error desde la función:', error);
+          alert(`Error al sincronizar: ${error.message || 'Error desconocido'}`);
+        } else {
+          console.log('Resultado:', data);
           alert('¡Catálogo sincronizado correctamente!');
           window.location.reload();
-        } else {
-          // Esto mostrará el error exacto que viene de Supabase
-          console.error('Error detallado:', data);
-          alert(`Error al sincronizar: ${data.error || 'Error desconocido'}`);
         }
-      } catch (error) {
-        console.error('Error de red:', error);
-        alert('Error de red al conectar con la función.');
+      } catch (err) {
+        console.error('Error de red o ejecución:', err);
+        alert('Error al conectar con la función de sincronización.');
       }
     }}
     title="Actualizar Catálogo"
