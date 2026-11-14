@@ -22,12 +22,21 @@ export function formatDate(iso: string | null): string {
 }
 
 export const SHOW_STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'Sin Datos' },
+  { value: '', label: '' },
   { value: 'Running', label: 'En Emisión' },
   { value: 'In Development', label: 'En Desarrollo' },
   { value: 'To Be Determined', label: 'Por Confirmar' },
   { value: 'Pilot', label: 'Por Estrenar' },
   { value: 'Ended', label: 'Terminada' },
+];
+
+export const SHOW_TYPE_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: '' },
+  { value: 'SpinOff', label: 'SpinOff' },
+  { value: 'Reboot', label: 'Reboot' },
+  { value: 'Secuela', label: 'Sequel' },
+  { value: 'Precuela', label: 'Prequel' },
+  { value: 'Miniserie', label: 'Miniseries' },
 ];
 
 export function statusLabel(status: string | null): { label: string; className: string } {
