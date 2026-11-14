@@ -78,12 +78,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                                    
                 </div>
 
-                <div className="flex-1 space-y-4">
-  <div className="space-y-2">
-    <div className="flex flex-wrap items-center gap-3">
-      <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
-      
-      {/* Estado de la serie */}
+                {/* Estado de la serie */}
       <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
       
       {/* Miniserie */}
@@ -116,7 +111,6 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
       <span aria-hidden="true">·</span>
       <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
     </p>
-  </div>
 
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   <span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}
