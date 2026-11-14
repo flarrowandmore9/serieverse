@@ -30,7 +30,7 @@ export const SHOW_STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'Ended', label: 'Terminada' },
 ];
 
-export const SHOW_TYPE_OPTIONS: { value: string; label: string }[] = [
+export const SHOW_TYPES_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: '' },
   { value: 'SpinOff', label: 'SpinOff' },
   { value: 'Reboot', label: 'Reboot' },
