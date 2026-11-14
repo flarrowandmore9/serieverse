@@ -41,10 +41,11 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
 
-  // Extracción segura de los campos nuevos
-  const rawShowType = (show as any)?.show_type;
+  // Leemos de forma segura los datos personalizados guardados localmente para esta serie
+  const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_custom_${showId}`) || '{}') : {};
+  const rawShowType = savedCustom.show_type ?? (show as any)?.show_type;
   const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
-  const franchise = (show as any)?.franchise;
+  const franchise = savedCustom.franchise ?? (show as any)?.franchise;
 
   return (
     <Modal title={editing ? 'Editar serie' : (show?.title ?? 'Serie')} onClose={onClose} maxWidth="max-w-4xl">
@@ -81,7 +82,10 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
-                                  </div>
+                  {show.is_miniseries && (
+                    <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
+                  )}
+                </div>
 
                 {/* Fila 1: Estreno · Cadena · Duración */}
                 <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
@@ -92,7 +96,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
                 </p>
 
-                {/* Fila 2: Género · Tipo de serie · Franquicia/Serie Madre (Se ocultan automáticamente si no tienen valor para no dejar separadores huérfanos) */}
+                {/* Fila 2: Género · Tipo de serie · Franquicia/Serie Madre */}
                 <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}</span>
                   
