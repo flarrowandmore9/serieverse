@@ -1,175 +1,69 @@
-import { useState, type FormEvent } from 'react';
-import { Loader2 } from 'lucide-react';
-import CastListEditor from '@/components/CastListEditor';
-import PosterField from '@/components/PosterField';
-import { SHOW_STATUS_OPTIONS, SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
-import { updateShow } from '@/lib/admin';
-import type { Character, Show, ShowListItem } from '@/lib/types';
+export function toIsoDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
 
-type EditShowFormProps = {
-  show: Show;
-  onSaved: (updated: ShowListItem) => void;
-  onCancel: () => void;
-};
-
-const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
-
-export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormProps) {
-  const [title, setTitle] = useState(show.title);
-  const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
-  const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
-  const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
-  const [status, setStatus] = useState(show.tv_status ?? '');
-  const [genres, setGenres] = useState(show.genres ?? '');
-  const [network, setNetwork] = useState(show.network_name ?? '');
-  const [poster, setPoster] = useState(show.poster_url ?? '');
-  const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
-  const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
-  
-  // Usamos aserciones (any) de forma segura por si TypeScript aún no tiene estas propiedades tipadas
-  const [showType, setShowType] = useState((show as any).show_type ?? '');
-  const [franchise, setFranchise] = useState((show as any).franchise ?? '');
-
-  const [cast, setCast] = useState<Character[]>(show.characters ?? []);
-  const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const cleanTitle = title.trim();
-    if (!cleanTitle) {
-      setError('El título no puede estar vacío.');
-      return;
-    }
-    const runtimeNumber = Number(runtime);
-    setSaving(true);
-    setError(null);
-    try {
-      const updated = await updateShow(show.id, {
-        title: cleanTitle,
-        synopsis_es: synopsis.trim() || null,
-        us_platforms: usPlatforms.split(',').map(s => s.trim()).filter(Boolean),
-        es_platforms: esPlatforms.split(',').map(s => s.trim()).filter(Boolean),
-        tv_status: status || null,
-        is_miniseries: isMiniseries,
-        genres: genres.trim() || null,
-        network_name: network.trim() || null,
-        poster_url: poster.trim() || null,
-        runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
-        premiered: premiered.trim() || null,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
-        characters: cast
-          .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
-          .filter((member) => member.actor),
-      } as any);
-      onSaved(updated);
-    } catch {
-      setError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
-    } finally {
-      setSaving(false);
-    }
+export function monthBounds(year: number, monthIndex: number) {
+  return {
+    start: toIsoDate(new Date(year, monthIndex, 1)),
+    end: toIsoDate(new Date(year, monthIndex + 1, 0)),
   };
+}
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <PosterField value={poster} onChange={poster => setPoster(poster)} />
-      
-      <label className="block space-y-1.5">
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Título</span>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
-      </label>
-      <label className="block space-y-1.5">
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en Español</span>
-        <textarea rows={4} value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className={inputClass} />
-      </label>
-      
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de Estreno</span>
-          <input 
-            type="date" 
-            value={premiered} 
-            onChange={(e) => setPremiered(e.target.value)} 
-            className={inputClass} 
-          />
-        </label>
-        
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estado</span>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
-            {SHOW_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
+export function parseIsoDate(iso: string): Date {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
 
-        {/* Tipo de Serie */}
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
-          <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
-            {SHOW_TYPES_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
+export function formatDate(iso: string | null): string {
+  if (!iso) return 'Por confirmar';
+  return parseIsoDate(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
-        {/* Franquicia / Serie Madre */}
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
-          <input 
-            value={franchise} 
-            onChange={(e) => setFranchise(e.target.value)} 
-            className={inputClass} 
-            placeholder="Ej: One Chicago o Chicago Fire" 
-          />
-        </label>
-        
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (separados por comas)</span>
-          <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} />
-        </label>
-        
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Emisión Original</span>
-          <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} />
-        </label>
+export const SHOW_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: '' },
+  { value: 'Running', label: 'En Emisión' },
+  { value: 'In Development', label: 'En Desarrollo' },
+  { value: 'To Be Determined', label: 'Por Confirmar' },
+  { value: 'Pilot', label: 'Por Estrenar' },
+  { value: 'Ended', label: 'Terminada' },
+];
 
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU. (separadas por comas)</span>
-          <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
-        </label>
+export const SHOW_TYPES_OPTIONS: { value: string; label: string }[] = [
+  { value: '', label: 'Serie independiente' },
+  { value: 'SpinOff', label: 'Spin-off' },
+  { value: 'Reboot', label: 'Reboot' },
+  { value: 'Secuela', label: 'Secuela' },
+  { value: 'Precuela', label: 'Precuela' },
+  { value: 'Anthology', label: 'Antología' },
+];
 
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España (separadas por comas)</span>
-          <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
-        </label>
-        
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
-          <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
-        </label>
-      </div>
+export function statusLabel(status: string | null): { label: string; className: string } {
+  switch (status) {
+    case 'Running':
+      return { label: 'En Emisión', className: 'bg-pastel-sage text-emerald-800 dark:bg-pastel-sageDark dark:text-emerald-200' };
+    case 'In Development':
+      return { label: 'En Desarrollo', className: 'bg-pastel-rose text-rose-800 dark:bg-pastel-roseDark dark:text-rose-200' };
+    case 'To Be Determined':
+      return { label: 'Por Confirmar', className: 'bg-pastel-gold text-amber-800 dark:bg-pastel-goldDark dark:text-amber-200' };
+    case 'Pilot':
+      return { label: 'Por Estrenar', className: 'bg-pastel-lavender text-slate-700 dark:bg-pastel-lavenderDark dark:text-slate-200' };
+    case 'Ended':
+    case 'Canceled':
+      return { label: 'Terminada', className: 'bg-pastel-lavender text-slate-700 dark:bg-pastel-lavenderDark dark:text-slate-200' };
+    default:
+      return { label: 'Sin Datos', className: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200' };
+  }
+}
 
-      <CastListEditor value={cast} onChange={setCast} />
+export function formatPlatforms(list: string[]): string {
+  return list.length > 0 ? list.join(', ') : 'Sin datos';
+}
 
-      {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
-
-      <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-pastel-rose/40 dark:text-slate-300">
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="flex items-center gap-2 rounded-xl bg-pastel-accent px-5 py-2.5 text-sm font-bold text-white hover:bg-pastel-accentHover disabled:opacity-60"
-        >
-          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-          Guardar cambios
-        </button>
-      </div>
-    </form>
-  );
+export function parsePlatformInput(value: string): string[] {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 }
