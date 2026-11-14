@@ -106,7 +106,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
-            {SHOW_TYPES_OPTIONS_OPTIONS.map((option) => (
+            {SHOW_TYPES_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
