@@ -77,7 +77,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
       </label>
       <label className="block space-y-1.5">
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en español</span>
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en Español</span>
         <textarea rows={4} value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className={inputClass} />
       </label>
       
@@ -117,7 +117,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         </label>
         
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cadena original</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Emisión Original</span>
           <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} />
         </label>
 
