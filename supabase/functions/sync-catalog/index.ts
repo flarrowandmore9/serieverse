@@ -329,7 +329,7 @@ Deno.serve(async (req: Request) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const tmdbApiKey = Deno.env.get("3eeadab955508c81ba72683b0eaeb3bf") || Deno.env.get("TMDB_API_KEYS") || "";
+    const tmdbApiKey = Deno.env.get("TMDB_API_KEY") || Deno.env.get("TMDB_API_KEYS") || "";
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
