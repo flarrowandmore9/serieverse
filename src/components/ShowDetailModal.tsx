@@ -108,7 +108,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   {franchise && franchise.trim() !== '' && (
                     <>
                       <span aria-hidden="true">·</span>
-                      <span><span className="font-semibold text-slate-700 dark:text-slate-300">Franquicia / Serie madre:</span> {franchise}</span>
+                      <span><span className="font-semibold text-slate-700 dark:text-slate-300">Franquicia:</span> {franchise}</span>
                     </>
                   )}
                 </p>
