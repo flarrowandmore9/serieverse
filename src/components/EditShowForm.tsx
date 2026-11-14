@@ -49,8 +49,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         us_platforms: usPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         tv_status: status || null,
-        show_type: status || null,
-        franchise: status || null,
         genres: genres.trim() || null,
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
