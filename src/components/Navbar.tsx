@@ -76,7 +76,6 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
   <button 
     onClick={async () => {
       try {
-        // Llamada a tu Edge Function de sincronización
         const response = await fetch('/functions/v1/sync-catalog', {
           method: 'POST',
           headers: {
@@ -84,15 +83,19 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
           },
         });
         
+        const data = await response.json();
+        
         if (response.ok) {
           alert('¡Catálogo sincronizado correctamente!');
           window.location.reload();
         } else {
-          alert('Hubo un problema al sincronizar el catálogo.');
+          // Esto mostrará el error exacto que viene de Supabase
+          console.error('Error detallado:', data);
+          alert(`Error al sincronizar: ${data.error || 'Error desconocido'}`);
         }
       } catch (error) {
         console.error('Error de red:', error);
-        alert('Error al conectar con la función de sincronización.');
+        alert('Error de red al conectar con la función.');
       }
     }}
     title="Actualizar Catálogo"
