@@ -33,7 +33,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [franchise, setFranchise] = useState(savedCustom.franchise ?? (show as any).franchise ?? '');
   
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
-  const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
