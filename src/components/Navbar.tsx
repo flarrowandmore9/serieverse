@@ -3,6 +3,7 @@ import { Bookmark, CalendarDays, Clapperboard, LayoutGrid, LogIn, Moon, MessageS
 import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import type { ViewId } from '@/lib/types';
+import { supabase } from '@supabase/functions/sync_catalog/indes.ts'; // Ajusta la ruta '../lib/supabase' si tu archivo está en otra carpeta
 
 type NavbarProps = {
   view: ViewId;
