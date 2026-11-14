@@ -191,8 +191,7 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
 
 // NUEVA FUNCIÓN: Descubrir y sincronizar catálogos de TMDB (EE. UU. y España)
 async function discoverTMDB(supabase: ReturnType<typeof createClient>) {
-  // Asegúrate de que coincida exactamente con el nombre que pusiste en Secrets ('TMDB_API_KEY')
-  const tmdbApiKey = Deno.env.get("TMDB_API_KEY"); 
+  const tmdbApiKey = Deno.env.get("TMDB_API_KEY");
   if (!tmdbApiKey) {
     console.log("TMDB_API_KEY no configurada, omitiendo sincronización de TMDB.");
     return { tmdbProcessed: 0 };
