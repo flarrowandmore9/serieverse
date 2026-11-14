@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import CastListEditor from '@/components/CastListEditor';
 import PosterField from '@/components/PosterField';
 import { SHOW_STATUS_OPTIONS, formatPlatforms } from '@/lib/format';
-import { SHOW_TYPE_OPTIONS, formatPlatforms } from '@/lib/format';
+import { SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
 import { updateShow } from '@/lib/admin';
 import type { Character, Show, ShowListItem } from '@/lib/types';
 
@@ -106,7 +106,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
-            {SHOW_TYPE_OPTIONS.map((option) => (
+            {SHOW_TYPES_OPTIONS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
