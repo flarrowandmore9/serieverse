@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import type { CalendarEpisode, Episode, EpisodeRole, Show, ShowListItem, SpecialTag } from '@/lib/types';
 
 const LIST_COLUMNS =
-  'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, show_type, premiered, rating, is_miniseries, imdb_id, network_name, us_platforms, es_platforms';
+  'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, is_miniseries, imdb_id, network_name, us_platforms, es_platforms';
 
 export type CatalogSort = 'all' | 'popular' | 'recent' | 'visited';
 
