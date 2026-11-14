@@ -25,12 +25,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [network, setNetwork] = useState(show.network_name ?? '');
   const [poster, setPoster] = useState(show.poster_url ?? '');
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
+  // 1. Añadimos el estado para la fecha de estreno (asegurándonos de quedarnos con el formato YYYY-MM-DD si trae hora)
   const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
-  
-  // 1. Añadimos los estados para las IDs de TVMaze y TMDB
-  const [tvmazeId, setTvmazeId] = useState(show.tvmaze_id?.toString() ?? '');
-  const [tmdbId, setTmdbId] = useState(show.tmdb_id?.toString() ?? '');
-
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
   const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
   const [saving, setSaving] = useState(false);
@@ -44,9 +40,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       return;
     }
     const runtimeNumber = Number(runtime);
-    const tvmazeNumber = Number(tvmazeId);
-    const tmdbNumber = Number(tmdbId);
-
     setSaving(true);
     setError(null);
     try {
@@ -61,12 +54,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
+        // 3. Enviamos la fecha de estreno (o null si está vacía)
         premiered: premiered.trim() || null,
-        
-        // 2. Enviamos las IDs al backend (convertidas a número si existen o null si están vacías)
-        tvmaze_id: tvmazeId && Number.isFinite(tvmazeNumber) ? tvmazeNumber : null,
-        tmdb_id: tmdbId && Number.isFinite(tmdbNumber) ? tmdbNumber : null,
-
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
@@ -111,22 +100,17 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración media (min)</span>
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
         </label>
+        {/* 2. Añadimos el campo de fecha de estreno en la cuadrícula de inputs */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de estreno</span>
-          <input type="date" value={premiered} onChange={(e) => setPremiered(e.target.value)} className={inputClass} />
-        </label>
-
-        {/* 3. Nuevos inputs visuales para las IDs externas */}
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">ID de TVMaze</span>
-          <input inputMode="numeric" placeholder="Ej. 12345" value={tvmazeId} onChange={(e) => setTvmazeId(e.target.value)} className={inputClass} />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">ID de TMDB</span>
-          <input inputMode="numeric" placeholder="Ej. 67890" value={tmdbId} onChange={(e) => setTmdbId(e.target.value)} className={inputClass} />
+          <input 
+            type="date" 
+            value={premiered} 
+            onChange={(e) => setPremiered(e.target.value)} 
+            className={inputClass} 
+          />
         </label>
       </div>
-
       <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
         <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
         Miniserie
