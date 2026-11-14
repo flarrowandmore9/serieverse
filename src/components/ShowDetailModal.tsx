@@ -41,10 +41,6 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
 
-  // Extraemos de forma segura los nuevos campos de tipo y franquicia
-  const showType = (show as any)?.show_type;
-  const franchise = (show as any)?.franchise;
-
   return (
     <Modal title={editing ? 'Editar serie' : (show?.title ?? 'Serie')} onClose={onClose} maxWidth="max-w-4xl">
       {detail.loading && <LoadingState label="Cargando serie..." />}
@@ -78,30 +74,11 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
-                  
-                  {/* Estado de la serie */}
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
-                  
-                  {/* Etiqueta de Miniserie */}
-                  {show.is_miniseries && (
-                    <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
-                  )}
-
-                  {/* NUEVO: Etiqueta visual para el Tipo de Serie (Spin-off, Reboot, etc.) */}
-                  {showType && showType !== '' && (
-                    <span className="flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:ring-indigo-800">
-                      <GitFork className="h-3 w-3" />
-                      {showTypeLabels[showType] ?? showType}
-                    </span>
-                  )}
+                                   
                 </div>
 
-                {/* NUEVO: Línea de Franquicia o Serie madre */}
-                {franchise && franchise.trim() !== '' && (
-                  <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                    📂 Pertenece a: <span className="font-bold">{franchise}</span>
-                  </p>
-                )}
+                
 
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   <span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}
