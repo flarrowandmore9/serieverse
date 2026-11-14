@@ -80,6 +80,17 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       </label>
       <CastListEditor value={cast} onChange={setCast} />
       <div className="grid gap-4 sm:grid-cols-2">
+        {/* 2. Añadimos el campo de fecha de estreno en la cuadrícula de inputs */}
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de estreno</span>
+          <input 
+            type="date" 
+            value={premiered} 
+            onChange={(e) => setPremiered(e.target.value)} 
+            className={inputClass} 
+          />
+        </label>
+        
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estado</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
@@ -100,25 +111,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración media (min)</span>
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
         </label>
-        {/* 2. Añadimos el campo de fecha de estreno en la cuadrícula de inputs */}
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de estreno</span>
-          <input 
-            type="date" 
-            value={premiered} 
-            onChange={(e) => setPremiered(e.target.value)} 
-            className={inputClass} 
-          />
-        </label>
+        
       </div>
 
-      <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cadena original</span>
-          <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
-        Miniserie
-        </label>
-
-      
       
       
       <PosterField value={poster} onChange={poster => setPoster(poster)} />
