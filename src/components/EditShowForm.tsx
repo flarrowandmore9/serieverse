@@ -102,7 +102,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         </label>
         {/* 2. Añadimos el campo de fecha de estreno en la cuadrícula de inputs */}
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de Estreno</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de estreno</span>
           <input 
             type="date" 
             value={premiered} 
@@ -111,11 +111,15 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           />
         </label>
       </div>
-      <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
-        <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
+
+      <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cadena original</span>
+          <input type="checkbox" checked={isMiniseries} onChange={(e) => setIsMiniseries(e.target.checked)} className="h-4 w-4 accent-pastel-accent" />
         Miniserie
-      </label>
+        </label>
+
+      
+      
       
       <PosterField value={poster} onChange={poster => setPoster(poster)} />
       <div className="grid gap-4 sm:grid-cols-2">
