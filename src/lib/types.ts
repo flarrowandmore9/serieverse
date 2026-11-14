@@ -12,6 +12,8 @@ export type ShowListItem = {
   synopsis_es: string | null;
   genres: string | null;
   tv_status: string | null;
+  show_type?: string | null;      // 'SpinOff', 'Reboot', etc.
+  franchise?: string | null;
   premiered: string | null;
   rating: number | null;
   is_miniseries: boolean;
