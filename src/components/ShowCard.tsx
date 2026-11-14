@@ -58,9 +58,7 @@ export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps
               {show.rating}
             </span>
           ) : <span />}
-          <div className="flex min-w-0 items-center gap-1">
-             <span className={`shrink-0 rounded-full px-1.5 py-px text-[8px] font-bold ${type.className}`}>{type.label}</span>
-          </div>
+          
         </div>
       </div>
     </article>
