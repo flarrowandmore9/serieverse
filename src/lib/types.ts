@@ -7,6 +7,7 @@ export type Character = {
 export type ShowListItem = {
   id: number;
   tvmaze_id: number | null;
+  tmdb_id: number | null;
   title: string;
   poster_url: string | null;
   synopsis_es: string | null;
