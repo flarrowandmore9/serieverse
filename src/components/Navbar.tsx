@@ -74,11 +74,29 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
           {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
 {isAdmin && (
   <button 
-    onClick={() => {
-      // Recarga la página directamente sin mostrar ningún mensaje
-      window.location.reload();
+    onClick={async () => {
+      try {
+        // Indicamos visualmente o mediante consola que empieza
+        console.log("Forzando sincronización con TVMaze y TMDB...");
+        
+        // Llamada real a la función de Supabase que actualiza el catálogo
+        const { data, error } = await supabase.functions.invoke('sync-catalog', {
+          body: { mode: 'discover', fromPage: 0, toPage: 1 },
+        });
+
+        if (error) throw error;
+
+        console.log("Sincronización completada:", data);
+        alert("¡Catálogo sincronizado con éxito! Recargando...");
+        
+        // Recargamos la página para ver las nuevas series en la app
+        window.location.reload();
+      } catch (err: any) {
+        console.error("Error al sincronizar:", err);
+        alert("Hubo un error al sincronizar: " + err.message);
+      }
     }}
-    title="Actualizar Catálogo"
+    title="Actualizar Catálogo (TVMaze + TMDB)"
     className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
   >
     {/* Icono de Ruedita / Engranaje */}
@@ -86,6 +104,7 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
     </svg>
   </button>
+)}
 )}
 
           {isAdmin && (
