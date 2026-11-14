@@ -196,6 +196,7 @@ async function discoverTMDB(supabase: ReturnType<typeof createClient>) {
     console.log("TMDB_API_KEY no configurada, omitiendo sincronización de TMDB.");
     return { tmdbProcessed: 0 };
   }
+  
 
   const headers = {
     accept: "application/json",
