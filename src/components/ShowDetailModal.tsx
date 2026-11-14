@@ -9,7 +9,7 @@ import { ErrorState, LoadingState } from '@/components/PageStates';
 import { useAuth } from '@/context/AuthContext';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { fetchEpisodes, fetchShow } from '@/lib/catalog';
-import { formatDate, formatPlatforms, statusLabel } from '@/lib/format';
+import { SHOW_TYPES_OPTIONS, formatDate, formatPlatforms, statusLabel } from '@/lib/format';
 
 type ShowDetailModalProps = {
   showId: number;
@@ -30,6 +30,11 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
 
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
+
+  // Buscamos la etiqueta legible del tipo de serie (ej. "Spin-off")
+  const showTypeLabel = show?.show_type
+    ? SHOW_TYPES_OPTIONS.find((opt) => opt.value === show.show_type)?.label || show.show_type
+    : null;
 
   return (
     <Modal title={editing ? 'Editar serie' : (show?.title ?? 'Serie')} onClose={onClose} maxWidth="max-w-4xl">
@@ -62,16 +67,29 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
 
             <div className="flex-1 space-y-4">
               <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-3">
+                {/* 1. Título + Estado + Tipo de Serie + Franquicia */}
+                <div className="flex flex-wrap items-center gap-2.5">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
+                  
                   {show.is_miniseries && (
                     <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
                   )}
+
+                  {showTypeLabel && (
+                    <span className="rounded-lg bg-pastel-lavender px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-pastel-lavenderDark dark:text-slate-200">
+                      {showTypeLabel}
+                    </span>
+                  )}
+
+                  {show.franchise && (
+                    <span className="rounded-lg bg-pastel-rose/60 px-2.5 py-1 text-xs font-bold text-rose-900 dark:bg-pastel-roseDark dark:text-rose-200">
+                      {show.franchise}
+                    </span>
+                  )}
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}
-                </p>
+
+                {/* 2. Estreno · Cadena · Duración (mismo orden que el formulario) */}
                 <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Estreno:</span> {formatDate(show.premiered)}</span>
                   <span aria-hidden="true">·</span>
@@ -79,8 +97,14 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <span aria-hidden="true">·</span>
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
                 </p>
+
+                {/* 3. Género */}
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}
+                </p>
               </div>
 
+              {/* 4. Plataformas EE.UU. y España */}
               <div className="flex flex-col divide-y divide-slate-200 rounded-xl bg-slate-50 text-sm sm:flex-row sm:divide-x sm:divide-y-0 dark:divide-slate-700 dark:bg-slate-800/80">
                 <p className="flex-1 px-4 py-2.5">
                   <span className="font-semibold text-slate-600 dark:text-slate-300">Ver en EE.UU:</span>{' '}
@@ -169,8 +193,6 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
               <p className="text-sm text-slate-500 dark:text-slate-400">Consulta el desglose de cada temporada, con las fechas de emisión y la duración real de cada episodio.</p>
               {isAdmin ? (
                 <AdminEpisodeEditor show={{ id: show.id, title: show.title }} episodes={detail.data?.episodes ?? []} onChanged={detail.reload} />
-
-              
               ) : (
                 <ShowSeasons episodes={detail.data?.episodes ?? []} />
               )}
