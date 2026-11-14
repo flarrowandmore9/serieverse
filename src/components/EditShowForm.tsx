@@ -29,7 +29,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [showType, setShowType] = useState(show.show_type ?? '');
   const [franchise, setFranchise] = useState(show.franchise ?? '');
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
-  const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,13 +49,13 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         us_platforms: usPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         tv_status: status || null,
-        is_miniseries: isMiniseries,
         genres: genres.trim() || null,
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
         premiered: premiered.trim() || null,
-
+show_type: showType || null,
+franchise: franchise.trim() || null,
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
