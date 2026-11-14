@@ -99,16 +99,28 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
             ))}
           </select>
         </label>
+
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
+            {SHOW_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (separados por comas)</span>
           <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} />
         </label>
+        
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cadena original</span>
           <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} />
         </label>
+        
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración media (min)</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
         </label>
         
