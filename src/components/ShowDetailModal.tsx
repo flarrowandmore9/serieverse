@@ -91,7 +91,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <span aria-hidden="true">·</span>
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Cadena:</span> {show.network_name ?? 'Sin datos'}</span>
                   <span aria-hidden="true">·</span>
-                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
+                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración Media:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
                 </p>
 
                 {/* Fila 2: Género · Tipo de serie · Franquicia/Serie Madre */}
