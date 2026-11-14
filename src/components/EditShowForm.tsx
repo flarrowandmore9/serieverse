@@ -70,6 +70,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <PosterField value={poster} onChange={poster => setPoster(poster)} />
+      
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Título</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
@@ -128,7 +130,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
       
       
-      <PosterField value={poster} onChange={poster => setPoster(poster)} />
+      
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Plataformas EE.UU. (separadas por comas)</span>
