@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Info, Layers, Pencil, Star, Tv, GitFork } from 'lucide-react';
+import { Info, Layers, Pencil, Star, Tv } from 'lucide-react';
 import Modal from '@/components/Modal';
 import ListToggle from '@/components/ListToggle';
 import AdminEpisodeEditor from '@/components/AdminEpisodeEditor';
@@ -15,16 +15,6 @@ type ShowDetailModalProps = {
   showId: number;
   onClose: () => void;
   onRequireLogin: () => void;
-};
-
-// Traducción limpia para mostrar las etiquetas de tipo de serie de forma bonita
-const showTypeLabels: Record<string, string> = {
-  SpinOff: 'Spin-off',
-  Reboot: 'Reboot',
-  Secuela: 'Secuela',
-  Precuela: 'Precuela',
-  Anthology: 'Antología',
-  Miniseries: 'Miniserie',
 };
 
 export default function ShowDetailModal({ showId, onClose, onRequireLogin }: ShowDetailModalProps) {
@@ -80,19 +70,18 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                     <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
                   )}
 
-                  {/* NUEVO: Etiqueta visual para el Tipo de Serie (Spin-off, Reboot, etc.) */}
-                  {show.show_type && show.show_type !== '' && (
-                    <span className="flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:ring-indigo-800">
-                      <GitFork className="h-3 w-3" />
-                      {showTypeLabels[show.show_type] ?? show.show_type}
+                  {/* Etiqueta visual para el Tipo de Serie (Spin-off, Reboot, etc.) */}
+                  {(show as any).show_type && (
+                    <span className="rounded-lg bg-pastel-lavender px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                      {(show as any).show_type}
                     </span>
                   )}
                 </div>
 
-                {/* NUEVO: Línea para mostrar a qué franquicia o serie madre pertenece */}
-                {show.franchise && (
-                  <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                    📂 Franquicia / Serie universo: <span className="font-bold">{show.franchise}</span>
+                {/* Línea para la Franquicia o Serie madre */}
+                {(show as any).franchise && (
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    Pertenece a: <span className="font-bold text-slate-800 dark:text-slate-200">{(show as any).franchise}</span>
                   </p>
                 )}
 
@@ -175,7 +164,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
               </div>
               {show.characters && show.characters.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Reparto Principal</h4>
+                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Reparto principal</h4>
                   <ul className="grid grid-cols-2 gap-2">
                     {show.characters.slice(0, 8).map((member) => (
                       <li key={`${member.actor}-${member.character}`} className="flex items-center gap-2.5 rounded-xl bg-pastel-cream p-2 dark:bg-slate-800">
