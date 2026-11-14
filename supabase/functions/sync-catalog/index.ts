@@ -23,7 +23,7 @@ const US_NETWORKS = new Set(
 const ES_NETWORKS = new Set(
   [
     "RTVE", "TVE", "La 1", "La 2", "Antena 3", 'A3Series', "Cuatro", "Telecinco", "La Sexta", "AXN", "FOX",
-     "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", "Atresplayer Originals", "Atresmedia Televisión", "Mediaset", "Movistar Plus+", "SkyShowtme", "Filmin", "HBO España", "HBO Max España", "Disney+ España",
+     "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", "Atresplayer Originals", "Atresmedia Televisión", "Mediaset", "Movistar", "Movistar+" "Movistar Plus+", "SkyShowtime", "Filmin", "HBO España", "HBO Max España", "Disney+ España",
   ].map((name) => name.toLowerCase()),
 );
 
