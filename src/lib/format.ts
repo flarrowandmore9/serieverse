@@ -37,6 +37,7 @@ export const SHOW_TYPES_OPTIONS: { value: string; label: string }[] = [
   { value: 'Secuela', label: 'Secuela' },
   { value: 'Precuela', label: 'Precuela' },
   { value: 'Anthology', label: 'Antología' },
+  { value: 'Miniserie', label: 'Miniseries' },
 ];
 
 export function statusLabel(status: string | null): { label: string; className: string } {
