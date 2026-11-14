@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Info, Layers, Pencil, Star, Tv, GitFork } from 'lucide-react';
+import { Info, Layers, Pencil, Star, Tv } from 'lucide-react';
 import Modal from '@/components/Modal';
 import ListToggle from '@/components/ListToggle';
 import AdminEpisodeEditor from '@/components/AdminEpisodeEditor';
@@ -17,7 +17,7 @@ type ShowDetailModalProps = {
   onRequireLogin: () => void;
 };
 
-// Traducción limpia para mostrar las etiquetas de tipo de serie de forma bonita
+// Traducción limpia para el tipo de serie
 const showTypeLabels: Record<string, string> = {
   SpinOff: 'Spin-off',
   Reboot: 'Reboot',
@@ -40,6 +40,11 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
 
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
+
+  // Extracción segura de los campos nuevos
+  const rawShowType = (show as any)?.show_type;
+  const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
+  const franchise = (show as any)?.franchise;
 
   return (
     <Modal title={editing ? 'Editar serie' : (show?.title ?? 'Serie')} onClose={onClose} maxWidth="max-w-4xl">
@@ -72,17 +77,16 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
 
             <div className="flex-1 space-y-4">
               <div className="space-y-2">
+                {/* Título, Estado y Miniserie arriba */}
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
-                                   
+                  {show.is_miniseries && (
+                    <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
+                  )}
                 </div>
 
-                
-
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}
-                </p>
+                {/* Fila 1: Estreno · Cadena · Duración */}
                 <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Estreno:</span> {formatDate(show.premiered)}</span>
                   <span aria-hidden="true">·</span>
@@ -90,8 +94,28 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <span aria-hidden="true">·</span>
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
                 </p>
+
+                {/* Fila 2: Género · Tipo de serie · Franquicia/Serie Madre (Se ocultan automáticamente si no tienen valor para no dejar separadores huérfanos) */}
+                <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
+                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}</span>
+                  
+                  {showType && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span><span className="font-semibold text-slate-700 dark:text-slate-300">Tipo:</span> {showType}</span>
+                    </>
+                  )}
+
+                  {franchise && franchise.trim() !== '' && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span><span className="font-semibold text-slate-700 dark:text-slate-300">Franquicia / Serie madre:</span> {franchise}</span>
+                    </>
+                  )}
+                </p>
               </div>
 
+              {/* Plataformas */}
               <div className="flex flex-col divide-y divide-slate-200 rounded-xl bg-slate-50 text-sm sm:flex-row sm:divide-x sm:divide-y-0 dark:divide-slate-700 dark:bg-slate-800/80">
                 <p className="flex-1 px-4 py-2.5">
                   <span className="font-semibold text-slate-600 dark:text-slate-300">Ver en EE.UU:</span>{' '}
