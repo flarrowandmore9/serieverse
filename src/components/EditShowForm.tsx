@@ -25,6 +25,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [network, setNetwork] = useState(show.network_name ?? '');
   const [poster, setPoster] = useState(show.poster_url ?? '');
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
+  // 1. Añadimos el estado para la fecha de estreno (asegurándonos de quedarnos con el formato YYYY-MM-DD si trae hora)
+  const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
   const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
   const [saving, setSaving] = useState(false);
@@ -52,6 +54,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
+        // 3. Enviamos la fecha de estreno (o null si está vacía)
+        premiered: premiered.trim() || null,
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
@@ -95,6 +99,16 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración media (min)</span>
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
+        </label>
+        {/* 2. Añadimos el campo de fecha de estreno en la cuadrícula de inputs */}
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de estreno</span>
+          <input 
+            type="date" 
+            value={premiered} 
+            onChange={(e) => setPremiered(e.target.value)} 
+            className={inputClass} 
+          />
         </label>
       </div>
       <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-3 text-sm font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
