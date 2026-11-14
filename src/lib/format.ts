@@ -22,7 +22,7 @@ export function formatDate(iso: string | null): string {
 }
 
 export const SHOW_STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: '' },
+  { value: '', label: 'Sin Datos' },
   { value: 'Running', label: 'En Emisión' },
   { value: 'In Development', label: 'En Desarrollo' },
   { value: 'To Be Determined', label: 'Por Confirmar' },
