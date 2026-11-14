@@ -7,30 +7,23 @@ const corsHeaders = {
 };
 
 const TVMAZE = "https://api.tvmaze.com";
-const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const STALE_AFTER_MS = 20 * 60 * 60 * 1000;
 const TIME_BUDGET_MS = 90_000;
 const REQUEST_SPACING_MS = 550;
 const MAX_PAGES_PER_DISCOVER = 80;
 const BATCH_SIZE = 500;
 
-// Listas ampliadas con todas las cadenas de EE. UU. y España / plataformas de streaming
 const US_NETWORKS = new Set(
   [
     "The CW", "ABC", "NBC", "CBS", "FOX", "AMC", "FX", "Starz", "Freeform", "Showtime",
-    "Netflix", "Prime Video", "HBO", "HBO Max", "Max", "Warner Bros.", "Disney+", "Disney", 
-    "Marvel", "Star Wars", "Hulu", "Apple TV", "Apple TV+", "Paramount", "Paramount+", 
-    "Paramount Network", "Peacock", "Universal", "Epix", "MGM+", "AMC+"
+    "Netflix", "Prime Video", "HBO", "HBO Max", "Warner Bros.", "Disney+", "Disney", "Marvel", "Star Wars", "Hulu", "Apple TV", "Apple TV+", "Paramount", "Paramount+", "Paramount Network", "Peacock", "Universal",
   ].map((name) => name.toLowerCase()),
 );
 
 const ES_NETWORKS = new Set(
   [
-    "RTVE", "TVE", "La 1", "La 2", "Antena 3", "A3Series", "Cuatro", "Telecinco", "La Sexta", 
-    "AXN", "FOX", "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", 
-    "Atresplayer Originals", "Atresmedia Televisión", "Mediaset", "Mediaset España", 
-    "Movistar Plus+", "Movistar+", "SkyShowtime", "Filmin", "HBO España", "HBO Max España", 
-    "Disney+ España", "Neox", "Nova", "FDF", "Energy", "Paramount Network España"
+    "RTVE", "TVE", "La 1", "La 2", "Antena 3", 'A3Series', "Cuatro", "Telecinco", "La Sexta", "AXN", "FOX",
+     "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", "Atresplayer Originals", "Atresmedia Televisión", "Mediaset", "Movistar Plus+", "SkyShowtme", "Filmin", "HBO España", "HBO Max España", "Disney+ España",
   ].map((name) => name.toLowerCase()),
 );
 
@@ -69,7 +62,7 @@ type TvmazeShow = {
   _embedded?: { episodes?: TvmazeEpisode[]; cast?: CastMember[] };
 };
 
-type ShowRow = { id: number; tvmaze_id: number | null; title: string };
+type ShowRow = { id: number; tvmaze_id: number; title: string };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -149,9 +142,6 @@ function isSeries(show: TvmazeShow): boolean {
 }
 
 async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow): Promise<void> {
-  // Si la serie viene de TMDB (no tiene tvmaze_id), la saltamos en el sincronizador clásico de episodios de TVMaze
-  if (!show.tvmaze_id) return;
-
   const res = await fetchTvmaze(`/shows/${show.tvmaze_id}?embed[]=episodes&embed[]=cast`);
   if (!res.ok) throw new Error(`TVMaze ${res.status} para ${show.title}`);
   const data = (await res.json()) as TvmazeShow;
@@ -189,84 +179,18 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
   }
 }
 
-// NUEVA FUNCIÓN: Descubrir y sincronizar catálogos de TMDB (EE. UU. y España)
-async function discoverTMDB(supabase: ReturnType<typeof createClient>) {
-  const tmdbApiKey = Deno.env.get("TMDB_API_KEY");
-  if (!tmdbApiKey) {
-    console.log("TMDB_API_KEY no configurada, omitiendo sincronización de TMDB.");
-    return { tmdbProcessed: 0 };
-  }
-  
-
-  const headers = {
-    accept: "application/json",
-    Authorization: `Bearer ${tmdbApiKey}`,
-  };
-
-  let totalProcessed = 0;
-
-  // Consultar tanto para US como para ES en múltiples páginas de popularidad
-  for (const country of ["US", "ES"]) {
-    for (let page = 1; page <= 5; page++) {
-      try {
-        const res = await fetch(
-          `${TMDB_BASE_URL}/discover/tv?sort_by=popularity.desc&origin_country=${country}&language=es-ES&page=${page}`,
-          { headers }
-        );
-        if (!res.ok) break;
-        const data = await res.json();
-        const results = data.results || [];
-
-        if (results.length === 0) break;
-
-        const showsToUpsert = results.map((show: any) => {
-          const countryCode = show.origin_country?.[0] || country;
-          const isUS = countryCode === "US";
-          const networkName = isUS ? "FX / Streaming US" : "Movistar+ / Filmin / ES";
-
-          return {
-            title: show.name || show.original_name,
-            tv_status: "Running", // Estado por defecto aproximado
-            premiered: show.first_air_date || null,
-            rating: show.vote_average || null,
-            synopsis_source: show.overview || null,
-            poster_url: show.poster_path ? `https://image.tmdb.org/t/p/w500${show.poster_path}` : null,
-            tv_type: "scripted",
-            us_platforms: isUS ? [networkName] : [],
-            es_platforms: !isUS ? [networkName] : [],
-            network_name: networkName,
-            tv_synced_at: new Date().toISOString(),
-          };
-        });
-
-        // Insertar por lotes en Supabase usando el título como referencia única o upsert
-        for (let i = 0; i < showsToUpsert.length; i += BATCH_SIZE) {
-          const batch = showsToUpsert.slice(i, i + BATCH_SIZE);
-          const { error } = await supabase
-            .from("shows")
-            .upsert(batch, { onConflict: "title" }); // Asumiendo que 'title' o una clave única previene duplicados
-          if (error) console.error("Error upserting TMDB batch:", error.message);
-        }
-
-        totalProcessed += results.length;
-        await sleep(REQUEST_SPACING_MS);
-      } catch (err) {
-        console.error(`Error en TMDB discover para ${country} página ${page}:`, err);
-      }
-    }
-  }
-
-  return { tmdbProcessed: totalProcessed };
-}
-
 async function discover(supabase: ReturnType<typeof createClient>, fromPage: number, toPage: number) {
-  const rows: any[] = [];
+  const rows: (ReturnType<typeof platformFields> & { tvmaze_id: number; title: string; tv_type: string | null })[] = [];
   const removeIds: number[] = [];
   let pages = 0;
+  let reachedEnd = false;
 
   for (let page = fromPage; page <= toPage; page++) {
     const res = await fetchTvmaze(`/shows?page=${page}`);
-    if (res.status === 404) break;
+    if (res.status === 404) {
+      reachedEnd = true;
+      break;
+    }
     if (!res.ok) throw new Error(`TVMaze ${res.status} en la página ${page}`);
     const shows = (await res.json()) as TvmazeShow[];
     for (const show of shows.filter(isNamedNetwork)) {
@@ -289,10 +213,7 @@ async function discover(supabase: ReturnType<typeof createClient>, fromPage: num
     if (error) throw new Error(error.message);
   }
 
-  // Ejecutamos también la sincronización de TMDB en paralelo durante el discover
-  const tmdbResult = await discoverTMDB(supabase);
-
-  return { pages, series: rows.length, removed: removeIds.length, ...tmdbResult, nextPage: toPage + 1 };
+  return { pages, series: rows.length, removed: removeIds.length, reachedEnd, nextPage: toPage + 1 };
 }
 
 async function syncBatch(supabase: ReturnType<typeof createClient>) {
@@ -336,15 +257,10 @@ Deno.serve(async (req: Request) => {
     );
 
     if (body.mode === "discover") {
-      // Como ya validamos que eres admin en el frontend de la app, 
-      // permitimos la ejecución directa sin exigir la llave maestra en la cabecera.
-      const fromPage = Number(body.fromPage);
-      const toPage = Number(body.toPage);
-      if (!Number.isInteger(fromPage) || !Number.isInteger(toPage) || fromPage < 0 || toPage < fromPage || toPage - fromPage >= MAX_PAGES_PER_DISCOVER) {
-        return json({ error: "Rango de páginas no válido" }, 400);
+      const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`;
+      if (req.headers.get("Authorization") !== expected) {
+        return json({ error: "No autorizado" }, 403);
       }
-      return json(await discover(supabase, fromPage, toPage));
-    }
       const fromPage = Number(body.fromPage);
       const toPage = Number(body.toPage);
       if (!Number.isInteger(fromPage) || !Number.isInteger(toPage) || fromPage < 0 || toPage < fromPage || toPage - fromPage >= MAX_PAGES_PER_DISCOVER) {

@@ -3,8 +3,6 @@ import { Bookmark, CalendarDays, Clapperboard, LayoutGrid, LogIn, Moon, MessageS
 import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import type { ViewId } from '@/lib/types';
-import { supabase } from '@/lib/supabase';
-
 
 type NavbarProps = {
   view: ViewId;
@@ -73,28 +71,14 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
             {settings.btn_download ?? 'Instalar App'}
           </button>
 
-         {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
+          {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
 {isAdmin && (
   <button 
-    onClick={async () => {
-      try {
-        console.log("Forzando sincronización con TVMaze y TMDB...");
-        
-        const { data, error } = await supabase.functions.invoke('sync-catalog', {
-          body: { mode: 'discover', fromPage: 0, toPage: 1 },
-        });
-
-        if (error) throw error;
-
-        console.log("Sincronización completada:", data);
-        alert("¡Catálogo sincronizado con éxito! Recargando...");
-        window.location.reload();
-      } catch (err: any) {
-        console.error("Error al sincronizar:", err);
-        alert("Hubo un error al sincronizar: " + err.message);
-      }
+    onClick={() => {
+      // Recarga la página directamente sin mostrar ningún mensaje
+      window.location.reload();
     }}
-    title="Actualizar Catálogo (TVMaze + TMDB)"
+    title="Actualizar Catálogo"
     className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
   >
     {/* Icono de Ruedita / Engranaje */}
