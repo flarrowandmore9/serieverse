@@ -71,12 +71,29 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
             {settings.btn_download ?? 'Instalar App'}
           </button>
 
-          {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
+         {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
 {isAdmin && (
   <button 
-    onClick={() => {
-      // Recarga la página directamente sin mostrar ningún mensaje
-      window.location.reload();
+    onClick={async () => {
+      try {
+        // Llamada a tu Edge Function de sincronización
+        const response = await fetch('/functions/v1/sync-catalog', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          alert('¡Catálogo sincronizado correctamente!');
+          window.location.reload();
+        } else {
+          alert('Hubo un problema al sincronizar el catálogo.');
+        }
+      } catch (error) {
+        console.error('Error de red:', error);
+        alert('Error al conectar con la función de sincronización.');
+      }
     }}
     title="Actualizar Catálogo"
     className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
