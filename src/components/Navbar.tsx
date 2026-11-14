@@ -3,6 +3,7 @@ import { Bookmark, CalendarDays, Clapperboard, LayoutGrid, LogIn, Moon, MessageS
 import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import type { ViewId } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 
 type NavbarProps = {
   view: ViewId;
