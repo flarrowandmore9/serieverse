@@ -71,15 +71,13 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
             {settings.btn_download ?? 'Instalar App'}
           </button>
 
-          {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
+         {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
 {isAdmin && (
   <button 
     onClick={async () => {
       try {
-        // Indicamos visualmente o mediante consola que empieza
         console.log("Forzando sincronización con TVMaze y TMDB...");
         
-        // Llamada real a la función de Supabase que actualiza el catálogo
         const { data, error } = await supabase.functions.invoke('sync-catalog', {
           body: { mode: 'discover', fromPage: 0, toPage: 1 },
         });
@@ -88,8 +86,6 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
 
         console.log("Sincronización completada:", data);
         alert("¡Catálogo sincronizado con éxito! Recargando...");
-        
-        // Recargamos la página para ver las nuevas series en la app
         window.location.reload();
       } catch (err: any) {
         console.error("Error al sincronizar:", err);
@@ -104,7 +100,6 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
     </svg>
   </button>
-)}
 )}
 
           {isAdmin && (
