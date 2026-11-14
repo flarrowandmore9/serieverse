@@ -22,9 +22,6 @@ export type ShowPatch = {
   runtime: number | null;
   characters: Character[];
   is_miniseries: boolean;
-  premiered: string | null;
-  tvmaze_id: number | null;
-  tmdb_id: number | null;
 };
 
 export type EpisodePatch = {
@@ -78,14 +75,14 @@ export async function deleteSuggestion(id: number): Promise<void> {
 }
 
 export async function updateShow(id: number, patch: ShowPatch): Promise<ShowListItem> {
-  const { data, error } = await supabase
-    .from('shows')
-    .update(patch)
-    .eq('id', id)
-    .select('id, tvmaze_id, tmdb_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, is_miniseries, imdb_id, network_name, us_platforms, es_platforms') // <--- Añadido tmdb_id aquí también para que lo devuelva
-    .single();
-  if (error) throw new Error(error.message);
-  return data as ShowListItem;
+  const { data, error } = await supabase
+    .from('shows')
+    .update(patch)
+    .eq('id', id)
+    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, is_miniseries, imdb_id, network_name, us_platforms, es_platforms')
+    .single();
+  if (error) throw new Error(error.message);
+  return data as ShowListItem;
 }
 
 export async function deleteShow(id: number): Promise<void> {
