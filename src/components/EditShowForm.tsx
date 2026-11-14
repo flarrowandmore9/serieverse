@@ -26,8 +26,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [network, setNetwork] = useState(show.network_name ?? '');
   const [poster, setPoster] = useState(show.poster_url ?? '');
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
-  // 1. Añadimos el estado para la fecha de estreno (asegurándonos de quedarnos con el formato YYYY-MM-DD si trae hora)
   const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
+  const [showType, setShowType] = useState(show.show_type ?? '');
+  const [franchise, setFranchise] = useState(show.franchise ?? '');
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
   const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
   const [saving, setSaving] = useState(false);
