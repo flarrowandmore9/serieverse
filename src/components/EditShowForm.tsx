@@ -80,7 +80,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en español</span>
         <textarea rows={4} value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className={inputClass} />
       </label>
-      <CastListEditor value={cast} onChange={setCast} />
+      
       <div className="grid gap-4 sm:grid-cols-2">
         {/* 2. Añadimos el campo de fecha de estreno en la cuadrícula de inputs */}
         <label className="block space-y-1.5">
@@ -120,6 +120,16 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Cadena original</span>
           <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} />
         </label>
+
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU. (separadas por comas)</span>
+          <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
+        </label>
+
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España (separadas por comas)</span>
+          <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
+        </label>
         
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
@@ -128,20 +138,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         
       </div>
 
-      
-      
-      
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Plataformas EE.UU. (separadas por comas)</span>
-          <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
-        </label>
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Plataformas España (separadas por comas)</span>
-          <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
-        </label>
-      </div>
+      <CastListEditor value={cast} onChange={setCast} />
 
+      
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
 
       <div className="flex justify-end gap-3 pt-2">
