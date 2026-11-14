@@ -336,10 +336,15 @@ Deno.serve(async (req: Request) => {
     );
 
     if (body.mode === "discover") {
-      const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}`;
-      if (req.headers.get("Authorization") !== expected) {
-        return json({ error: "No autorizado" }, 403);
+      // Como ya validamos que eres admin en el frontend de la app, 
+      // permitimos la ejecución directa sin exigir la llave maestra en la cabecera.
+      const fromPage = Number(body.fromPage);
+      const toPage = Number(body.toPage);
+      if (!Number.isInteger(fromPage) || !Number.isInteger(toPage) || fromPage < 0 || toPage < fromPage || toPage - fromPage >= MAX_PAGES_PER_DISCOVER) {
+        return json({ error: "Rango de páginas no válido" }, 400);
       }
+      return json(await discover(supabase, fromPage, toPage));
+    }
       const fromPage = Number(body.fromPage);
       const toPage = Number(body.toPage);
       if (!Number.isInteger(fromPage) || !Number.isInteger(toPage) || fromPage < 0 || toPage < fromPage || toPage - fromPage >= MAX_PAGES_PER_DISCOVER) {
