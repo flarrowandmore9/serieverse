@@ -16,14 +16,18 @@ const BATCH_SIZE = 500;
 const US_NETWORKS = new Set(
   [
     "The CW", "ABC", "NBC", "CBS", "FOX", "AMC", "FX", "Starz", "Freeform", "Showtime",
-    "Netflix", "Prime Video", "HBO", "HBO Max", "Warner Bros.", "Disney+", "Disney", "Marvel", "Star Wars", "Hulu", "Apple TV", "Apple TV+", "Paramount", "Paramount+", "Paramount Network", "Peacock", "Universal",
+    "Netflix", "Prime Video", "Amazon", "HBO", "HBO Max", "Max", "Warner Bros.", "Disney+", 
+    "Disney", "Marvel", "Star Wars", "Hulu", "Apple TV", "Apple TV+", "Paramount", 
+    "Paramount+", "Paramount Network", "Peacock", "Universal",
   ].map((name) => name.toLowerCase()),
 );
 
 const ES_NETWORKS = new Set(
   [
-    "RTVE", "TVE", "La 1", "La 2", "Antena 3", 'A3Series', "Cuatro", "Telecinco", "La Sexta", "AXN", "FOX",
-     "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", "Atresplayer Originals", "Atresmedia Televisión", "Mediaset", "Movistar", "Movistar+" "Movistar Plus+", "SkyShowtime", "Filmin", "HBO España", "HBO Max España", "Disney+ España",
+    "RTVE", "TVE", "La 1", "La 2", "Antena 3", "A3Series", "Cuatro", "Telecinco", "La Sexta", "AXN", "FOX",
+    "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", "Atresplayer Originals", "Atresmedia Televisión", 
+    "Mediaset", "Movistar+", "Movistar Plus+", "Movistar Plus", "Movistar", "SkyShowtime", "SkyShowtme", 
+    "Filmin", "HBO España", "HBO Max España", "Disney+ España",
   ].map((name) => name.toLowerCase()),
 );
 
