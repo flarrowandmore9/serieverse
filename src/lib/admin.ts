@@ -21,7 +21,6 @@ export type ShowPatch = {
   poster_url: string | null;
   runtime: number | null;
   characters: Character[];
-  is_miniseries: boolean;
 };
 
 export type EpisodePatch = {
