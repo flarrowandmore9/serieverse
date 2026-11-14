@@ -75,22 +75,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
-                                   
-                  {/* NUEVO: Etiqueta visual para el Tipo de Serie (Spin-off, Reboot, etc.) */}
-                  {show.show_type && show.show_type !== '' && (
-                    <span className="flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:ring-indigo-800">
-                      <GitFork className="h-3 w-3" />
-                      {showTypeLabels[show.show_type] ?? show.show_type}
-                    </span>
-                  )}
-                </div>
-
-                {/* NUEVO: Línea para mostrar a qué franquicia o serie madre pertenece */}
-                {show.franchise && (
-                  <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                    📂 Franquicia / Serie universo: <span className="font-bold">{show.franchise}</span>
-                  </p>
-                )}
+                                  
 
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   <span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}
