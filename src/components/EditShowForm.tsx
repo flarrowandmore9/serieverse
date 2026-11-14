@@ -103,7 +103,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           </select>
         </label>
 
-        {/* CORREGIDO: Ahora usa showType y setShowType correctamente */}
+        {/* Selector corregido para usar showType */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
           <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
@@ -113,7 +113,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           </select>
         </label>
 
-        {/* AÑADIDO: Input visual para la franquicia / serie madre */}
+        {/* Input añadido para la franquicia / serie de origen */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
           <input 
