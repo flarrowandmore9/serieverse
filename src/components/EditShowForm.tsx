@@ -82,7 +82,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       <div className="grid gap-4 sm:grid-cols-2">
         {/* 2. Añadimos el campo de fecha de estreno en la cuadrícula de inputs */}
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de estreno</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de Estreno</span>
           <input 
             type="date" 
             value={premiered} 
