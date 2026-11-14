@@ -22,6 +22,9 @@ export type ShowPatch = {
   runtime: number | null;
   characters: Character[];
   is_miniseries: boolean;
+  premiered: string | null;    // <--- Añadido
+  tvmaze_id: number | null;    // <--- Añadido
+  tmdb_id: number | null;
 };
 
 export type EpisodePatch = {
