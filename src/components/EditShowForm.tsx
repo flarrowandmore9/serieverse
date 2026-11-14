@@ -2,8 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Loader2 } from 'lucide-react';
 import CastListEditor from '@/components/CastListEditor';
 import PosterField from '@/components/PosterField';
-import { SHOW_STATUS_OPTIONS, formatPlatforms } from '@/lib/format';
-import { SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
+import { SHOW_STATUS_OPTIONS, SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
 import { updateShow } from '@/lib/admin';
 import type { Character, Show, ShowListItem } from '@/lib/types';
 
@@ -85,7 +84,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       </label>
       
       <div className="grid gap-4 sm:grid-cols-2">
-        {/* 2. Añadimos el campo de fecha de estreno en la cuadrícula de inputs */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de Estreno</span>
           <input 
@@ -105,13 +103,25 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           </select>
         </label>
 
+        {/* CORREGIDO: Ahora usa showType y setShowType correctamente */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
+          <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
             {SHOW_TYPES_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
+        </label>
+
+        {/* AÑADIDO: Input visual para la franquicia / serie madre */}
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
+          <input 
+            value={franchise} 
+            onChange={(e) => setFranchise(e.target.value)} 
+            className={inputClass} 
+            placeholder="Ej: One Chicago o Chicago Fire" 
+          />
         </label>
         
         <label className="block space-y-1.5">
@@ -138,12 +148,10 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
         </label>
-        
       </div>
 
       <CastListEditor value={cast} onChange={setCast} />
 
-      
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
 
       <div className="flex justify-end gap-3 pt-2">
