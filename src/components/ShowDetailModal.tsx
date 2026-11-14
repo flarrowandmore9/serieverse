@@ -17,7 +17,7 @@ type ShowDetailModalProps = {
   onRequireLogin: () => void;
 };
 
-// Traducción limpia para las etiquetas de tipo de serie
+// Traducción limpia para mostrar las etiquetas de tipo de serie de forma bonita
 const showTypeLabels: Record<string, string> = {
   SpinOff: 'Spin-off',
   Reboot: 'Reboot',
@@ -40,11 +40,6 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
 
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
-
-  // Extraemos de forma segura por si vienen en el objeto plano de la base de datos
-  const showAny = show as any;
-  const showType = showAny?.show_type || showAny?.showType;
-  const franchise = showAny?.franchise;
 
   return (
     <Modal title={editing ? 'Editar serie' : (show?.title ?? 'Serie')} onClose={onClose} maxWidth="max-w-4xl">
@@ -85,19 +80,19 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                     <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
                   )}
 
-                  {/* ETIQUETA VISUAL DEL TIPO DE SERIE */}
-                  {showType && showType !== '' && (
+                  {/* NUEVO: Etiqueta visual para el Tipo de Serie (Spin-off, Reboot, etc.) */}
+                  {show.show_type && show.show_type !== '' && (
                     <span className="flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:ring-indigo-800">
                       <GitFork className="h-3 w-3" />
-                      {showTypeLabels[showType] ?? showType}
+                      {showTypeLabels[show.show_type] ?? show.show_type}
                     </span>
                   )}
                 </div>
 
-                {/* LÍNEA DE FRANQUICIA / UNIVERSO */}
-                {franchise && franchise.trim() !== '' && (
+                {/* NUEVO: Línea para mostrar a qué franquicia o serie madre pertenece */}
+                {show.franchise && (
                   <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                    📂 Franquicia / Serie universo: <span className="font-bold">{franchise}</span>
+                    📂 Franquicia / Serie universo: <span className="font-bold">{show.franchise}</span>
                   </p>
                 )}
 
