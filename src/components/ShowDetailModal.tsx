@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Info, Layers, Pencil, Star, Tv, GitFork } from 'lucide-react';
+import { Info, Layers, Pencil, Star, Tv } from 'lucide-react';
 import Modal from '@/components/Modal';
 import ListToggle from '@/components/ListToggle';
 import AdminEpisodeEditor from '@/components/AdminEpisodeEditor';
@@ -17,7 +17,7 @@ type ShowDetailModalProps = {
   onRequireLogin: () => void;
 };
 
-// Traducción limpia para mostrar las etiquetas de tipo de serie de forma bonita
+// Traducción limpia para mostrar las etiquetas de tipo de serie en formato cápsula
 const showTypeLabels: Record<string, string> = {
   SpinOff: 'Spin-off',
   Reboot: 'Reboot',
@@ -40,6 +40,10 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
 
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
+
+  // Extracción segura de los campos nuevos
+  const showType = (show as any)?.show_type;
+  const franchise = (show as any)?.franchise;
 
   return (
     <Modal title={editing ? 'Editar serie' : (show?.title ?? 'Serie')} onClose={onClose} maxWidth="max-w-4xl">
@@ -74,15 +78,34 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
+                  
+                  {/* Cápsula de Estado */}
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
-                                   
+                  
+                  {/* Cápsula de Miniserie */}
+                  {show.is_miniseries && (
+                    <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
+                  )}
+
+                  {/* Cápsula de Tipo de Serie (Spin-off, Reboot, etc.) al lado del título */}
+                  {showType && showType !== '' && (
+                    <span className="rounded-lg bg-pastel-lavender px-2.5 py-1 text-xs font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                      {showTypeLabels[showType] ?? showType}
+                    </span>
+                  )}
                 </div>
 
-                
+                {/* Franquicia o serie madre (integrada con el estilo de los demás datos) */}
+                {franchise && franchise.trim() !== '' && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Franquicia / Universo:</span> {franchise}
+                  </p>
+                )}
 
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   <span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}
                 </p>
+                
                 <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Estreno:</span> {formatDate(show.premiered)}</span>
                   <span aria-hidden="true">·</span>
