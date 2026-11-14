@@ -76,9 +76,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
                   
-                  {show.is_miniseries && (
-                    <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
-                  )}
+                  
 
                   {/* NUEVO: Etiqueta visual para el Tipo de Serie (Spin-off, Reboot, etc.) */}
                   {show.show_type && show.show_type !== '' && (
