@@ -3,7 +3,6 @@ import { Bookmark, CalendarDays, Clapperboard, LayoutGrid, LogIn, Moon, MessageS
 import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import type { ViewId } from '@/lib/types';
-import { supabase } from '@/sync_catalog/indes.ts'; // Ajusta la ruta '../lib/supabase' si tu archivo está en otra carpeta
 
 type NavbarProps = {
   view: ViewId;
@@ -72,38 +71,37 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
             {settings.btn_download ?? 'Instalar App'}
           </button>
 
-         {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
+           {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
+
 {isAdmin && (
+
   <button 
-    onClick={async () => {
-      try {
-        // Llamada limpia a través del cliente de Supabase
-        const { data, error } = await supabase.functions.invoke('sync-catalog', {
-          body: {}
-        });
-        
-        if (error) {
-          console.error('Error desde la función:', error);
-          alert(`Error al sincronizar: ${error.message || 'Error desconocido'}`);
-        } else {
-          console.log('Resultado:', data);
-          alert('¡Catálogo sincronizado correctamente!');
-          window.location.reload();
-        }
-      } catch (err) {
-        console.error('Error de red o ejecución:', err);
-        alert('Error al conectar con la función de sincronización.');
-      }
+
+    onClick={() => {
+
+      // Recarga la página directamente sin mostrar ningún mensaje
+
+      window.location.reload();
+
     }}
+
     title="Actualizar Catálogo"
+
     className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+
   >
+
     {/* Icono de Ruedita / Engranaje */}
+
     <svg className="w-4 h-4 hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+
     </svg>
+
   </button>
-)}
+
+)} 
 
           {isAdmin && (
             <button
