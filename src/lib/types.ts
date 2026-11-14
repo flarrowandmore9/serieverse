@@ -16,7 +16,6 @@ export type ShowListItem = {
   franchise?: string | null;
   premiered: string | null;
   rating: number | null;
-  is_miniseries: boolean;
   imdb_id: string | null;
   network_name: string | null;
   us_platforms: string[];
