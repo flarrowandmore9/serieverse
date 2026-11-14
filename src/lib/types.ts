@@ -7,7 +7,6 @@ export type Character = {
 export type ShowListItem = {
   id: number;
   tvmaze_id: number | null;
-  tmdb_id: number | null;
   title: string;
   poster_url: string | null;
   synopsis_es: string | null;
@@ -16,7 +15,7 @@ export type ShowListItem = {
   premiered: string | null;
   rating: number | null;
   is_miniseries: boolean;
-  tmdb_id: string | null;
+  imdb_id: string | null;
   network_name: string | null;
   us_platforms: string[];
   es_platforms: string[];
@@ -33,7 +32,6 @@ export type SpecialTag = 'crossover' | 'halloween' | 'christmas' | 'special' | n
 
 export type Episode = {
   tvmaze_episode_id: number;
-  tmdb_episode_id: number;
   season: number;
   number: number;
   name: string | null;
