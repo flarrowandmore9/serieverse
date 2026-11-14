@@ -31,12 +31,12 @@ export const SHOW_STATUS_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export const SHOW_TYPES_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: '' },
-  { value: 'SpinOff', label: 'SpinOff' },
+  { value: '', label: 'Serie independiente' },
+  { value: 'SpinOff', label: 'Spin-off' },
   { value: 'Reboot', label: 'Reboot' },
-  { value: 'Secuela', label: 'Sequel' },
-  { value: 'Precuela', label: 'Prequel' },
-  { value: 'Miniseries', label: 'Miniseries' },
+  { value: 'Secuela', label: 'Secuela' },
+  { value: 'Precuela', label: 'Precuela' },
+  { value: 'Anthology', label: 'Antología' },
 ];
 
 export function statusLabel(status: string | null): { label: string; className: string } {
