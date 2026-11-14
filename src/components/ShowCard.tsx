@@ -59,9 +59,7 @@ export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps
             </span>
           ) : <span />}
           <div className="flex min-w-0 items-center gap-1">
-            {show.is_miniseries && (
-              <span className="shrink-0 rounded-full bg-pastel-gold px-1.5 py-px text-[8px] font-bold text-amber-800 dark:bg-pastel-goldDark dark:text-amber-200">Miniserie</span>
-            )}
+            
             <span className={`shrink-0 rounded-full px-1.5 py-px text-[8px] font-bold ${status.className}`}>{status.label}</span>
           </div>
         </div>
