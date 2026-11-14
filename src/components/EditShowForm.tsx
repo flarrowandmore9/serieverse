@@ -26,9 +26,13 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [poster, setPoster] = useState(show.poster_url ?? '');
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
-  const [showType, setShowType] = useState(show.show_type ?? '');
-  const [franchise, setFranchise] = useState(show.franchise ?? '');
+  
+  // AQUÍ ESTABA EL FALLO: Aseguramos que lea lo que ya guardaste previamente
+  const [showType, setShowType] = useState((show as any).show_type ?? '');
+  const [franchise, setFranchise] = useState((show as any).franchise ?? '');
+  
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
+  const [isMiniseries, setIsMiniseries] = useState(show.is_miniseries);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,13 +53,14 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         us_platforms: usPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         tv_status: status || null,
-        
+        is_miniseries: isMiniseries,
         genres: genres.trim() || null,
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
         premiered: premiered.trim() || null,
-
+        show_type: showType || null,
+        franchise: franchise.trim() || null,
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
@@ -101,7 +106,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           </select>
         </label>
 
-        {/* CORREGIDO: Ahora usa showType y setShowType correctamente */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
           <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
@@ -111,14 +115,13 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           </select>
         </label>
 
-        {/* AÑADIDO: Input visual para la franquicia / serie madre */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
           <input 
             value={franchise} 
             onChange={(e) => setFranchise(e.target.value)} 
             className={inputClass} 
-            placeholder="Ej: One Chicago o Chicago Fire" 
+            placeholder="Ej: One Chicago" 
           />
         </label>
         
