@@ -5,6 +5,7 @@ import { useAppSettings } from '@/hooks/useAppSettings';
 import type { ViewId } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 
+
 type NavbarProps = {
   view: ViewId;
   onNavigate: (view: ViewId) => void;
