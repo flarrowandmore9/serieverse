@@ -47,19 +47,22 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setSaving(true);
     setError(null);
     try {
-      // Guardamos con la clave global compartida para que cualquier usuario los vea
+      // Guardamos de forma limpia en el almacenamiento global por ID de serie
       localStorage.setItem(
         `global_show_custom_${show.id}`,
-        JSON.stringify({ show_type: showType || null, franchise: franchise.trim() || null })
+        JSON.stringify({ 
+          show_type: showType || null, 
+          franchise: franchise.trim() || null 
+        })
       );
 
-      // 2. Ejecutamos el guardado oficial estándar (sin romper la base de datos interna)
       const updated = await updateShow(show.id, {
         title: cleanTitle,
         synopsis_es: synopsis.trim() || null,
         us_platforms: usPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         tv_status: status || null,
+        is_miniseries: isMiniseries,
         genres: genres.trim() || null,
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
@@ -70,14 +73,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           .filter((member) => member.actor),
       });
 
-      // Inyectamos los datos locales para que la UI los reciba al vuelo sin recargar
-      const updatedWithCustom = {
-        ...updated,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
-      };
-
-      onSaved(updatedWithCustom as any);
+      onSaved(updated);
     } catch {
       setError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
     } finally {
