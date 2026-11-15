@@ -49,7 +49,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         JSON.stringify({ show_type: showType || null, franchise: franchise.trim() || null })
       );
 
-      // 2. Ejecutamos el guardado oficial estándar (sin romper la base de datos interna)
       const updated = await updateShow(show.id, {
         title: cleanTitle,
         synopsis_es: synopsis.trim() || null,
@@ -61,17 +60,14 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
         premiered: premiered.trim() || null,
+        show_type: showType || null,
+        franchise: franchise.trim() || null,
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
       });
 
-      // Inyectamos los datos locales para que la UI los reciba al vuelo sin recargar
-      const updatedWithCustom = {
-        ...updated,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
-      };
+      
 
       onSaved(updatedWithCustom as any);
     } catch {
