@@ -26,8 +26,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [poster, setPoster] = useState(show.poster_url ?? '');
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
-  const [showType, setShowType] = useState(savedCustom.show_type ?? (show as any).show_type ?? '');
-  const [franchise, setFranchise] = useState(savedCustom.franchise ?? (show as any).franchise ?? '');
+  const [showType, setShowType] = useState(savedCustom.show_type ?? '');
+  const [franchise, setFranchise] = useState(savedCustom.franchise ?? '');
   
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
   const [saving, setSaving] = useState(false);
