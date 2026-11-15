@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Star, Tv } from 'lucide-react';
 import ListToggle from '@/components/ListToggle';
 import { statusLabel } from '@/lib/format';
@@ -24,9 +25,23 @@ export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps
   const status = statusLabel(show.tv_status);
   const platform = show.es_platforms[0] ?? show.us_platforms[0] ?? show.network_name ?? 'Sin plataforma';
 
-  const rawShowType = show.show_type;
+  // Usamos un estado para asegurar que la tarjeta cargue y pinte los datos locales correctamente
+  const [customData, setCustomData] = useState<{ show_type?: string; franchise?: string }>({});
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`show_custom_${show.id}`);
+      if (saved) {
+        setCustomData(JSON.parse(saved));
+      }
+    } catch {
+      // Por si hay algún fallo con el formato del JSON
+    }
+  }, [show.id]);
+
+  const rawShowType = customData.show_type ?? (show as any).show_type;
   const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
-  const franchise = show.franchise;
+  const franchise = customData.franchise ?? (show as any).franchise;
 
   const genresText = show.genres ?? 'Sin género';
   const subtitleText = [genresText, showType, franchise].filter(Boolean).join(' · ');

@@ -16,19 +16,23 @@ const inputClass =
   'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
 
 export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormProps) {
-  const [poster, setPoster] = useState(show.poster_url ?? '');
   const [title, setTitle] = useState(show.title);
   const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
-  const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
-  const [status, setStatus] = useState(show.tv_status ?? '');
-  const [showType, setShowType] = useState(show.show_type ?? '');
-  const [franchise, setFranchise] = useState(show.franchise ?? '');
-  const [genres, setGenres] = useState(show.genres ?? '');
-  const [network, setNetwork] = useState(show.network_name ?? '');
   const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
   const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
-  const [cast, setCast] = useState<Character[]>(show.characters ?? []);
+  const [status, setStatus] = useState(show.tv_status ?? '');
+  const [genres, setGenres] = useState(show.genres ?? '');
+  const [network, setNetwork] = useState(show.network_name ?? '');
+  const [poster, setPoster] = useState(show.poster_url ?? '');
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
+  const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
+  
+  // Leemos los valores guardados localmente para esta serie si existen
+  const savedCustom = JSON.parse(localStorage.getItem(`show_custom_${show.id}`) || '{}');
+  const [showType, setShowType] = useState(savedCustom.show_type ?? (show as any).show_type ?? '');
+  const [franchise, setFranchise] = useState(savedCustom.franchise ?? (show as any).franchise ?? '');
+  
+  const [cast, setCast] = useState<Character[]>(show.characters ?? []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,25 +47,37 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setSaving(true);
     setError(null);
     try {
+      // 1. Guardamos los campos personalizados de manera local en el navegador
+      localStorage.setItem(
+        `show_custom_${show.id}`,
+        JSON.stringify({ show_type: showType || null, franchise: franchise.trim() || null })
+      );
+
+      // 2. Ejecutamos el guardado oficial estándar (sin romper la base de datos interna)
       const updated = await updateShow(show.id, {
         title: cleanTitle,
         synopsis_es: synopsis.trim() || null,
-        us_platforms: usPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
-        es_platforms: esPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
+        us_platforms: usPlatforms.split(',').map(s => s.trim()).filter(Boolean),
+        es_platforms: esPlatforms.split(',').map(s => s.trim()).filter(Boolean),
         tv_status: status || null,
         genres: genres.trim() || null,
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
         premiered: premiered.trim() || null,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
       });
 
-      onSaved(updated);
+      // Inyectamos los datos locales para que la UI los reciba al vuelo sin recargar
+      const updatedWithCustom = {
+        ...updated,
+        show_type: showType || null,
+        franchise: franchise.trim() || null,
+      };
+
+      onSaved(updatedWithCustom as any);
     } catch {
       setError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
     } finally {
@@ -71,8 +87,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PosterField value={poster} onChange={(poster) => setPoster(poster)} />
-
+      <PosterField value={poster} onChange={poster => setPoster(poster)} />
+      
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Título</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
@@ -81,18 +97,18 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en Español</span>
         <textarea rows={4} value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className={inputClass} />
       </label>
-
+      
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de Estreno</span>
-          <input
-            type="date"
-            value={premiered}
-            onChange={(e) => setPremiered(e.target.value)}
-            className={inputClass}
+          <input 
+            type="date" 
+            value={premiered} 
+            onChange={(e) => setPremiered(e.target.value)} 
+            className={inputClass} 
           />
         </label>
-
+        
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estado</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
@@ -113,19 +129,19 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
-          <input
-            value={franchise}
-            onChange={(e) => setFranchise(e.target.value)}
-            className={inputClass}
-            placeholder="Ej: One Chicago"
+          <input 
+            value={franchise} 
+            onChange={(e) => setFranchise(e.target.value)} 
+            className={inputClass} 
+            placeholder="Ej: One Chicago" 
           />
         </label>
-
+        
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (separados por comas)</span>
           <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} />
         </label>
-
+        
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Emisión Original</span>
           <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} />
@@ -140,7 +156,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España (separadas por comas)</span>
           <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
         </label>
-
+        
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
