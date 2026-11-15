@@ -47,12 +47,12 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setSaving(true);
     setError(null);
     try {
-      // Guardamos de forma limpia en el almacenamiento global por ID de serie
+      // Guardamos de forma ultra-directa y segura
       localStorage.setItem(
-        `global_show_custom_${show.id}`,
+        `show_meta_${show.id}`,
         JSON.stringify({ 
-          show_type: showType || null, 
-          franchise: franchise.trim() || null 
+          show_type: showType || '', 
+          franchise: franchise.trim() || '' 
         })
       );
 
@@ -65,7 +65,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         is_miniseries: isMiniseries,
         genres: genres.trim() || null,
         network_name: network.trim() || null,
-        poster_url: poster.trim() || null,
+        poster_url: poster.poster_url ?? poster.trim() || null, // el campo de póster que uses
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
         premiered: premiered.trim() || null,
         characters: cast
