@@ -153,7 +153,7 @@ export default function AuthModal({ onClose }: AuthModalProps) {
                 <button
                   type="button"
                   onClick={handleForgotPassword}
-                  className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                  className="text-xs font-medium text-pastel-600 dark:text-pastel-400 hover:underline"
                 >
                   ¿Has olvidado tu contraseña?
                 </button>
