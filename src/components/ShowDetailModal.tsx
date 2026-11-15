@@ -41,12 +41,12 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
 
- // Leemos los datos personalizados de forma global (compartida para cualquier usuario que abra la app)
+// Leemos los datos personalizados guardados globalmente
   const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`global_show_custom_${showId}`) || '{}') : {};
-  const rawShowType = savedCustom.show_type ?? (show as any)?.show_type;
   
-  const finalShowType = rawShowType || (show?.is_miniseries ? 'Miniseries' : null);
-  const showType = finalShowType ? (showTypeLabels[finalShowType] ?? finalShowType) : null;
+  // Respetamos estrictamente lo que hayas seleccionado en el formulario
+  const rawShowType = savedCustom.show_type ?? (show as any)?.show_type;
+  const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
   
   const franchise = savedCustom.franchise ?? (show as any)?.franchise;
 
