@@ -30,7 +30,7 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
       { label: 'RTVE Play', names: ['RTVE Play'] },
       { label: 'Atresmedia', names: ['Atresplayer', 'Atresplayer PREMIUM', 'Atresplayer Originals', 'Atresmedia Televisión'] },
       { label: 'Mediaset', names: ['Mediaset'] },
-      { label: 'Movistar Plus+', names: ['Movistar Plus+'] },
+      { label: 'Movistar Plus+', names: ['Movistar Plus+', 'Movistar+', 'Movistar Plus', 'Movistar'] },
       { label: 'SkyShowtime', names: ['SkyShowtime'] },
       { label: 'Filmin', names: ['Filmin'] },
     ],
