@@ -47,9 +47,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setSaving(true);
     setError(null);
     try {
-      // 1. Guardamos los campos personalizados de manera local en el navegador
+      // Guardamos con la clave global compartida para que cualquier usuario los vea
       localStorage.setItem(
-        `show_custom_${show.id}`,
+        `global_show_custom_${show.id}`,
         JSON.stringify({ show_type: showType || null, franchise: franchise.trim() || null })
       );
 
