@@ -65,7 +65,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         is_miniseries: isMiniseries,
         genres: genres.trim() || null,
         network_name: network.trim() || null,
-        poster_url: (poster.poster_url ?? poster).trim() || null,,
+        poster_url: (poster.poster_url ?? poster).trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
         premiered: premiered.trim() || null,
         characters: cast
