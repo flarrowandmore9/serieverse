@@ -41,27 +41,11 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
 
-// Leemos con total seguridad de la clave única de esta serie
-  const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_meta_${showId}`) || '{}') : {};
-  
-  // Obtenemos el tipo de serie (si guardaste un desplegable, o si es miniserie)
-  const rawShowType = savedCustom.show_type || (show as any)?.show_type;
-  
-  // Traducciones limpias
-  const showTypeLabels: Record<string, string> = {
-    SpinOff: 'Spin-off',
-    Reboot: 'Reboot',
-    Secuela: 'Secuela',
-    Precuela: 'Precuela',
-    Anthology: 'Antología',
-    Miniseries: 'Miniserie',
-  };
-
-  // Si se marcó como miniserie nativa o se seleccionó en el desplegable
-  const typeKey = rawShowType || (show?.is_miniseries ? 'Miniseries' : null);
-  const showType = typeKey ? (showTypeLabels[typeKey] ?? typeKey) : null;
-  
-  const franchise = savedCustom.franchise || (show as any)?.franchise;
+  // Leemos de forma segura los datos personalizados guardados localmente para esta serie
+  const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_custom_${showId}`) || '{}') : {};
+  const rawShowType = savedCustom.show_type ?? (show as any)?.show_type;
+  const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
+  const franchise = savedCustom.franchise ?? (show as any)?.franchise;
 
   return (
     <Modal title={editing ? 'Editar serie' : (show?.title ?? 'Serie')} onClose={onClose} maxWidth="max-w-4xl">
@@ -110,21 +94,21 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración Media:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
                 </p>
 
-                {/* Fila 2: Género · Tipo · Franquicia */}
-                <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 dark:text-slate-300">
-                  <span><span className="font-semibold text-slate-800 dark:text-slate-100">Género:</span> {show.genres ?? 'Sin datos'}</span>
+                {/* Fila 2: Género · Tipo de serie · Franquicia/Serie Madre */}
+                <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
+                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}</span>
                   
                   {showType && (
                     <>
                       <span aria-hidden="true">·</span>
-                      <span><span className="font-semibold text-slate-800 dark:text-slate-100">Tipo:</span> {showType}</span>
+                      <span><span className="font-semibold text-slate-700 dark:text-slate-300">Tipo:</span> {showType}</span>
                     </>
                   )}
 
                   {franchise && franchise.trim() !== '' && (
                     <>
                       <span aria-hidden="true">·</span>
-                      <span><span className="font-semibold text-slate-800 dark:text-slate-100">Franquicia:</span> {franchise}</span>
+                      <span><span className="font-semibold text-slate-700 dark:text-slate-300">Franquicia:</span> {franchise}</span>
                     </>
                   )}
                 </p>
