@@ -82,13 +82,16 @@ export default function CatalogView({ onOpenShow, onRequireLogin }: CatalogViewP
   return (
     <section className="space-y-6">
       <div className="space-y-6 rounded-3xl border border-slate-200 bg-gradient-to-r from-pastel-rose/60 via-pastel-lavender/60 to-pastel-sage/60 p-6 shadow-sm dark:border-slate-800 dark:from-pastel-roseDark/40 dark:via-pastel-lavenderDark/40 dark:to-pastel-sageDark/40 sm:p-8">
-        <div className="space-y-2">
-          <span className="inline-block rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold text-pastel-accent shadow-sm dark:bg-slate-900/80 dark:text-pastel-rose">
-            Tu radar de series EE. UU. y España
+        <div class="w-full space-y-2">
+          <span class="inline-block px-3 py-1 text-[11px] font-bold rounded-full bg-white/80 dark:bg-slate-900/80 text-pastel-accent dark:text-pastel-rose shadow-xs">
+            🌸 Tu Radar de Series EE.UU. & España
           </span>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl lg:text-4xl">
+          <h1 id="hero-title" class="text-xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white w-full">
             Explora todas las series, temporadas y fechas oficiales.
           </h1>
+          <p id="hero-subtitle" class="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed w-full">
+            Consulta toda la información sobre tus series favoritas en EE.UU y España.
+          </p>
         </div>
 
         <label className="relative block">
