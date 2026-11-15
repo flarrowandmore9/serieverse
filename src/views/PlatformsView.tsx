@@ -19,7 +19,7 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
   es: {
     networks: [
       { label: 'RTVE', names: ['RTVE', 'TVE', 'La 1', 'La 2'] },
-      { label: 'Antena 3', names: ['Antena 3', 'A3Series'] },
+      { label: 'Antena 3', names: ['Antena 3'] },
       { label: 'Cuatro', names: ['Cuatro'] },
       { label: 'Telecinco', names: ['Telecinco'] },
       { label: 'La Sexta', names: ['La Sexta'] },
