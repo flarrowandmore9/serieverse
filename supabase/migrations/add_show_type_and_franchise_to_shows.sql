@@ -1,0 +1,3 @@
+ALTER TABLE shows
+ADD COLUMN IF NOT EXISTS show_type text,
+ADD COLUMN IF NOT EXISTS franchise text;
