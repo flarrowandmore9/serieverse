@@ -66,6 +66,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
       });
+    
 
       onSaved(updatedWithCustom as any);
     } catch {
