@@ -25,18 +25,8 @@ export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps
   const status = statusLabel(show.tv_status);
   const platform = show.es_platforms[0] ?? show.us_platforms[0] ?? show.network_name ?? 'Sin plataforma';
 
-  // Inicializamos el estado leyendo directamente de localStorage para evitar retrasos en el render
-  const [customData, setCustomData] = useState<{ show_type?: string; franchise?: string }>(() => {
-    try {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem(`show_custom_${show.id}`);
-        return saved ? JSON.parse(saved) : {};
-      }
-    } catch {
-      // Ignorar errores de parseo
-    }
-    return {};
-  });
+  // Usamos un estado para asegurar que la tarjeta cargue y pinte los datos locales correctamente
+  const [customData, setCustomData] = useState<{ show_type?: string; franchise?: string }>({});
 
   useEffect(() => {
     try {
@@ -45,19 +35,15 @@ export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps
         setCustomData(JSON.parse(saved));
       }
     } catch {
-      // Ignorar errores
+      // Por si hay algún fallo con el formato del JSON
     }
   }, [show.id]);
 
   const rawShowType = customData.show_type ?? (show as any).show_type;
   const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
-  
-  const rawFranchise = customData.franchise ?? (show as any).franchise;
-  const franchise = rawFranchise && rawFranchise.trim() !== '' ? rawFranchise.trim() : null;
+  const franchise = customData.franchise ?? (show as any).franchise;
 
   const genresText = show.genres ?? 'Sin género';
-  
-  // Construimos el subtítulo filtrando nulos y cadenas vacías de forma segura
   const subtitleText = [genresText, showType, franchise].filter(Boolean).join(' · ');
 
   return (
