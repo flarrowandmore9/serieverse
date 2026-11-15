@@ -21,13 +21,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
   const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
   const [status, setStatus] = useState(show.tv_status ?? '');
-  
-  // Leemos primero los datos guardados localmente de forma segura
-  const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_custom_${show.id}`) || '{}') : {};
-  
-  const [showType, setShowType] = useState(savedCustom.show_type ?? (show as any).show_type ?? '');
-  const [franchise, setFranchise] = useState(savedCustom.franchise ?? (show as any).franchise ?? '');
-  
+  const [showType, setShowType] = useState(savedCustom.show_type ?? '');
+  const [franchise, setFranchise] = useState(savedCustom.franchise ?? '');
   const [genres, setGenres] = useState(show.genres ?? '');
   const [network, setNetwork] = useState(show.network_name ?? '');
   const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
@@ -48,16 +43,12 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setSaving(true);
     setError(null);
     try {
-      // 1. Guardamos los campos personalizados en localStorage
+      // 1. Guardamos los campos personalizados de manera local en el navegador
       localStorage.setItem(
         `show_custom_${show.id}`,
-        JSON.stringify({ 
-          show_type: showType || null, 
-          franchise: franchise.trim() || null 
-        })
+        JSON.stringify({ show_type: showType || null, franchise: franchise.trim() || null })
       );
 
-      // 2. Guardamos los datos oficiales en el backend
       const updated = await updateShow(show.id, {
         title: cleanTitle,
         synopsis_es: synopsis.trim() || null,
@@ -69,17 +60,12 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
         premiered: premiered.trim() || null,
+        show_type: showType || null,
+        franchise: franchise.trim() || null,
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
       });
-
-      // 3. Devolvemos el objeto actualizado combinando lo del backend y lo local
-      const updatedWithCustom = {
-        ...updated,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
-      };
 
       onSaved(updatedWithCustom as any);
     } catch {
