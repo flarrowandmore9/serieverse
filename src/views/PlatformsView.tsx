@@ -19,7 +19,7 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
   es: {
     networks: [
       { label: 'RTVE', names: ['RTVE', 'TVE', 'La 1', 'La 2'] },
-      { label: 'Antena 3', names: ['Antena 3'] },
+      { label: 'Antena 3', names: ['Antena 3', 'A3Series'] },
       { label: 'Cuatro', names: ['Cuatro'] },
       { label: 'Telecinco', names: ['Telecinco'] },
       { label: 'La Sexta', names: ['La Sexta'] },
@@ -28,9 +28,9 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
     ],
     platforms: [
       { label: 'RTVE Play', names: ['RTVE Play'] },
-      { label: 'Atresmedia', names: ['Atresplayer', 'Atresplayer PREMIUM', 'Atresplayer Originals', 'Atresmedia Televisión'] },
+      { label: 'Atresmedia', names: ['Atresplayer', 'Atresplayer Premium', 'Atresplayer Originals', 'Atresmedia Televisión'] },
       { label: 'Mediaset', names: ['Mediaset'] },
-      { label: 'Movistar Plus+', names: ['Movistar Plus+', 'Movistar+', 'Movistar Plus', 'Movistar'] },
+      { label: 'Movistar Plus+', names: ['Movistar Plus+'] },
       { label: 'SkyShowtime', names: ['SkyShowtime'] },
       { label: 'Filmin', names: ['Filmin'] },
     ],
