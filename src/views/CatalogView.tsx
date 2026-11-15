@@ -101,7 +101,7 @@ export default function CatalogView({ onOpenShow, onRequireLogin }: CatalogViewP
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar cualquier serie americana o española..."
+            placeholder="Buscar serie..."
             className="w-full rounded-2xl border border-slate-200 bg-white/90 py-3 pl-11 pr-4 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pastel-accent dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100"
           />
         </label>
