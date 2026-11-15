@@ -16,20 +16,19 @@ const inputClass =
   'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
 
 export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormProps) {
+  const [poster, setPoster] = useState(show.poster_url ?? '');
   const [title, setTitle] = useState(show.title);
   const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
-  const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
-  const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
-  const [status, setStatus] = useState(show.tv_status ?? '');
-  const [genres, setGenres] = useState(show.genres ?? '');
-  const [network, setNetwork] = useState(show.network_name ?? '');
-  const [poster, setPoster] = useState(show.poster_url ?? '');
-  const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
+  const [status, setStatus] = useState(show.tv_status ?? '');
   const [showType, setShowType] = useState(savedCustom.show_type ?? '');
   const [franchise, setFranchise] = useState(savedCustom.franchise ?? '');
-  
+  const [genres, setGenres] = useState(show.genres ?? '');
+  const [network, setNetwork] = useState(show.network_name ?? '');
+  const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
+  const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
+  const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');  
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
