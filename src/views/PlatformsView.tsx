@@ -28,7 +28,7 @@ const CHOICES: Record<Region, Record<Category, Choice[]>> = {
     ],
     platforms: [
       { label: 'RTVE Play', names: ['RTVE Play'] },
-      { label: 'Atresmedia', names: ['Atresplayer', 'Atresplayer Premium', 'Atresplayer Originals', 'Atresmedia Televisión'] },
+      { label: 'Atresmedia', names: ['Atresplayer', 'Atresplayer PREMIUM', 'Atresplayer Originals', 'Atresmedia Televisión'] },
       { label: 'Mediaset', names: ['Mediaset'] },
       { label: 'Movistar Plus+', names: ['Movistar Plus+'] },
       { label: 'SkyShowtime', names: ['SkyShowtime'] },
