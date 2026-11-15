@@ -41,14 +41,27 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
 
-// Leemos los datos personalizados guardados globalmente
-  const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`global_show_custom_${showId}`) || '{}') : {};
+// Leemos con total seguridad de la clave única de esta serie
+  const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_meta_${showId}`) || '{}') : {};
   
-  // Respetamos estrictamente lo que hayas seleccionado en el formulario
-  const rawShowType = savedCustom.show_type ?? (show as any)?.show_type;
-  const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
+  // Obtenemos el tipo de serie (si guardaste un desplegable, o si es miniserie)
+  const rawShowType = savedCustom.show_type || (show as any)?.show_type;
   
-  const franchise = savedCustom.franchise ?? (show as any)?.franchise;
+  // Traducciones limpias
+  const showTypeLabels: Record<string, string> = {
+    SpinOff: 'Spin-off',
+    Reboot: 'Reboot',
+    Secuela: 'Secuela',
+    Precuela: 'Precuela',
+    Anthology: 'Antología',
+    Miniseries: 'Miniserie',
+  };
+
+  // Si se marcó como miniserie nativa o se seleccionó en el desplegable
+  const typeKey = rawShowType || (show?.is_miniseries ? 'Miniseries' : null);
+  const showType = typeKey ? (showTypeLabels[typeKey] ?? typeKey) : null;
+  
+  const franchise = savedCustom.franchise || (show as any)?.franchise;
 
   return (
     <Modal title={editing ? 'Editar serie' : (show?.title ?? 'Serie')} onClose={onClose} maxWidth="max-w-4xl">
