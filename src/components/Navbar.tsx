@@ -1,11 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { triggerCatalogSync } from '@/lib/admin';
 import { Bookmark, CalendarDays, Clapperboard, LayoutGrid, LogIn, Moon, MessageSquare, Search, Shield, Sun, Tv, Download, UserRound, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
 import type { ViewId } from '@/lib/types';
-import { triggerCatalogSync } from '@/lib/admin';
 
-// ... dentro de tu componente Navbar:
+type NavbarProps = {
+  view: ViewId;
+  onNavigate: (view: ViewId) => void;
+  onOpenAuth: () => void;
+  onOpenInstall: () => void;
+  onOpenSearch: () => void;
+};
+
+type NavItem = { id: ViewId; label: string; icon: LucideIcon };
+
 const [syncing, setSyncing] = useState(false);
 
 const handleForceSync = async () => {
@@ -19,16 +28,6 @@ const handleForceSync = async () => {
     setSyncing(false);
   }
 };
-
-type NavbarProps = {
-  view: ViewId;
-  onNavigate: (view: ViewId) => void;
-  onOpenAuth: () => void;
-  onOpenInstall: () => void;
-  onOpenSearch: () => void;
-};
-
-type NavItem = { id: ViewId; label: string; icon: LucideIcon };
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'catalog', label: 'Catálogo', icon: LayoutGrid },
