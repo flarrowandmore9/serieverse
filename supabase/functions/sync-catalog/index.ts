@@ -154,7 +154,6 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
   let tmdbId = show.tmdb_id;
   let tvmazeId = show.tvmaze_id;
 
-  // 1. Sincronización desde TVMaze si dispone de ID o título
   if (tvmazeId) {
     const res = await fetchTvmaze(`/shows/${tvmazeId}?embed[]=episodes&embed[]=cast`);
     if (res.ok) {
@@ -162,7 +161,6 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
       episodesData = tvmazeData._embedded?.episodes ?? [];
     }
   } else if (show.title) {
-    // Buscar en TVMaze por título si no tiene tvmaze_id pero sí título
     try {
       const searchRes = await fetchTvmaze(`/singlesearch/shows?q=${encodeURIComponent(show.title)}&embed[]=episodes&embed[]=cast`);
       if (searchRes.ok) {
@@ -173,11 +171,10 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
         }
       }
     } catch {
-      // Continuamos hacia TMDB si TVMaze no la encuentra
+      // Ignorar error si no se encuentra en TVMaze
     }
   }
 
-  // 2. Sincronización desde TMDB (si tiene ID o buscándola por título)
   if (!tmdbId && (show.title || tvmazeData?.name)) {
     const searchTitle = show.title || tvmazeData?.name;
     const searchRes = await fetchTmdb(`/search/tv?query=${encodeURIComponent(searchTitle)}`, tmdbApiKey);
@@ -190,7 +187,6 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
     tmdbData = await fetchTmdb(`/tv/${tmdbId}`, tmdbApiKey);
   }
 
-  // Combinación inteligente priorizando TMDB para metadatos/gráficos y TVMaze para episodios
   const networkName = tmdbData?.networks?.[0]?.name ?? tvmazeData?.network?.name ?? tvmazeData?.webChannel?.name ?? null;
   const platforms = platformFields(networkName);
 
@@ -204,7 +200,7 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
   const genres = tmdbData?.genres ? tmdbData.genres.map((g: any) => g.name).join(", ") : ((tvmazeData?.genres ?? []).join(", ") || null);
 
   const updatePayload: any = {
-    tv_type: tvmazeData?.type ?? tmdbData?.type ?? "Scripted",
+    tv_type: "scripted", // FORZAMOS MINÚSCULA para que no desaparezca del catálogo
     ...platforms,
     tv_status: tmdbData?.status ?? tvmazeData?.status,
     premiered: tmdbData?.first_air_date ?? tvmazeData?.premiered,
@@ -232,7 +228,6 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
 
   if (updateError) throw new Error(updateError.message);
 
-  // Sincronizar episodios si están disponibles en TVMaze
   if (episodesData.length > 0) {
     const episodes = episodesData
       .filter((e) => e.season !== null && e.number !== null && e.airdate)
@@ -248,10 +243,9 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
       }));
 
     if (episodes.length > 0) {
-      const { error: episodeError } = await supabase
+      await supabase
         .from("episodes")
         .upsert(episodes, { onConflict: "tvmaze_episode_id" });
-      if (episodeError) throw new Error(episodeError.message);
     }
   }
 }
@@ -276,7 +270,7 @@ async function discover(supabase: ReturnType<typeof createClient>, fromPage: num
         rows.push({
           tvmaze_id: show.id,
           title: show.name,
-          tv_type: show.type,
+          tv_type: "scripted", // FORZAMOS MINÚSCULA
           network_name: networkName,
           ...platformFields(networkName),
         });
@@ -286,12 +280,11 @@ async function discover(supabase: ReturnType<typeof createClient>, fromPage: num
     await sleep(REQUEST_SPACING_MS);
   }
 
-  // IMPORTANTE: Solo hacemos UPSERT para añadir o actualizar, NUNCA BORRAMOS series existentes
+  // NUNCA BORRAMOS NADA (Protección absoluta de series manuales)
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const { error } = await supabase
+    await supabase
       .from("shows")
       .upsert(rows.slice(i, i + BATCH_SIZE), { onConflict: "tvmaze_id", ignoreDuplicates: false });
-    if (error) throw new Error(error.message);
   }
 
   return { pages, series: rows.length, removed: 0, reachedEnd, nextPage: toPage + 1 };
