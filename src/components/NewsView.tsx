@@ -1,146 +1,127 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Calendar, CheckCircle2, Clock, Loader2, Newspaper, Plus, Sparkles, Trash2, Tv, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { fetchCatalog } from '@/lib/catalog';
-import { fetchSeriesNews, saveSeriesNews, type NewsCategory, type SeriesNewsItem } from '@/lib/news';
-import type { ShowListItem } from '@/lib/types';
+import { supabase } from '@/lib/supabase';
 
-type NewsViewProps = {
-  onOpenShow: (showId: number) => void;
+type PlatformNewsSection = {
+  id: string;
+  platformName: string; // Ej: NBC, CBS, Netflix, Movistar+
+  renewed: string[];    // Ej: ["Chicago Fire | Season 16", "Law & Order | Season 25"]
+  canceled: string[];   // Ej: ["The Hunting Party | Season 2"]
+  newShows: string[];   // Ej: ["The Pitt | Nueva serie"]
+  upcoming: string[];   // Ej: ["Spin-off de tal..."]
 };
 
-const CATEGORY_META: Record<NewsCategory, { label: string; badgeClass: string; icon: typeof CheckCircle2 }> = {
-  renewed: {
-    label: 'Renovada',
-    badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300',
-    icon: CheckCircle2,
-  },
-  canceled: {
-    label: 'Cancelada / Terminada',
-    badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300',
-    icon: XCircle,
-  },
-  new_2026: {
-    label: 'Nueva 2026',
-    badgeClass: 'bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300',
-    icon: Sparkles,
-  },
-  upcoming: {
-    label: 'Anunciada (Futuro)',
-    badgeClass: 'bg-violet-100 text-violet-800 dark:bg-violet-950/80 dark:text-violet-300',
-    icon: Clock,
-  },
-};
+const NEWS_LIST_KEY = 'editorial_news_2026';
 
-export default function NewsView({ onOpenShow }: NewsViewProps) {
+export default function NewsView() {
   const { isAdmin } = useAuth();
-  const [news, setNews] = useState<SeriesNewsItem[]>([]);
-  const [catalog, setCatalog] = useState<ShowListItem[]>([]);
+  const [sections, setSections] = useState<PlatformNewsSection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | NewsCategory>('all');
-  const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
 
-  // Formulario rápido de administradora
+  // Estados del editor de administradora
   const [showForm, setShowForm] = useState(false);
-  const [selectedShowId, setSelectedShowId] = useState<string>('');
-  const [title, setTitle] = useState('');
-  const [seasonText, setSeasonText] = useState(''); // Ej: Season 16 / Spin-off / Reboot
-  const [category, setCategory] = useState<NewsCategory>('renewed');
-  const [headline, setHeadline] = useState('');
-  const [network, setNetwork] = useState('');
-  const [posterUrl, setPosterUrl] = useState('');
+  const [platformName, setPlatformName] = useState('');
+  const [renewedText, setRenewedText] = useState('');
+  const [canceledText, setCanceledText] = useState('');
+  const [newShowsText, setNewShowsText] = useState('');
+  const [upcomingText, setUpcomingText] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetchSeriesNews(),
-      fetchCatalog({ search: '', genre: '', sort: 'title' }, 500).catch(() => []),
-    ]).then(([newsData, showsData]) => {
-      setNews(newsData);
-      setCatalog(showsData);
-      setLoading(false);
-    });
+    fetchEditorialNews();
   }, []);
 
-  const networks = useMemo(() => {
-    const set = new Set<string>();
-    news.forEach((n) => {
-      if (n.network) set.add(n.network);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [news]);
+  const fetchEditorialNews = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', NEWS_LIST_KEY)
+      .maybeSingle();
 
-  const handleSelectCatalogShow = (idStr: string) => {
-    setSelectedShowId(idStr);
-    const found = catalog.find((s) => String(s.id) === idStr);
-    if (found) {
-      setTitle(found.title);
-      setPosterUrl(found.poster_url ?? '');
-      const platform = found.es_platforms?.[0] || found.us_platforms?.[0] || found.network_name || '';
-      setNetwork(platform);
+    if (data?.value) {
+      try {
+        const parsed = JSON.parse(data.value);
+        if (Array.isArray(parsed)) setSections(parsed);
+      } catch {
+        setSections([]);
+      }
+    } else {
+      // Datos de ejemplo iniciales para que veas cómo luce
+      setSections([
+        {
+          id: '1',
+          platformName: 'NBC',
+          renewed: ['Chicago Fire | Season 16', 'Law & Order: SVU | Season 27'],
+          canceled: ['The Hunting Party | Season 2'],
+          newShows: ['Dr. Odyssey (Temporada 2)'],
+          upcoming: ['Nuevo spin-off médico en desarrollo'],
+        },
+        {
+          id: '2',
+          platformName: 'Netflix',
+          renewed: ['El juego del calamar | Season 3', 'Miércoles | Season 2'],
+          canceled: ['The Umbrella Academy (Finalizada)'],
+          newShows: ['Nueva serie limitada de misterio'],
+          upcoming: ['Reboot anunciado para 2027'],
+        },
+      ]);
     }
+    setLoading(false);
   };
 
-  const handlePublish = async (e: FormEvent) => {
+  const saveSections = async (newSections: PlatformNewsSection[]) => {
+    setSections(newSections);
+    await.supabase
+      .from('app_settings')
+      .upsert({ key: NEWS_LIST_KEY, value: JSON.stringify(newSections) }, { onConflict: 'key' });
+  };
+
+  const handleSavePlatform = async (e: FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !headline.trim()) return;
+    if (!platformName.trim()) return;
 
     setSaving(true);
     try {
-      // Combinamos título y temporada al estilo blog si se especifica (ej: Chicago Fire | Season 16)
-      const fullTitle = seasonText.trim() ? `${title.trim()} | ${seasonText.trim()}` : title.trim();
-
-      const newItem: SeriesNewsItem = {
+      const newSection: PlatformNewsSection = {
         id: crypto.randomUUID(),
-        showId: selectedShowId ? Number(selectedShowId) : null,
-        title: fullTitle,
-        category,
-        headline: headline.trim(),
-        network: network.trim() || 'Otras plataformas',
-        posterUrl: posterUrl.trim() || undefined,
-        date: new Date().toISOString().split('T')[0],
-        isAuto: false,
+        platformName: platformName.trim(),
+        renewed: renewedText.split('\n').filter((s) => s.trim()),
+        canceled: canceledText.split('\n').filter((s) => s.trim()),
+        newShows: newShowsText.split('\n').filter((s) => s.trim()),
+        upcoming: upcomingText.split('\n').filter((s) => s.trim()),
       };
 
-      const updated = [newItem, ...news];
-      await saveSeriesNews(updated);
-      setNews(updated);
+      const updated = [...sections, newSection];
+      await saveSections(updated);
 
-      setSelectedShowId('');
-      setTitle('');
-      setSeasonText('');
-      setHeadline('');
-      setNetwork('');
-      setPosterUrl('');
+      setPlatformName('');
+      setRenewedText('');
+      setCanceledText('');
+      setNewShowsText('');
+      setUpcomingText('');
       setShowForm(false);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Eliminar este apunte?')) return;
-    const updated = news.filter((item) => item.id !== id);
-    await saveSeriesNews(updated);
-    setNews(updated);
+  const handleDeletePlatform = async (id: string) => {
+    if (!window.confirm('¿Eliminar esta plataforma y sus listados?')) return;
+    const updated = sections.filter((s) => s.id !== id);
+    await saveSections(updated);
   };
 
-  const filteredNews = news.filter((item) => {
-    const matchesCategory = filter === 'all' || item.category === filter;
-    const matchesNetwork = selectedNetwork === 'all' || item.network === selectedNetwork;
-    return matchesCategory && matchesNetwork;
-  });
-
   return (
-    <section className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <section className="mx-auto max-w-5xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 pb-6 dark:border-slate-800">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-pastel-accent">Temporada 2026 · Flarrow & More</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-pastel-accent">Especial Temporada · Flarrow & More</p>
           <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
-            Renovaciones, Cancelaciones y Nuevas Series 2026
+            Guía de Renovaciones, Cancelaciones y Estrenos
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Seguimiento clasificado por temporada, cadena y notas de producción (Spin-offs, reboots, etc.).
+            El estado de todas las series ordenado por cadena y plataforma, al estilo de tus artículos de cabecera.
           </p>
         </div>
 
@@ -151,225 +132,194 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             className="flex items-center gap-2 rounded-xl bg-pastel-accent px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
           >
             <Plus className="h-4 w-4" />
-            {showForm ? 'Cerrar editor' : 'Añadir apunte al listado'}
+            {showForm ? 'Cerrar editor' : 'Añadir plataforma o bloque'}
           </button>
         )}
       </div>
 
+      {/* Formulario de Administradora para añadir plataformas enteras con saltos de línea */}
       {isAdmin && showForm && (
-        <form onSubmit={handlePublish} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Añadir entrada estilo blog</h2>
+        <form onSubmit={handleSavePlatform} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Añadir bloque de plataforma (Escribe una por línea)</h2>
+          
+          <label className="block space-y-1">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nombre de la Cadena o Plataforma</span>
+            <input
+              required
+              value={platformName}
+              onChange={(e) => setPlatformName(e.target.value)}
+              placeholder="Ej: NBC, CBS, Netflix, Movistar+"
+              className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            />
+          </label>
+
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vincular serie del catálogo (opcional)</span>
-              <select
-                value={selectedShowId}
-                onChange={(e) => handleSelectCatalogShow(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
-              >
-                <option value="">-- Serie nueva / No está en catálogo --</option>
-                {catalog.map((s) => (
-                  <option key={s.id} value={s.id}>{s.title}</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Sección del post</span>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as NewsCategory)}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
-              >
-                <option value="renewed">🟢 Renovada</option>
-                <option value="canceled">🔴 Cancelada / Terminada</option>
-                <option value="new_2026">🔵 Nueva 2026 (con fecha)</option>
-                <option value="upcoming">🟣 Futuras / Spin-off / Reboot / Anunciadas</option>
-              </select>
-            </label>
-
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título de la serie</span>
-              <input
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej: Chicago Fire"
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">🟢 Renovadas (una por línea)</span>
+              <textarea
+                rows={4}
+                value={renewedText}
+                onChange={(e) => setRenewedText(e.target.value)}
+                placeholder="Chicago Fire | Season 16&#10;Law & Order | Season 25"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-xs font-mono dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Temporada o Nota corta (Opcional)</span>
-              <input
-                value={seasonText}
-                onChange={(e) => setSeasonText(e.target.value)}
-                placeholder="Ej: Season 16 / Spin-off / Reboot"
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-rose-700 dark:text-rose-400">🔴 Canceladas / Terminadas (una por línea)</span>
+              <textarea
+                rows={4}
+                value={canceledText}
+                onChange={(e) => setCanceledText(e.target.value)}
+                placeholder="The Hunting Party | Season 2"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-xs font-mono dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Cadena / Plataforma</span>
-              <input
-                required
-                value={network}
-                onChange={(e) => setNetwork(e.target.value)}
-                placeholder="Ej: NBC, Paramount+, Netflix"
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-sky-700 dark:text-sky-400">🔵 Nuevas estrenadas este año (una por línea)</span>
+              <textarea
+                rows={4}
+                value={newShowsText}
+                onChange={(e) => setNewShowsText(e.target.value)}
+                placeholder="Título de la serie | Nota corta"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-xs font-mono dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
-            <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de carátula (opcional)</span>
-              <input
-                value={posterUrl}
-                onChange={(e) => setPosterUrl(e.target.value)}
-                placeholder="https://..."
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
-              />
-            </label>
-
-            <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nota / Sinopsis o detalles del proyecto</span>
-              <input
-                required
-                value={headline}
-                onChange={(e) => setHeadline(e.target.value)}
-                placeholder="Ej: Protagonizada por tal actor, proyecto procedimental en desarrollo..."
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-violet-700 dark:text-violet-400">🟣 Próximas / Spin-offs / Reboots (una por línea)</span>
+              <textarea
+                rows={4}
+                value={upcomingText}
+                onChange={(e) => setUpcomingText(e.target.value)}
+                placeholder="Spin-off anunciado..."
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-xs font-mono dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-2">
             <button
               type="submit"
               disabled={saving}
               className="flex items-center gap-2 rounded-xl bg-pastel-accent px-5 py-2.5 text-xs font-bold text-white hover:bg-pastel-accentHover disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Añadir al listado
+              Guardar bloque de plataforma
             </button>
           </div>
         </form>
       )}
 
-      {/* Filtros */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          {[
-            { id: 'all', label: 'Todas' },
-            { id: 'renewed', label: 'Renovadas' },
-            { id: 'canceled', label: 'Canceladas / Terminadas' },
-            { id: 'new_2026', label: 'Nuevas 2026' },
-            { id: 'upcoming', label: 'Spin-offs / Reboots / Anunciadas' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilter(tab.id as typeof filter)}
-              className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
-                filter === tab.id
-                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                  : 'bg-white text-slate-600 hover:bg-pastel-rose/50 dark:bg-slate-900 dark:text-slate-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <select
-          value={selectedNetwork}
-          onChange={(e) => setSelectedNetwork(e.target.value)}
-          aria-label="Filtrar por cadena o plataforma"
-          className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm focus:border-pastel-accent focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-        >
-          <option value="all">Todas las cadenas y plataformas</option>
-          {networks.map((net) => (
-            <option key={net} value={net}>{net}</option>
-          ))}
-        </select>
-      </div>
-
+      {/* Listado estilo artículo de blog por plataformas */}
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-pastel-accent" />
         </div>
-      ) : filteredNews.length === 0 ? (
+      ) : sections.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-10 text-center dark:border-slate-700 dark:bg-slate-900/50">
           <Newspaper className="mx-auto h-8 w-8 text-slate-400" />
           <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-            No hay apuntes en este filtro todavía.
+            No hay bloques publicados todavía. Pulsa en "Añadir plataforma o bloque" para empezar.
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredNews.map((item) => {
-            const meta = CATEGORY_META[item.category];
-            const Icon = meta.icon;
-            return (
-              <article
-                key={item.id}
-                className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-              >
-                <div className="flex gap-4 p-4">
-                  <div
-                    onClick={() => item.showId && onOpenShow(item.showId)}
-                    className={`h-28 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 ${item.showId ? 'cursor-pointer' : ''}`}
-                  >
-                    {item.posterUrl ? (
-                      <img src={item.posterUrl} alt={item.title} className="h-full w-full object-cover transition group-hover:scale-105" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-slate-400">
-                        <Tv className="h-6 w-6" />
-                      </div>
-                    )}
-                  </div>
+        <div className="space-y-8">
+          {sections.map((sec) => (
+            <div
+              key={sec.id}
+              className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+                <h2 className="text-lg font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                  <Tv className="h-5 w-5 text-pastel-accent" />
+                  {sec.platformName}
+                </h2>
 
-                  <div className="flex min-w-0 flex-1 flex-col justify-between">
-                    <div>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${meta.badgeClass}`}>
-                        <Icon className="h-3 w-3" />
-                        {meta.label}
-                      </span>
-
-                      <h3
-                        onClick={() => item.showId && onOpenShow(item.showId)}
-                        className={`mt-2 line-clamp-1 text-base font-black text-slate-900 dark:text-white ${item.showId ? 'cursor-pointer hover:text-pastel-accent' : ''}`}
-                      >
-                        {item.title}
-                      </h3>
-
-                      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                        {item.headline}
-                      </p>
-                    </div>
-
-                    <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-                      <span className="truncate font-bold text-pastel-accent">{item.network}</span>
-                      <span className="flex shrink-0 items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {item.date}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {isAdmin && !item.isAuto && (
+                {isAdmin && (
                   <button
                     type="button"
-                    onClick={() => handleDelete(item.id)}
-                    title="Eliminar apunte"
-                    className="absolute right-2.5 top-2.5 rounded-lg bg-white/90 p-1.5 text-slate-400 opacity-0 shadow-sm transition hover:text-rose-600 group-hover:opacity-100 dark:bg-slate-800"
+                    onClick={() => handleDeletePlatform(sec.id)}
+                    title="Eliminar esta plataforma"
+                    className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/50"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 )}
-              </article>
-            );
-          })}
+              </div>
+
+              <div className="mt-4 grid gap-6 md:grid-cols-2">
+                {/* Renovadas */}
+                {sec.renewed.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 mb-2">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Renovadas
+                    </h3>
+                    <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-300">
+                      {sec.renewed.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-emerald-500 font-bold">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Canceladas */}
+                {sec.canceled.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 flex items-center gap-1.5 mb-2">
+                      <XCircle className="h-3.5 w-3.5" /> Canceladas / Terminadas
+                    </h3>
+                    <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-300">
+                      {sec.canceled.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-rose-500 font-bold">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Nuevas */}
+                {sec.newShows.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400 flex items-center gap-1.5 mb-2">
+                      <Sparkles className="h-3.5 w-3.5" /> Estrenos del año
+                    </h3>
+                    <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-300">
+                      {sec.newShows.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-sky-500 font-bold">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Futuras / Spin-offs */}
+                {sec.upcoming.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-violet-700 dark:text-violet-400 flex items-center gap-1.5 mb-2">
+                      <Clock className="h-3.5 w-3.5" /> Spin-offs / Reboots / Anunciadas
+                    </h3>
+                    <ul className="space-y-1.5 text-sm text-slate-700 dark:text-slate-300">
+                      {sec.upcoming.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-violet-500 font-bold">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </section>
