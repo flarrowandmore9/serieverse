@@ -76,10 +76,22 @@ export async function deleteSuggestion(id: number): Promise<void> {
 }
 
 export async function updateShow(id: number, patch: any): Promise<ShowListItem> {
-  // Limpiamos campos que puedan no existir en la base de datos para evitar que falle el guardado
-  const cleanPatch = { ...patch };
-  delete cleanPatch.show_type;
-  delete cleanPatch.franchise;
+  // Creamos un objeto limpio eliminando cualquier propiedad que pueda no existir en la tabla de Supabase
+  const cleanPatch = {
+    title: patch.title,
+    synopsis_es: patch.synopsis_es,
+    us_platforms: patch.us_platforms,
+    es_platforms: patch.es_platforms,
+    tv_status: patch.tv_status,
+    genres: patch.genres,
+    network_name: patch.network_name,
+    poster_url: patch.poster_url,
+    runtime: patch.runtime,
+    characters: patch.characters,
+    tvmaze_id: patch.tvmaze_id,
+    rating: patch.rating,
+    premiered: patch.premiered,
+  };
 
   const { data, error } = await supabase
     .from('shows')
