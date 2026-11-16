@@ -16,6 +16,7 @@ const inputClass =
 export default function AdminShows({ onOpenShow }: AdminShowsProps) {
   const shows = useAsyncData(() => fetchCatalog({ search: '', genre: '', sort: 'recent' }, 1000), []);
   const [tvmazeId, setTvmazeId] = useState('');
+  const [tmdbId, setTmdbId] = useState('');
   const [imdbId, setimdbId] = useState('');
   const [title, setTitle] = useState('');
   const [usPlatforms, setUsPlatforms] = useState('');
@@ -25,37 +26,50 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
 
   const handleAdd = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const trimmedId = tvmazeId.trim();
-    const id = trimmedId ? Number(trimmedId) : null;
-    if (id !== null && (!Number.isInteger(id) || id <= 0)) {
+    const trimmedTvmaze = tvmazeId.trim();
+    const trimmedTmdb = tmdbId.trim();
+    
+    const tvmazeNum = trimmedTvmaze ? Number(trimmedTvmaze) : null;
+    const tmdbNum = trimmedTmdb ? Number(trimmedTmdb) : null;
+
+    if (tvmazeNum !== null && (!Number.isInteger(tvmazeNum) || tvmazeNum <= 0)) {
       setMessage({ type: 'error', text: 'El ID de TVMaze debe ser un número entero positivo.' });
       return;
     }
+
+    if (tmdbNum !== null && (!Number.isInteger(tmdbNum) || tmdbNum <= 0)) {
+      setMessage({ type: 'error', text: 'El ID de TMDB debe ser un número entero positivo.' });
+      return;
+    }
+
     setSaving(true);
     setMessage(null);
     try {
+      // Añadimos la serie asegurando el tipo 'scripted' en minúscula para que aparezca siempre en el catálogo
       await addShow({
-        tvmaze_id: id,
+        tvmaze_id: tvmazeNum,
+        tmdb_id: tmdbNum,
         imdb_id: imdbId.trim() || null,
         title: title.trim(),
+        tv_type: 'scripted',
         synopsis_es: null,
         us_platforms: parsePlatformInput(usPlatforms),
         es_platforms: parsePlatformInput(esPlatforms),
       });
+
       setTvmazeId('');
+      setTmdbId('');
       setimdbId('');
       setTitle('');
       setUsPlatforms('');
       setEsPlatforms('');
       setMessage({
         type: 'ok',
-        text: id === null ? 'Serie añadida manualmente. Completa sus datos desde su ficha.' : 'Serie añadida y sincronizada con TVMaze.',
+        text: '¡Serie añadida y sincronizada correctamente en el catálogo!',
       });
       shows.reload();
     } catch (error) {
-      const text = error instanceof Error && error.message.includes('TVMaze')
-        ? error.message
-        : 'No se pudo añadir la serie. Revisa que el ID no esté ya en el catálogo.';
+      const text = error instanceof Error ? error.message : 'No se pudo añadir la serie. Revisa los datos.';
       setMessage({ type: 'error', text });
     } finally {
       setSaving(false);
@@ -76,27 +90,31 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
     <div className="space-y-8">
       <form onSubmit={handleAdd} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white">Añadir serie al catálogo</h3>
-        <p className="text-xs text-slate-500">Si la serie existe en TVMaze, indica su ID y los datos, episodios y reparto se cargan solos. Si no, déjalo vacío y añádela manualmente.</p>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <p className="text-xs text-slate-500">Indica el ID de TVMaze o TMDB y el título. Los datos y episodios se sincronizarán al instante sin desaparecer del catálogo.</p>
+        <div className="grid gap-4 sm:grid-cols-3">
           <label className="space-y-1.5">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de TVMaze (opcional)</span>
-            <input inputMode="numeric" value={tvmazeId} onChange={(e) => setTvmazeId(e.target.value)} className={inputClass} />
+            <input inputMode="numeric" value={tvmazeId} onChange={(e) => setTvmazeId(e.target.value)} placeholder="Ej: 59344" className={inputClass} />
+          </label>
+          <label className="space-y-1.5">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de TMDB (opcional)</span>
+            <input inputMode="numeric" value={tmdbId} onChange={(e) => setTmdbId(e.target.value)} placeholder="Ej: 1399" className={inputClass} />
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de IMDb (opcional)</span>
             <input value={imdbId} onChange={(e) => setimdbId(e.target.value)} placeholder="tt1234567" className={inputClass} />
           </label>
-          <label className="space-y-1.5">
+          <label className="space-y-1.5 sm:col-span-3">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título (referencia)</span>
-            <input required value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
+            <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Tulsa King" className={inputClass} />
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Plataformas EE. UU.</span>
-            <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} placeholder="Hulu, Netflix" className={inputClass} />
+            <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} placeholder="Paramount+, Netflix" className={inputClass} />
           </label>
           <label className="space-y-1.5">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Plataformas España</span>
-            <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} placeholder="Netflix, Movistar Plus+" className={inputClass} />
+            <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} placeholder="SkyShowtime, Movistar Plus+" className={inputClass} />
           </label>
         </div>
         {message && (
