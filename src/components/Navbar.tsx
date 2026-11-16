@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Bookmark, CalendarDays, Clapperboard, LayoutGrid, LogIn, Moon, MessageSquare, Search, Shield, Sun, Tv, Download, UserRound, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -34,19 +34,25 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
     localStorage.setItem('theme', dark ? 'dark' : 'light');
   }, [dark]);
 
-  const [syncing, setSyncing] = useState(false);
+  const handleForceSync = async () => {
+    if (syncing) return;
+    
+    const confirmSync = window.confirm(
+      '¿Deseas forzar la actualización del catálogo con TVMaze y TMDB? Esto puede tardar unos segundos en completarse.'
+    );
+    if (!confirmSync) return;
 
-const handleForceSync = async () => {
-  if (syncing) return;
-  setSyncing(true);
-  try {
-    await triggerCatalogSync();
-    window.location.reload();
-  } catch {
-    alert('Hubo un problema al sincronizar con TVMaze y TMDB.');
-    setSyncing(false);
-  }
-};
+    setSyncing(true);
+    try {
+      await triggerCatalogSync();
+      alert('¡Catálogo actualizado y sincronizado correctamente con éxito!');
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Hubo un problema al conectar con el servidor de sincronización. Comprueba los secretos de la API.');
+      setSyncing(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 backdrop-blur-md transition-colors dark:border-slate-800/80 dark:bg-slate-950/90">
