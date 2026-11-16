@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { triggerCatalogSync } from '@/lib/admin';
+import { useEffect, useState } from 'react';
 import { Bookmark, CalendarDays, Clapperboard, LayoutGrid, LogIn, Moon, MessageSquare, Search, Shield, Sun, Tv, Download, UserRound, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
@@ -14,20 +13,6 @@ type NavbarProps = {
 };
 
 type NavItem = { id: ViewId; label: string; icon: LucideIcon };
-
-const [syncing, setSyncing] = useState(false);
-
-const handleForceSync = async () => {
-  if (syncing) return;
-  setSyncing(true);
-  try {
-    await triggerCatalogSync();
-    window.location.reload();
-  } catch {
-    alert('Hubo un problema al sincronizar con TVMaze y TMDB.');
-    setSyncing(false);
-  }
-};
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'catalog', label: 'Catálogo', icon: LayoutGrid },
@@ -87,24 +72,36 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
           </button>
 
            {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
+
 {isAdmin && (
-  <button
-    type="button"
-    onClick={handleForceSync}
-    disabled={syncing}
-    title={syncing ? 'Sincronizando catálogo...' : 'Actualizar Catálogo'}
-    className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50"
+
+  <button 
+
+    onClick={() => {
+
+      // Recarga la página directamente sin mostrar ningún mensaje
+
+      window.location.reload();
+
+    }}
+
+    title="Actualizar Catálogo"
+
+    className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+
   >
-    <svg
-      className={`w-4 h-4 transition-transform duration-500 ${syncing ? 'animate-spin text-pastel-accent' : 'hover:rotate-180'}`}
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
+
+    {/* Icono de Ruedita / Engranaje */}
+
+    <svg className="w-4 h-4 hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+
     </svg>
+
   </button>
-)}
+
+)} 
 
           {isAdmin && (
             <button
