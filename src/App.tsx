@@ -18,6 +18,7 @@ import CatalogView from '@/views/CatalogView';
 import LibraryView from '@/views/LibraryView';
 import PlatformsView from '@/views/PlatformsView';
 import SuggestionsView from '@/views/SuggestionsView';
+import NewsView from '@/components/NewsView';
 import type { ViewId } from '@/lib/types';
 
 export default function App() {
