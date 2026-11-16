@@ -38,57 +38,19 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-const handleAutoFill = async () => {
+  const handleAutoFill = async () => {
     setError(null);
     setFetchingExternal(true);
     try {
-      // 1. Si metiste un ID de TMDB
       if (tmdbIdInput.trim()) {
         const apiKey = import.meta.env.VITE_TMDB_API_KEY;
-        if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en el archivo .env');
+        if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en .env');
         
-        const [detailRes, provRes] = await Promise.all([
-          fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}?api_key=${apiKey}&language=es-ES`),
-          fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}/watch/providers?api_key=${apiKey}`),
-        ]);
-        
-        if (!detailRes.ok) throw new Error('No se encontró ninguna serie con ese ID en TMDB.');
-        const data = await detailRes.json();
-        const provData = provRes.ok ? await provRes.json() : null;
+        const res = await fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}?api_key=${apiKey}&language=es-ES`);
+        if (!res.ok) throw new Error('No se encontró la serie en TMDB.');
+        const data = await res.json();
 
-        if (data.name) {
-          setTitle(data.name);
-          // Intentamos buscar también su equivalente en TVMaze de forma automática para traernos los episodios
-          try {
-            const tvmSearch = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(data.name)}&embed[]=episodes`);
-            if (tvmSearch.ok) {
-              const tvmData = await tvmSearch.json();
-              if (tvmData?.id) {
-                setTvmazeId(String(tvmData.id));
-                const rawEpisodes = tvmData._embedded?.episodes ?? [];
-                if (rawEpisodes.length > 0) {
-                  const episodesPayload = rawEpisodes
-                    .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
-                    .map((e: any) => ({
-                      tvmaze_episode_id: e.id,
-                      show_id: show.id,
-                      season: e.season,
-                      number: e.number,
-                      name: e.name,
-                      airdate: e.airdate,
-                      runtime: e.runtime,
-                      episode_type: e.type,
-                    }));
-                  const { supabase } = await import('@/lib/supabase');
-                  await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
-                }
-              }
-            }
-          } catch {
-            // Si falla la búsqueda de episodios en TVMaze por nombre, continuamos con TMDB sin bloquear
-          }
-        }
-
+        if (data.name) setTitle(data.name);
         if (data.overview) setSynopsis(data.overview);
         if (data.poster_path) setPoster(`https://image.tmdb.org/t/p/original${data.poster_path}`);
         if (data.vote_average) setRating(Number(data.vote_average).toFixed(1));
@@ -98,15 +60,9 @@ const handleAutoFill = async () => {
         if (data.networks?.[0]?.name) setNetwork(data.networks[0].name);
         if (data.episode_run_time?.[0]) setRuntime(String(data.episode_run_time[0]));
 
-        const esList = (provData?.results?.ES?.flatrate ?? []).map((p: any) => p.provider_name);
-        const usList = (provData?.results?.US?.flatrate ?? []).map((p: any) => p.provider_name);
-        if (esList.length) setEsPlatforms(esList.join(', '));
-        if (usList.length) setUsPlatforms(usList.join(', '));
-      } 
-      // 2. Si metiste un ID de TVMaze
-      else if (tvmazeId.trim()) {
+      } else if (tvmazeId.trim()) {
         const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId.trim()}?embed[]=episodes&embed[]=cast`);
-        if (!res.ok) throw new Error('No se encontró ninguna serie con ese ID en TVMaze.');
+        if (!res.ok) throw new Error('No se encontró la serie en TVMaze.');
         const data = await res.json();
 
         if (data.name) setTitle(data.name);
@@ -119,7 +75,7 @@ const handleAutoFill = async () => {
         if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
         if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
 
-        // Sincronización automática de los episodios
+        // Inserción directa de episodios si vienen en TVMaze
         const rawEpisodes = data._embedded?.episodes ?? [];
         if (rawEpisodes.length > 0) {
           const episodesPayload = rawEpisodes
@@ -135,16 +91,14 @@ const handleAutoFill = async () => {
               episode_type: e.type,
             }));
 
-          if (episodesPayload.length > 0) {
-            const { supabase } = await import('@/lib/supabase');
-            await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
-          }
+          const { supabase } = await import('@/lib/supabase');
+          await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
         }
       } else {
-        setError('Escribe primero un ID de TVMaze o un ID de TMDB.');
+        setError('Introduce un ID de TVMaze o TMDB.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al obtener datos externos.');
+      setError(err instanceof Error ? err.message : 'Error al obtener datos.');
     } finally {
       setFetchingExternal(false);
     }
@@ -154,38 +108,32 @@ const handleAutoFill = async () => {
     event.preventDefault();
     const cleanTitle = title.trim();
     if (!cleanTitle) {
-      setError('El título no puede estar vacío.');
+      setError('El título es obligatorio.');
       return;
     }
-    const runtimeNumber = Number(runtime);
-    const ratingNumber = rating.trim() !== '' ? Number(rating.replace(',', '.')) : null;
-    const tvmazeNumber = tvmazeId.trim() !== '' ? Number(tvmazeId) : null;
 
     setSaving(true);
     setError(null);
     try {
       const updated = await updateShow(show.id, {
-        tvmaze_id: tvmazeNumber && Number.isFinite(tvmazeNumber) ? tvmazeNumber : null,
-        rating: ratingNumber !== null && Number.isFinite(ratingNumber) ? ratingNumber : null,
+        tvmaze_id: tvmazeId.trim() ? Number(tvmazeId) : null,
+        rating: rating.trim() ? Number(rating.replace(',', '.')) : null,
         title: cleanTitle,
         synopsis_es: synopsis.trim() || null,
         premiered: premiered.trim() || null,
         tv_status: status || null,
         network_name: network.trim() || null,
         genres: genres.trim() || null,
-        runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
+        runtime: runtime.trim() ? Number(runtime) : null,
         us_platforms: usPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
-        characters: cast
-          .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
-          .filter((member) => member.actor),
+        poster_url: poster.trim() || null,
+        characters: cast.map((c) => ({ actor: c.actor.trim(), character: c.character.trim(), image: c.image.trim() })).filter((c) => c.actor),
       });
 
       onSaved(updated);
-    } catch {
-      setError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
+    } catch (err) {
+      setError('Error al guardar los cambios en la base de datos.');
     } finally {
       setSaving(false);
     }
@@ -193,10 +141,8 @@ const handleAutoFill = async () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* 1. Carátula */}
-      <PosterField value={poster} onChange={(poster) => setPoster(poster)} />
+      <PosterField value={poster} onChange={setPoster} />
 
-      {/* 2. Autocompletar mediante ID Externo */}
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
         <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Autocompletar mediante ID Externo
@@ -204,30 +150,18 @@ const handleAutoFill = async () => {
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block space-y-1">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TVMaze</span>
-            <input
-              inputMode="numeric"
-              value={tvmazeId}
-              onChange={(e) => setTvmazeId(e.target.value)}
-              placeholder="Ej: 82"
-              className={inputClass}
-            />
+            <input inputMode="numeric" value={tvmazeId} onChange={(e) => setTvmazeId(e.target.value)} placeholder="Ej: 59344" className={inputClass} />
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TMDB</span>
-            <input
-              inputMode="numeric"
-              value={tmdbIdInput}
-              onChange={(e) => setTmdbIdInput(e.target.value)}
-              placeholder="Ej: 1399"
-              className={inputClass}
-            />
+            <input inputMode="numeric" value={tmdbIdInput} onChange={(e) => setTmdbIdInput(e.target.value)} placeholder="Ej: 1399" className={inputClass} />
           </label>
           <div className="flex items-end">
             <button
               type="button"
               onClick={handleAutoFill}
               disabled={fetchingExternal}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-pastel-accent px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-pastel-accentHover disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-700"
             >
               {fetchingExternal ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Rellenar datos
@@ -236,112 +170,66 @@ const handleAutoFill = async () => {
         </div>
       </div>
 
-      {/* 3. Título */}
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Título</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
       </label>
 
-      {/* 4. Sinopsis en Español */}
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en Español</span>
         <textarea rows={4} value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className={inputClass} />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {/* 5. Fecha de Estreno */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de Estreno</span>
-          <input
-            type="date"
-            value={premiered}
-            onChange={(e) => setPremiered(e.target.value)}
-            className={inputClass}
-          />
+          <input type="date" value={premiered} onChange={(e) => setPremiered(e.target.value)} className={inputClass} />
         </label>
 
-        {/* 6. Estreno (Estado de emisión) */}
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estreno</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estreno / Estado</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
-            {SHOW_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
+            {SHOW_STATUS_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
           </select>
         </label>
 
-        {/* 7. Emisión Original */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Emisión Original</span>
-          <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} placeholder="Ej: HBO, Netflix..." />
+          <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} />
         </label>
 
-        {/* 8. Géneros (separados por comas) */}
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (separados por comas)</span>
-          <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} placeholder="Ej: Drama, Thriller" />
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (comas)</span>
+          <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} />
         </label>
 
-        {/* 9. Duración Media (min) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
-          <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} placeholder="Ej: 45" />
+          <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
         </label>
 
-        {/* 10. Puntuación / Score */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Puntuación / Score</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={rating}
-            onChange={(e) => setRating(e.target.value)}
-            placeholder="Ej: 8.5"
-            className={inputClass}
-          />
+          <input type="text" inputMode="decimal" value={rating} onChange={(e) => setRating(e.target.value)} className={inputClass} />
         </label>
 
-        {/* 11. Tipo de Serie */}
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
-          <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
-            {SHOW_TYPES_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        {/* 12. Pertenece a (Franquicia / Serie Madre) */}
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie Madre)</span>
-          <input
-            value={franchise}
-            onChange={(e) => setFranchise(e.target.value)}
-            className={inputClass}
-            placeholder="Ej: One Chicago"
-          />
-        </label>
-
-        {/* 13. Ver en EE.UU. (separadas por comas) */}
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU. (separadas por comas)</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU.</span>
           <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
         </label>
 
-        {/* 14. Ver en España (separadas por comas) */}
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España (separadas por comas)</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España</span>
           <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
         </label>
       </div>
 
-      {/* 15. Reparto principal */}
       <CastListEditor value={cast} onChange={setCast} />
 
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
 
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-pastel-rose/40 dark:text-slate-300">
+        <button type="button" onClick={onCancel} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200">
           Cancelar
         </button>
         <button
