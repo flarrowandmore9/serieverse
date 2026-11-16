@@ -70,7 +70,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (esList.length) setEsPlatforms(esList.join(', '));
         if (usList.length) setUsPlatforms(usList.join(', '));
       } else if (tvmazeId.trim()) {
-        const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId.trim()}?embed=cast`);
+        // Pedimos la serie y sus episodios embebidos desde TVMaze
+        const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId.trim()}?embed[]=episodes&embed[]=cast`);
         if (!res.ok) throw new Error('No se encontró ninguna serie con ese ID en TVMaze.');
         const data = await res.json();
 
@@ -83,6 +84,29 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (data.genres?.length) setGenres(data.genres.join(', '));
         if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
         if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
+
+        // Sincronización automática de los episodios obtenidos
+        const rawEpisodes = data._embedded?.episodes ?? [];
+        if (rawEpisodes.length > 0) {
+          const episodesPayload = rawEpisodes
+            .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
+            .map((e: any) => ({
+              tvmaze_episode_id: e.id,
+              show_id: show.id,
+              season: e.season,
+              number: e.number,
+              name: e.name,
+              airdate: e.airdate,
+              runtime: e.runtime,
+              episode_type: e.type,
+            }));
+
+          if (episodesPayload.length > 0) {
+            // Importamos supabase para insertar directamente los episodios
+            const { supabase } = await import('@/lib/supabase');
+            await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tv_episode_id' });
+          }
+        }
       } else {
         setError('Escribe primero un ID de TVMaze o un ID de TMDB.');
       }
