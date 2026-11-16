@@ -89,6 +89,7 @@ export async function updateShow(id: number, patch: any): Promise<ShowListItem> 
     runtime: patch.runtime,
     characters: patch.characters,
     tvmaze_id: patch.tvmaze_id,
+    tmdb_id: patch.tmdb_id,
     rating: patch.rating,
     premiered: patch.premiered,
   };
