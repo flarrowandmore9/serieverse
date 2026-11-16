@@ -109,6 +109,7 @@ export async function addShow(input: ShowInput): Promise<number> {
     throw new Error('No se pudo sincronizar el catálogo.');
   }
 }
+  
 
 export async function fetchEpisodesForAdmin(showId: number): Promise<Episode[]> {
   const { data, error } = await supabase
