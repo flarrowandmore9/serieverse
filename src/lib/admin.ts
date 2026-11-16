@@ -105,19 +105,27 @@ export async function addShow(showData: {
   us_platforms?: string[];
   es_platforms?: string[];
 }) {
-  // Quitamos tmdb_id del objeto antes de insertarlo para que Supabase no dé error de columna inexistente
-  const { tmdb_id, ...safeData } = showData;
-
+  // 1. Insertamos la serie en la base de datos
   const { data, error } = await supabase
     .from('shows')
     .insert([{
-      ...safeData,
-      tv_type: safeData.tv_type ?? 'scripted',
+      ...showData,
+      tv_type: 'scripted',
     }])
     .select()
     .single();
 
   if (error) throw new Error(error.message);
+
+  // 2. Si tiene ID de TVMaze o TMDB, disparamos la sincronización al instante para que traiga carátula y episodios solos
+  if (data && (showData.tvmaze_id || showData.tmdb_id)) {
+    try {
+      await triggerCatalogSync();
+    } catch {
+      // Si la sincronización en segundo plano tarda o da aviso, la serie ya está creada y se completará en breve
+    }
+  }
+
   return data;
 }
 
