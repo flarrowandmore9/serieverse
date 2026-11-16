@@ -4,7 +4,6 @@ import CastListEditor from '@/components/CastListEditor';
 import PosterField from '@/components/PosterField';
 import { SHOW_STATUS_OPTIONS, SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
 import { updateShow } from '@/lib/admin';
-import { supabase } from '@/lib/supabase';
 import type { Character, Show, ShowListItem } from '@/lib/types';
 
 type EditShowFormProps = {
@@ -43,17 +42,13 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setError(null);
     setFetchingExternal(true);
     try {
-      const apiKey = import.meta.env.VITE_TMDB_API_KEY;
-
-      // 1. Sincronización completa vía ID de TMDB (Ideal para series españolas y catálogo general)
       if (tmdbIdInput.trim()) {
+        const apiKey = import.meta.env.VITE_TMDB_API_KEY;
         if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en el archivo .env');
-        const tmdbId = tmdbIdInput.trim();
-
-        // Petición a TMDB para detalles y proveedores de streaming
+        
         const [detailRes, provRes] = await Promise.all([
-          fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}&language=es-ES`),
-          fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/watch/providers?api_key=${apiKey}`),
+          fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}?api_key=${apiKey}&language=es-ES`),
+          fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}/watch/providers?api_key=${apiKey}`),
         ]);
         
         if (!detailRes.ok) throw new Error('No se encontró ninguna serie con ese ID en TMDB.');
@@ -74,46 +69,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         const usList = (provData?.results?.US?.flatrate ?? []).map((p: any) => p.provider_name);
         if (esList.length) setEsPlatforms(esList.join(', '));
         if (usList.length) setUsPlatforms(usList.join(', '));
-
-        // Descarga de todas las temporadas y episodios desde TMDB
-        const seasons = data.seasons ?? [];
-        const allEpisodesPayload = [];
-
-        for (const season of seasons) {
-          const seasonNum = season.season_number;
-          if (seasonNum === undefined || seasonNum === null) continue;
-
-          const seasonRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}&language=es-ES`);
-          if (seasonRes.ok) {
-            const seasonData = await seasonRes.json();
-            const episodes = seasonData.episodes ?? [];
-
-            for (const ep of episodes) {
-              if (ep.episode_number !== undefined && ep.air_date) {
-                allEpisodesPayload.push({
-                  tvmaze_episode_id: Number(`${tmdbId}${seasonNum}${ep.episode_number}`), // ID único compuesto para TMDB
-                  show_id: show.id,
-                  season: seasonNum,
-                  number: ep.episode_number,
-                  name: ep.name || `Episodio ${ep.episode_number}`,
-                  airdate: ep.air_date,
-                  runtime: ep.runtime || data.episode_run_time?.[0] || 45,
-                  episode_type: 'standard',
-                });
-              }
-            }
-          }
-        }
-
-        if (allEpisodesPayload.length > 0) {
-          await supabase.from('episodes').upsert(allEpisodesPayload, { onConflict: 'tvmaze_episode_id' });
-        }
-      }
-      // 2. Sincronización completa vía ID de TVMaze
-      else if (tvmazeId.trim()) {
-        const tvmId = tvmazeId.trim();
-        const res = await fetch(`https://api.tvmaze.com/shows/${tvmId}?embed[]=episodes&embed[]=cast`);
-        if (!res.ok) throw new Error('No se encontró información en TVMaze con ese ID.');
+      } else if (tvmazeId.trim()) {
+        const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId.trim()}?embed=cast`);
+        if (!res.ok) throw new Error('No se encontró ninguna serie con ese ID en TVMaze.');
         const data = await res.json();
 
         if (data.name) setTitle(data.name);
@@ -125,26 +83,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (data.genres?.length) setGenres(data.genres.join(', '));
         if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
         if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
-
-        const episodesList = data._embedded?.episodes ?? [];
-        if (episodesList.length > 0) {
-          const episodesPayload = episodesList
-            .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
-            .map((e: any) => ({
-              tvmaze_episode_id: e.id,
-              show_id: show.id,
-              season: e.season,
-              number: e.number,
-              name: e.name,
-              airdate: e.airdate,
-              runtime: e.runtime,
-              episode_type: e.type,
-            }));
-
-          await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
-        }
       } else {
-        setError('Escribe un ID de TVMaze o un ID de TMDB para autocompletar.');
+        setError('Escribe primero un ID de TVMaze o un ID de TMDB.');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al obtener datos externos.');
@@ -202,16 +142,28 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       {/* 2. Autocompletar mediante ID Externo */}
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
         <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Autocompletar mediante ID Externo (TVMaze o TMDB con Episodios)
+          Autocompletar mediante ID Externo
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block space-y-1">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TVMaze</span>
-            <input inputMode="numeric" value={tvmazeId} onChange={(e) => setTvmazeId(e.target.value)} placeholder="Ej: 82" className={inputClass} />
+            <input
+              inputMode="numeric"
+              value={tvmazeId}
+              onChange={(e) => setTvmazeId(e.target.value)}
+              placeholder="Ej: 82"
+              className={inputClass}
+            />
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TMDB</span>
-            <input inputMode="numeric" value={tmdbIdInput} onChange={(e) => setTmdbIdInput(e.target.value)} placeholder="Ej: 1399" className={inputClass} />
+            <input
+              inputMode="numeric"
+              value={tmdbIdInput}
+              onChange={(e) => setTmdbIdInput(e.target.value)}
+              placeholder="Ej: 1399"
+              className={inputClass}
+            />
           </label>
           <div className="flex items-end">
             <button
@@ -221,7 +173,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
               className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
             >
               {fetchingExternal ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Rellenar datos y episodios
+              Rellenar datos
             </button>
           </div>
         </div>
@@ -243,10 +195,15 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         {/* 5. Fecha de Estreno */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de Estreno</span>
-          <input type="date" value={premiered} onChange={(e) => setPremiered(e.target.value)} className={inputClass} />
+          <input
+            type="date"
+            value={premiered}
+            onChange={(e) => setPremiered(e.target.value)}
+            className={inputClass}
+          />
         </label>
 
-        {/* 6. Estreno */}
+        {/* 6. Estreno (Estado de emisión) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estreno</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
@@ -262,13 +219,13 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} placeholder="Ej: HBO, Netflix..." />
         </label>
 
-        {/* 8. Géneros */}
+        {/* 8. Géneros (separados por comas) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (separados por comas)</span>
           <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} placeholder="Ej: Drama, Thriller" />
         </label>
 
-        {/* 9. Duración Media */}
+        {/* 9. Duración Media (min) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} placeholder="Ej: 45" />
@@ -277,7 +234,14 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         {/* 10. Puntuación / Score */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Puntuación / Score</span>
-          <input type="text" inputMode="decimal" value={rating} onChange={(e) => setRating(e.target.value)} placeholder="Ej: 8.5" className={inputClass} />
+          <input
+            type="text"
+            inputMode="decimal"
+            value={rating}
+            onChange={(e) => setRating(e.target.value)}
+            placeholder="Ej: 8.5"
+            className={inputClass}
+          />
         </label>
 
         {/* 11. Tipo de Serie */}
@@ -290,19 +254,24 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           </select>
         </label>
 
-        {/* 12. Pertenece a */}
+        {/* 12. Pertenece a (Franquicia / Serie Madre) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie Madre)</span>
-          <input value={franchise} onChange={(e) => setFranchise(e.target.value)} className={inputClass} placeholder="Ej: One Chicago" />
+          <input
+            value={franchise}
+            onChange={(e) => setFranchise(e.target.value)}
+            className={inputClass}
+            placeholder="Ej: One Chicago"
+          />
         </label>
 
-        {/* 13. Ver en EE.UU. */}
+        {/* 13. Ver en EE.UU. (separadas por comas) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU. (separadas por comas)</span>
           <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
         </label>
 
-        {/* 14. Ver en España */}
+        {/* 14. Ver en España (separadas por comas) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España (separadas por comas)</span>
           <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
