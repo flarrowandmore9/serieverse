@@ -1,14 +1,13 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { ChevronDown, Loader2, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { ChevronDown, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import AdminCalendarEditor from '@/components/AdminCalendarEditor';
 import { formatDate, toIsoDate } from '@/lib/format';
 import { deleteEpisode, updateEpisode } from '@/lib/admin';
 import { SPECIAL_TAG_LABELS, SPECIAL_TAG_STYLES } from '@/lib/catalog';
 import type { Episode, EpisodeRole } from '@/lib/types';
-import { supabase } from '@/lib/supabase';
 
 type AdminEpisodeEditorProps = {
-  show: { id: number; title: string; tvmaze_id?: number | null };
+  show: { id: number; title: string };
   episodes: Episode[];
   onChanged: () => void;
 };
@@ -20,56 +19,8 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
   const [editingId, setEditingId] = useState<number | null>(null);
   const [openSeason, setOpenSeason] = useState<number | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
-  const [syncingEpisodes, setSyncingEpisodes] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const seasons = useMemo(() => [...new Set(episodes.map((episode) => episode.season))].sort((a, b) => a - b), [episodes]);
-
-  // Botón de emergencia/refuerzo para descargar episodios al vuelo si están a 0
-  const handleForceSyncEpisodes = async () => {
-    if (!show.tvmaze_id) {
-      setError('Esta serie no tiene un ID de TVMaze asignado. Edita la serie y asígnale su ID de TVMaze primero.');
-      return;
-    }
-    setSyncingEpisodes(true);
-    setError(null);
-    try {
-      const res = await fetch(`https://api.tvmaze.com/shows/${show.tvmaze_id}?embed[]=episodes`);
-      if (!res.ok) throw new Error('No se pudieron obtener los episodios de TVMaze.');
-      const data = await res.json();
-      const rawEpisodes = data._embedded?.episodes ?? [];
-
-      if (rawEpisodes.length === 0) {
-        setError('TVMaze no devolvió episodios para este ID.');
-        setSyncingEpisodes(false);
-        return;
-      }
-
-      const episodesPayload = rawEpisodes
-        .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
-        .map((e: any) => ({
-          tvmaze_episode_id: Number(e.id),
-          show_id: show.id,
-          season: Number(e.season),
-          number: Number(e.number),
-          name: e.name ? String(e.name) : `Episodio ${e.number}`,
-          airdate: String(e.airdate),
-          runtime: e.runtime ? Number(e.runtime) : null,
-          episode_type: e.type ? String(e.type) : 'regular',
-        }));
-
-      for (let i = 0; i < episodesPayload.length; i += 100) {
-        const batch = episodesPayload.slice(i, i + 100);
-        await supabase.from('episodes').upsert(batch, { onConflict: 'tvmaze_episode_id' });
-      }
-
-      onChanged();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al sincronizar episodios.');
-    } finally {
-      setSyncingEpisodes(false);
-    }
-  };
 
   const save = async (event: FormEvent<HTMLFormElement>, episode: Episode) => {
     event.preventDefault();
@@ -111,28 +62,15 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
 
   return (
     <div className="space-y-4 rounded-2xl border border-pastel-accent/25 bg-pastel-cream/60 p-4 dark:bg-slate-800/60">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-bold text-slate-900 dark:text-white">Edición de temporadas</p>
-          <p className="mt-1 text-xs text-slate-500">Gestiona las temporadas, episodios o sincronízalos automáticamente.</p>
+          <p className="mt-1 text-xs text-slate-500">Corrige el título, la fecha, la duración, la categoría y la etiqueta de cada episodio, o añade nuevos.</p>
         </div>
-        <div className="flex gap-2">
-          {episodes.length === 0 && (
-            <button
-              type="button"
-              onClick={handleForceSyncEpisodes}
-              disabled={syncingEpisodes}
-              className="flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-amber-700 disabled:opacity-50"
-            >
-              {syncingEpisodes ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              Sincronizar Episodios
-            </button>
-          )}
-          <button type="button" onClick={() => setAdding(true)} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-pastel-accent px-3 py-2 text-xs font-bold text-white transition hover:bg-pastel-accentHover">
-            <Plus className="h-3.5 w-3.5" />
-            Añadir Episodio
-          </button>
-        </div>
+        <button type="button" onClick={() => setAdding(true)} className="flex shrink-0 items-center gap-1.5 rounded-lg bg-pastel-accent px-3 py-2 text-xs font-bold text-white transition hover:bg-pastel-accentHover">
+          <Plus className="h-3.5 w-3.5" />
+          Añadir Episodio
+        </button>
       </div>
       {adding && (
         <AdminCalendarEditor
@@ -144,22 +82,6 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
         />
       )}
       {error && <p role="alert" className="text-xs font-semibold text-rose-700">{error}</p>}
-      
-      {episodes.length === 0 && !error && (
-        <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center dark:border-slate-700">
-          <p className="text-xs text-slate-500">No hay episodios cargados para esta serie.</p>
-          <button
-            type="button"
-            onClick={handleForceSyncEpisodes}
-            disabled={syncingEpisodes}
-            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-pastel-accent px-4 py-2 text-xs font-bold text-white hover:bg-pastel-accentHover"
-          >
-            {syncingEpisodes && <Loader2 className="h-4 w-4 animate-spin" />}
-            Descargar todos los episodios ahora
-          </button>
-        </div>
-      )}
-
       {seasons.map((season) => {
         const isOpen = openSeason === season;
         const seasonEpisodes = episodes.filter((episode) => episode.season === season);
