@@ -95,21 +95,19 @@ export async function addShow(input: ShowInput): Promise<number> {
   const showId = (data as { id: number }).id;
   if (input.tvmaze_id === null) return showId;
 
-  // Intentamos sincronizar de forma segura sin romper la app si el token no es de servicio
-  try {
-    await fetch(`${FUNCTIONS_URL}/sync-catalog`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({ mode: 'sync' }),
-    });
-  } catch (err) {
-    console.warn("La sincronización automática en segundo plano falló, pero la serie se ha guardado correctamente.", err);
+ export async function triggerCatalogSync(): Promise<void> {
+  const response = await fetch(`${FUNCTIONS_URL}/sync-catalog`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ mode: 'sync', force: true }),
+  });
+
+  if (!response.ok) {
+    throw new Error('No se pudo sincronizar el catálogo.');
   }
-  
-  return showId;
 }
 
 export async function fetchEpisodesForAdmin(showId: number): Promise<Episode[]> {
@@ -167,21 +165,4 @@ export async function upsertAppSetting(key: string, value: string): Promise<void
   if (error) throw new Error(error.message);
 }
 
-
-
     headers: {
-
-      export async function triggerCatalogSync(): Promise<void> {
-  const response = await fetch(`${FUNCTIONS_URL}/sync-catalog`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ mode: 'sync', force: true }),
-  });
-
-  if (!response.ok) {
-    throw new Error('No se pudo sincronizar el catálogo.');
-  }
-}
