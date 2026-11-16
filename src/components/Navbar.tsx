@@ -36,11 +36,6 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
 
   const handleForceSync = async () => {
     if (syncing) return;
-    
-    const confirmSync = window.confirm(
-      '¿Deseas forzar la actualización del catálogo con TVMaze y TMDB? Esto puede tardar unos segundos en completarse.'
-    );
-    if (!confirmSync) return;
 
     setSyncing(true);
     try {
