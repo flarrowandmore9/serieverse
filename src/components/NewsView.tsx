@@ -1,5 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Calendar, CheckCircle2, Loader2, Newspaper, Plus, Sparkles, Trash2, Tv, XCircle } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { Calendar, CheckCircle2, Clock, Loader2, Newspaper, Plus, Sparkles, Trash2, Tv, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { fetchCatalog } from '@/lib/catalog';
 import { fetchSeriesNews, saveSeriesNews, type NewsCategory, type SeriesNewsItem } from '@/lib/news';
@@ -16,14 +16,19 @@ const CATEGORY_META: Record<NewsCategory, { label: string; badgeClass: string; i
     icon: CheckCircle2,
   },
   canceled: {
-    label: 'Cancelada',
+    label: 'Cancelada / Terminada',
     badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300',
     icon: XCircle,
   },
-  announced: {
-    label: 'Nueva Confirmación',
-    badgeClass: 'bg-violet-100 text-violet-800 dark:bg-violet-950/80 dark:text-violet-300',
+  new_2026: {
+    label: 'Nueva 2026',
+    badgeClass: 'bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300',
     icon: Sparkles,
+  },
+  upcoming: {
+    label: 'Anunciada (Próximamente)',
+    badgeClass: 'bg-violet-100 text-violet-800 dark:bg-violet-950/80 dark:text-violet-300',
+    icon: Clock,
   },
 };
 
@@ -33,8 +38,9 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const [catalog, setCatalog] = useState<ShowListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | NewsCategory>('all');
+  const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
 
-  // Estados del formulario rápido de administradora
+  // Formulario rápido de administradora
   const [showForm, setShowForm] = useState(false);
   const [selectedShowId, setSelectedShowId] = useState<string>('');
   const [title, setTitle] = useState('');
@@ -54,6 +60,15 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       setLoading(false);
     });
   }, []);
+
+  // Extraer dinámicamente las cadenas/plataformas presentes en las noticias
+  const networks = useMemo(() => {
+    const set = new Set<string>();
+    news.forEach((n) => {
+      if (n.network) set.add(n.network);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [news]);
 
   const handleSelectCatalogShow = (idStr: string) => {
     setSelectedShowId(idStr);
@@ -78,9 +93,10 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
         title: title.trim(),
         category,
         headline: headline.trim(),
-        network: network.trim() || undefined,
+        network: network.trim() || 'Otras plataformas',
         posterUrl: posterUrl.trim() || undefined,
         date: new Date().toISOString().split('T')[0],
+        isAuto: false,
       };
 
       const updated = [newItem, ...news];
@@ -99,24 +115,28 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Eliminar esta noticia?')) return;
+    if (!window.confirm('¿Eliminar esta noticia manual?')) return;
     const updated = news.filter((item) => item.id !== id);
     await saveSeriesNews(updated);
     setNews(updated);
   };
 
-  const filteredNews = filter === 'all' ? news : news.filter((item) => item.category === filter);
+  const filteredNews = news.filter((item) => {
+    const matchesCategory = filter === 'all' || item.category === filter;
+    const matchesNetwork = selectedNetwork === 'all' || item.network === selectedNetwork;
+    return matchesCategory && matchesNetwork;
+  });
 
   return (
     <section className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-pastel-accent">Actualidad Seriéfila</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-pastel-accent">Temporada 2026 · Flarrow & More</p>
           <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">
-            Noticias, Renovaciones y Cancelaciones
+            Renovaciones, Cancelaciones y Nuevas Series 2026
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            El estado oficial de tus series favoritas y los próximos estrenos confirmados.
+            Seguimiento actualizado por cadena y plataforma de las series renovadas, canceladas y anunciadas este año.
           </p>
         </div>
 
@@ -127,15 +147,14 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             className="flex items-center gap-2 rounded-xl bg-pastel-accent px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
           >
             <Plus className="h-4 w-4" />
-            {showForm ? 'Cerrar editor' : 'Publicar noticia'}
+            {showForm ? 'Cerrar editor' : 'Añadir anuncio manual'}
           </button>
         )}
       </div>
 
-      {/* Formulario rápido exclusivo para Administradora */}
       {isAdmin && showForm && (
         <form onSubmit={handlePublish} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Nueva actualización de estado</h2>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Añadir serie al listado de 2026</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-1">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vincular serie del catálogo (opcional)</span>
@@ -152,15 +171,16 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Tipo de anuncio</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Estado en 2026</span>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as NewsCategory)}
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <option value="renewed">🟢 Renovada</option>
-                <option value="canceled">🔴 Cancelada</option>
-                <option value="announced">✨ Nueva Confirmación / Luz Verde</option>
+                <option value="canceled">🔴 Cancelada / Terminada</option>
+                <option value="new_2026">🔵 Nueva estrenada en 2026</option>
+                <option value="upcoming">🟣 Anunciada (Estreno más adelante)</option>
               </select>
             </label>
 
@@ -178,26 +198,27 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             <label className="space-y-1">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Cadena / Plataforma</span>
               <input
+                required
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
-                placeholder="Ej: Paramount+, SkyShowtime"
+                placeholder="Ej: CBS, Netflix, Paramount+, Movistar+"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
             <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Titular o detalle corto</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Detalle del anuncio</span>
               <input
                 required
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
-                placeholder="Ej: Renovada oficialmente por una 3ª temporada tras batir récords de audiencia."
+                placeholder="Ej: Renovada por una 4ª temporada / Cancelada tras 2 temporadas."
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
             <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de imagen / póster (opcional si ya elegiste serie)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de carátula (opcional)</span>
               <input
                 value={posterUrl}
                 onChange={(e) => setPosterUrl(e.target.value)}
@@ -214,36 +235,50 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-2 rounded-xl bg-pastel-accent px-5 py-2.5 text-xs font-bold text-white hover:bg-pastel-accentHover disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Publicar ahora
+              Guardar en el listado
             </button>
           </div>
         </form>
       )}
 
-      {/* Filtros en pastilla */}
-      <div className="flex flex-wrap gap-2">
-        {[
-          { id: 'all', label: 'Todas' },
-          { id: 'renewed', label: 'Renovadas' },
-          { id: 'canceled', label: 'Canceladas' },
-          { id: 'announced', label: 'Nuevas Confirmaciones' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setFilter(tab.id as typeof filter)}
-            className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
-              filter === tab.id
-                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-                : 'bg-white text-slate-600 hover:bg-pastel-rose/50 dark:bg-slate-900 dark:text-slate-300'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Barra de filtros: Categorías de tu blog + Selector de Cadena/Plataforma */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'all', label: 'Todas' },
+            { id: 'renewed', label: 'Renovadas' },
+            { id: 'canceled', label: 'Canceladas / Terminadas' },
+            { id: 'new_2026', label: 'Nuevas 2026' },
+            { id: 'upcoming', label: 'Anunciadas (Futuro)' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setFilter(tab.id as typeof filter)}
+              className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
+                filter === tab.id
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                  : 'bg-white text-slate-600 hover:bg-pastel-rose/50 dark:bg-slate-900 dark:text-slate-300'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <select
+          value={selectedNetwork}
+          onChange={(e) => setSelectedNetwork(e.target.value)}
+          aria-label="Filtrar por cadena o plataforma"
+          className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm focus:border-pastel-accent focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+        >
+          <option value="all">Todas las cadenas y plataformas</option>
+          {networks.map((net) => (
+            <option key={net} value={net}>{net}</option>
+          ))}
+        </select>
       </div>
 
-      {/* Listado de Noticias */}
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-pastel-accent" />
@@ -251,7 +286,9 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       ) : filteredNews.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-10 text-center dark:border-slate-700 dark:bg-slate-900/50">
           <Newspaper className="mx-auto h-8 w-8 text-slate-400" />
-          <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-300">No hay noticias en esta categoría todavía.</p>
+          <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+            No hay series registradas en este filtro todavía.
+          </p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -297,7 +334,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                     </div>
 
                     <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-                      <span className="truncate font-semibold text-slate-500 dark:text-slate-400">{item.network ?? 'Plataforma por confirmar'}</span>
+                      <span className="truncate font-bold text-pastel-accent">{item.network}</span>
                       <span className="flex shrink-0 items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {item.date}
@@ -306,7 +343,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                   </div>
                 </div>
 
-                {isAdmin && (
+                {isAdmin && !item.isAuto && (
                   <button
                     type="button"
                     onClick={() => handleDelete(item.id)}
