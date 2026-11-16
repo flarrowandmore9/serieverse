@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Bookmark, CalendarDays, Clapperboard, LayoutGrid, LogIn, Moon, MessageSquare, Search, Shield, Sun, Tv, Download, UserRound, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
+import { triggerCatalogSync } from '@/lib/admin';
 import type { ViewId } from '@/lib/types';
 
 type NavbarProps = {
@@ -26,11 +27,32 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
   const { session, profile, isAdmin } = useAuth();
   const settings = useAppSettings();
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark');
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
     localStorage.setItem('theme', dark ? 'dark' : 'light');
   }, [dark]);
+
+  const handleForceSync = async () => {
+    if (syncing) return;
+    
+    const confirmSync = window.confirm(
+      '¿Deseas forzar la actualización del catálogo con TVMaze y TMDB? Esto puede tardar unos segundos en completarse.'
+    );
+    if (!confirmSync) return;
+
+    setSyncing(true);
+    try {
+      await triggerCatalogSync();
+      alert('¡Catálogo actualizado y sincronizado correctamente con éxito!');
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Hubo un problema al conectar con el servidor de sincronización. Comprueba los secretos de la API.');
+      setSyncing(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 backdrop-blur-md transition-colors dark:border-slate-800/80 dark:bg-slate-950/90">
@@ -71,37 +93,25 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
             {settings.btn_download ?? 'Instalar App'}
           </button>
 
-           {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
-
-{isAdmin && (
-
-  <button 
-
-    onClick={() => {
-
-      // Recarga la página directamente sin mostrar ningún mensaje
-
-      window.location.reload();
-
-    }}
-
-    title="Actualizar Catálogo"
-
-    className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-
-  >
-
-    {/* Icono de Ruedita / Engranaje */}
-
-    <svg className="w-4 h-4 hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-
-    </svg>
-
-  </button>
-
-)} 
+          {/* Botón de Sincronización Manual (Solo visible para Administradora) */}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={handleForceSync}
+              disabled={syncing}
+              title={syncing ? 'Sincronizando con TVMaze y TMDB...' : 'Actualizar Catálogo'}
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition disabled:opacity-50"
+            >
+              <svg
+                className={`w-4 h-4 transition-transform duration-500 ${syncing ? 'animate-spin text-pastel-accent' : 'hover:rotate-180'}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+            </button>
+          )}
 
           {isAdmin && (
             <button
