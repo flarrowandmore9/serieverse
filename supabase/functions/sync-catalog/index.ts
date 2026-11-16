@@ -14,12 +14,13 @@ const REQUEST_SPACING_MS = 550;
 const MAX_PAGES_PER_DISCOVER = 80;
 const BATCH_SIZE = 500;
 
+// Lista ampliada con TODAS tus cadenas y plataformas de EE.UU. y España
 const US_NETWORKS = new Set(
   [
     "The CW", "ABC", "NBC", "CBS", "FOX", "AMC", "FX", "Starz", "Freeform", "Showtime",
     "Netflix", "Prime Video", "Amazon", "HBO", "HBO Max", "Max", "Warner Bros.", "Disney+", 
     "Disney", "Marvel", "Star Wars", "Hulu", "Apple TV", "Apple TV+", "Paramount", 
-    "Paramount+", "Paramount Network", "Peacock", "Universal",
+    "Paramount+", "Paramount Network", "Peacock", "Universal", "Epix", "MGM+",
   ].map((name) => name.toLowerCase()),
 );
 
@@ -27,8 +28,8 @@ const ES_NETWORKS = new Set(
   [
     "RTVE", "TVE", "La 1", "La 2", "Antena 3", "A3Series", "Cuatro", "Telecinco", "La Sexta", "AXN", "FOX",
     "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", "Atresplayer Originals", "Atresmedia Televisión", 
-    "Mediaset", "Movistar+", "Movistar Plus+", "Movistar Plus", "Movistar", "SkyShowtime", "SkyShowtme", 
-    "Filmin", "HBO España", "HBO Max España", "Disney+ España",
+    "Mediaset", "Movistar+", "Movistar Plus+", "Movistar Plus", "Movistar", "SkyShowtime", "Filmin", 
+    "HBO España", "HBO Max España", "Disney+ España", "Amazon Prime Video España",
   ].map((name) => name.toLowerCase()),
 );
 
@@ -143,10 +144,6 @@ function isNamedNetwork(show: TvmazeShow): boolean {
   return US_NETWORKS.has(key) || ES_NETWORKS.has(key);
 }
 
-function isSeries(show: TvmazeShow): boolean {
-  return SERIES_TYPES.has((show.type ?? "").toLowerCase());
-}
-
 async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow, tmdbApiKey: string): Promise<void> {
   let tvmazeData: TvmazeShow | null = null;
   let episodesData: TvmazeEpisode[] = [];
@@ -171,7 +168,7 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
         }
       }
     } catch {
-      // Ignorar error si no se encuentra en TVMaze
+      // Ignorar si no está en TVMaze
     }
   }
 
@@ -200,7 +197,7 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
   const genres = tmdbData?.genres ? tmdbData.genres.map((g: any) => g.name).join(", ") : ((tvmazeData?.genres ?? []).join(", ") || null);
 
   const updatePayload: any = {
-    tv_type: "scripted", // FORZAMOS MINÚSCULA para que no desaparezca del catálogo
+    tv_type: "scripted", // Forzamos minúscula para que nunca desaparezca del catálogo
     ...platforms,
     tv_status: tmdbData?.status ?? tvmazeData?.status,
     premiered: tmdbData?.first_air_date ?? tvmazeData?.premiered,
@@ -265,12 +262,12 @@ async function discover(supabase: ReturnType<typeof createClient>, fromPage: num
     const shows = (await res.json()) as TvmazeShow[];
     
     for (const show of shows) {
-      if (isSeries(show) && isNamedNetwork(show)) {
+      if (SERIES_TYPES.has((show.type ?? "").toLowerCase()) && isNamedNetwork(show)) {
         const networkName = show.network?.name ?? show.webChannel?.name ?? null;
         rows.push({
           tvmaze_id: show.id,
           title: show.name,
-          tv_type: "scripted", // FORZAMOS MINÚSCULA
+          tv_type: "scripted",
           network_name: networkName,
           ...platformFields(networkName),
         });
@@ -280,7 +277,7 @@ async function discover(supabase: ReturnType<typeof createClient>, fromPage: num
     await sleep(REQUEST_SPACING_MS);
   }
 
-  // NUNCA BORRAMOS NADA (Protección absoluta de series manuales)
+  // PROTECCIÓN ABSOLUTA: NUNCA SE BORRA NINGUNA SERIE
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
     await supabase
       .from("shows")
