@@ -4,7 +4,6 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/PageStates';
 import { useAsyncData } from '@/hooks/useAsyncData';
 import { addShow, deleteShow } from '@/lib/admin';
 import { fetchCatalog } from '@/lib/catalog';
-import { parsePlatformInput } from '@/lib/format';
 
 type AdminShowsProps = {
   onOpenShow: (showId: number) => void;
@@ -17,10 +16,7 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
   const shows = useAsyncData(() => fetchCatalog({ search: '', genre: '', sort: 'recent' }, 1000), []);
   const [tvmazeId, setTvmazeId] = useState('');
   const [tmdbId, setTmdbId] = useState('');
-  const [imdbId, setimdbId] = useState('');
   const [title, setTitle] = useState('');
-  const [usPlatforms, setUsPlatforms] = useState('');
-  const [esPlatforms, setEsPlatforms] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
 
@@ -45,27 +41,22 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
     setSaving(true);
     setMessage(null);
     try {
-      // Añadimos la serie asegurando el tipo 'scripted' en minúscula para que aparezca siempre en el catálogo
       await addShow({
         tvmaze_id: tvmazeNum,
         tmdb_id: tmdbNum,
-        imdb_id: imdbId.trim() || null,
         title: title.trim(),
         tv_type: 'scripted',
         synopsis_es: null,
-        us_platforms: parsePlatformInput(usPlatforms),
-        es_platforms: parsePlatformInput(esPlatforms),
+        us_platforms: [],
+        es_platforms: [],
       });
 
       setTvmazeId('');
       setTmdbId('');
-      setimdbId('');
       setTitle('');
-      setUsPlatforms('');
-      setEsPlatforms('');
       setMessage({
         type: 'ok',
-        text: '¡Serie añadida y sincronizada correctamente en el catálogo!',
+        text: '¡Serie añadida correctamente al catálogo!',
       });
       shows.reload();
     } catch (error) {
@@ -90,8 +81,8 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
     <div className="space-y-8">
       <form onSubmit={handleAdd} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white">Añadir serie al catálogo</h3>
-        <p className="text-xs text-slate-500">Indica el ID de TVMaze o TMDB y el título. Los datos y episodios se sincronizarán al instante sin desaparecer del catálogo.</p>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <p className="text-xs text-slate-500">Indica el ID de TVMaze o TMDB y el título. Las plataformas, carátula y episodios se sincronizarán automáticamente.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-1.5">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de TVMaze (opcional)</span>
             <input inputMode="numeric" value={tvmazeId} onChange={(e) => setTvmazeId(e.target.value)} placeholder="Ej: 59344" className={inputClass} />
@@ -100,21 +91,9 @@ export default function AdminShows({ onOpenShow }: AdminShowsProps) {
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de TMDB (opcional)</span>
             <input inputMode="numeric" value={tmdbId} onChange={(e) => setTmdbId(e.target.value)} placeholder="Ej: 1399" className={inputClass} />
           </label>
-          <label className="space-y-1.5">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID de IMDb (opcional)</span>
-            <input value={imdbId} onChange={(e) => setimdbId(e.target.value)} placeholder="tt1234567" className={inputClass} />
-          </label>
-          <label className="space-y-1.5 sm:col-span-3">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título (referencia)</span>
+          <label className="space-y-1.5 sm:col-span-2">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título de la serie</span>
             <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Tulsa King" className={inputClass} />
-          </label>
-          <label className="space-y-1.5">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Plataformas EE. UU.</span>
-            <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} placeholder="Paramount+, Netflix" className={inputClass} />
-          </label>
-          <label className="space-y-1.5">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Plataformas España</span>
-            <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} placeholder="SkyShowtime, Movistar Plus+" className={inputClass} />
           </label>
         </div>
         {message && (
