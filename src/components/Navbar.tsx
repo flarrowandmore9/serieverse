@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Bookmark, CalendarDays, Clapperboard, LayoutGrid, LogIn, Moon, MessageSquare, Search, Shield, Sun, Tv, Download, UserRound, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useAppSettings } from '@/hooks/useAppSettings';
