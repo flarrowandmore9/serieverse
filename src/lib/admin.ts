@@ -167,7 +167,11 @@ export async function upsertAppSetting(key: string, value: string): Promise<void
   if (error) throw new Error(error.message);
 }
 
-export async function triggerCatalogSync(): Promise<void> {
+
+
+    headers: {
+
+      export async function triggerCatalogSync(): Promise<void> {
   const response = await fetch(`${FUNCTIONS_URL}/sync-catalog`, {
     method: 'POST',
     headers: {
@@ -181,5 +185,3 @@ export async function triggerCatalogSync(): Promise<void> {
     throw new Error('No se pudo sincronizar el catálogo.');
   }
 }
-
-    headers: {
