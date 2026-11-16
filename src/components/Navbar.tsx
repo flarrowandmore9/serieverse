@@ -66,6 +66,7 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
         <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
           <NavButton item={{ id: 'catalog', label: settings.nav_catalog ?? 'Catálogo', icon: LayoutGrid }} active={view === 'catalog'} onClick={() => onNavigate('catalog')} />
           <NavButton item={{ id: 'calendar', label: settings.nav_calendar ?? 'Calendario', icon: CalendarDays }} active={view === 'calendar'} onClick={() => onNavigate('calendar')} />
+          <NavButton item={{ id: 'news', label: 'Noticias', icon: Newspaper }} active={view === 'news'} onClick={() => onNavigate('news')} />
           <NavButton item={{ id: 'platforms', label: settings.nav_platforms ?? 'Plataformas y Cadenas', icon: Tv }} active={view === 'platforms'} onClick={() => onNavigate('platforms')} />
           <NavButton item={{ id: 'library', label: settings.nav_library ?? 'Mis Listas', icon: Bookmark }} active={view === 'library'} onClick={() => onNavigate('library')} />
           <NavButton item={{ id: 'suggestions', label: settings.nav_suggestions ?? 'Sugerencias', icon: MessageSquare }} active={view === 'suggestions'} onClick={() => onNavigate('suggestions')} />
