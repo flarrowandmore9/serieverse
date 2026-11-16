@@ -76,109 +76,48 @@ export async function deleteSuggestion(id: number): Promise<void> {
 }
 
 export async function updateShow(id: number, patch: any): Promise<ShowListItem> {
+  // Limpiamos los campos opcionales que puedan no existir en la base de datos para evitar errores al guardar
   const cleanPatch = { ...patch };
-  // Eliminamos campos que puedan no existir en la tabla de Supabase para evitar que falle el guardado
   delete cleanPatch.show_type;
+  delete cleanPatch.franchise;
 
   const { data, error } = await supabase
     .from('shows')
     .update(cleanPatch)
     .eq('id', id)
-    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, network_name, us_platforms, es_platforms')
+    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms')
     .single();
     
-  if (error) {
-    console.error("Error detallado al actualizar:", error.message);
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
   return data as ShowListItem;
 }
+
 export async function deleteShow(id: number): Promise<void> {
   const { error } = await supabase.from('shows').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
 
-export async function addShow(showData: {
-  tvmaze_id?: number | null;
-  tmdb_id?: number | null;
-  title: string;
-  tv_type?: string;
-  synopsis_es?: string | null;
-  us_platforms?: string[];
-  es_platforms?: string[];
-}) {
-  let extraData: any = {};
-  let episodesToInsert: any[] = [];
-
-  if (showData.tvmaze_id) {
-    try {
-      const res = await fetch(`https://api.tvmaze.com/shows/${showData.tvmaze_id}?embed[]=episodes&embed[]=cast`);
-      if (res.ok) {
-        const data = await res.json();
-        const networkName = data.network?.name ?? data.webChannel?.name ?? null;
-        
-        extraData = {
-          title: data.name || showData.title,
-          synopsis_es: data.summary ? data.summary.replace(/<[^>]*>/g, '').trim() : null,
-          poster_url: data.image?.original ?? data.image?.medium ?? null,
-          rating: data.rating?.average ?? null,
-          tv_status: data.status ?? null,
-          premiered: data.premiered ?? null,
-          genres: data.genres?.join(', ') || null,
-          network_name: networkName,
-          runtime: data.averageRuntime ?? data.runtime ?? null,
-          characters: (data._embedded?.cast ?? []).slice(0, 12).map((c: any) => ({
-            actor: c.person?.name,
-            character: c.character?.name,
-            image: c.character?.image?.medium
-          })).filter((c: any) => c.actor),
-        };
-
-        const rawEpisodes = data._embedded?.episodes ?? [];
-        episodesToInsert = rawEpisodes
-          .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
-          .map((e: any) => ({
-            tvmaze_episode_id: Number(e.id),
-            season: Number(e.season),
-            number: Number(e.number),
-            name: e.name ? String(e.name) : `Episodio ${e.number}`,
-            airdate: String(e.airdate),
-            runtime: e.runtime ? Number(e.runtime) : null,
-            episode_type: e.type ? String(e.type) : 'regular',
-          }));
-      }
-    } catch (err) {
-      console.error("Error al obtener episodios externos:", err);
-    }
-  }
-
-  const { tmdb_id, ...safeShowData } = showData;
-
-  const { data, error } = await supabase
-    .from('shows')
-    .insert([{
-      ...safeShowData,
-      ...extraData,
-      tv_type: 'scripted',
-      tv_synced_at: new Date().toISOString(),
-    }])
-    .select()
-    .single();
-
+export async function addShow(input: ShowInput): Promise<number> {
+  const { data, error } = await supabase.from('shows').insert(input).select('id').single();
   if (error) throw new Error(error.message);
+  const showId = (data as { id: number }).id;
+  if (input.tvmaze_id === null) return showId;
 
-  // Inserción segura de episodios con bucle individual o por lotes limpios
-  if (episodesToInsert.length > 0 && data?.id) {
-    const episodesWithShowId = episodesToInsert.map(e => ({ ...e, show_id: data.id }));
-    
-    // Insertamos en bloques de 100 para evitar saturar la tabla
-    for (let i = 0; i < episodesWithShowId.length; i += 100) {
-      const batch = episodesWithShowId.slice(i, i + 100);
-      await supabase.from('episodes').upsert(batch, { onConflict: 'tvmaze_episode_id' });
-    }
+  // Intentamos sincronizar de forma segura sin romper la app si el token no es de servicio
+  try {
+    await fetch(`${FUNCTIONS_URL}/sync-catalog`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ mode: 'sync' }),
+    });
+  } catch (err) {
+    console.warn("La sincronización automática en segundo plano falló, pero la serie se ha guardado correctamente.", err);
   }
-
-  return data;
+  
+  return showId;
 }
 
 export async function fetchEpisodesForAdmin(showId: number): Promise<Episode[]> {
