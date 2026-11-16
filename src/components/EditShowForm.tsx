@@ -235,7 +235,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
             className={inputClass}
           />
         </label>
-
         
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
@@ -254,11 +253,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
             className={inputClass}
             placeholder="Ej: One Chicago"
           />
-        </label>
-
-        
-
-        
+        </label>        
 
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU. (separadas por comas)</span>
@@ -268,9 +263,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España (separadas por comas)</span>
           <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
-        </label>
-
-        
+        </label>        
 
       <CastListEditor value={cast} onChange={setCast} />
 
