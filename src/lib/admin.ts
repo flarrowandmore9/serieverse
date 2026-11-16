@@ -11,16 +11,18 @@ export type ShowInput = {
 };
 
 export type ShowPatch = {
-  title: string;
-  synopsis_es: string | null;
-  us_platforms: string[];
-  es_platforms: string[];
-  tv_status: string | null;
-  genres: string | null;
-  network_name: string | null;
-  poster_url: string | null;
-  runtime: number | null;
-  characters: Character[];
+  tvmaze_id?: number | null;
+  rating?: number | null;
+  title: string;
+  synopsis_es: string | null;
+  us_platforms: string[];
+  es_platforms: string[];
+  tv_status: string | null;
+  genres: string | null;
+  network_name: string | null;
+  poster_url: string | null;
+  runtime: number | null;
+  characters: Character[];
 };
 
 export type EpisodePatch = {
