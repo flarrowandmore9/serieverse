@@ -38,10 +38,11 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAutoFill = async () => {
+const handleAutoFill = async () => {
     setError(null);
     setFetchingExternal(true);
     try {
+      // 1. Si metiste un ID de TMDB
       if (tmdbIdInput.trim()) {
         const apiKey = import.meta.env.VITE_TMDB_API_KEY;
         if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en el archivo .env');
@@ -55,7 +56,39 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         const data = await detailRes.json();
         const provData = provRes.ok ? await provRes.json() : null;
 
-        if (data.name) setTitle(data.name);
+        if (data.name) {
+          setTitle(data.name);
+          // Intentamos buscar también su equivalente en TVMaze de forma automática para traernos los episodios
+          try {
+            const tvmSearch = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(data.name)}&embed[]=episodes`);
+            if (tvmSearch.ok) {
+              const tvmData = await tvmSearch.json();
+              if (tvmData?.id) {
+                setTvmazeId(String(tvmData.id));
+                const rawEpisodes = tvmData._embedded?.episodes ?? [];
+                if (rawEpisodes.length > 0) {
+                  const episodesPayload = rawEpisodes
+                    .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
+                    .map((e: any) => ({
+                      tvmaze_episode_id: e.id,
+                      show_id: show.id,
+                      season: e.season,
+                      number: e.number,
+                      name: e.name,
+                      airdate: e.airdate,
+                      runtime: e.runtime,
+                      episode_type: e.type,
+                    }));
+                  const { supabase } = await import('@/lib/supabase');
+                  await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
+                }
+              }
+            }
+          } catch {
+            // Si falla la búsqueda de episodios en TVMaze por nombre, continuamos con TMDB sin bloquear
+          }
+        }
+
         if (data.overview) setSynopsis(data.overview);
         if (data.poster_path) setPoster(`https://image.tmdb.org/t/p/original${data.poster_path}`);
         if (data.vote_average) setRating(Number(data.vote_average).toFixed(1));
@@ -69,8 +102,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         const usList = (provData?.results?.US?.flatrate ?? []).map((p: any) => p.provider_name);
         if (esList.length) setEsPlatforms(esList.join(', '));
         if (usList.length) setUsPlatforms(usList.join(', '));
-      } else if (tvmazeId.trim()) {
-        // Pedimos la serie y sus episodios embebidos desde TVMaze
+      } 
+      // 2. Si metiste un ID de TVMaze
+      else if (tvmazeId.trim()) {
         const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId.trim()}?embed[]=episodes&embed[]=cast`);
         if (!res.ok) throw new Error('No se encontró ninguna serie con ese ID en TVMaze.');
         const data = await res.json();
@@ -85,7 +119,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
         if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
 
-        // Sincronización automática de los episodios obtenidos
+        // Sincronización automática de los episodios
         const rawEpisodes = data._embedded?.episodes ?? [];
         if (rawEpisodes.length > 0) {
           const episodesPayload = rawEpisodes
@@ -102,9 +136,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
             }));
 
           if (episodesPayload.length > 0) {
-            // Importamos supabase para insertar directamente los episodios
             const { supabase } = await import('@/lib/supabase');
-            await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tv_episode_id' });
+            await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
           }
         }
       } else {
