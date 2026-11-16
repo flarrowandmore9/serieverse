@@ -136,45 +136,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Sección especial para meter los IDs y autocompletar */}
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
-        <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Autocompletar mediante ID Externo
-        </p>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="block space-y-1">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TVMaze</span>
-            <input
-              inputMode="numeric"
-              value={tvmazeId}
-              onChange={(e) => setTvmazeId(e.target.value)}
-              placeholder="Ej: 82"
-              className={inputClass}
-            />
-          </label>
-          <label className="block space-y-1">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TMDB</span>
-            <input
-              inputMode="numeric"
-              value={tmdbIdInput}
-              onChange={(e) => setTmdbIdInput(e.target.value)}
-              placeholder="Ej: 1399"
-              className={inputClass}
-            />
-          </label>
-          <div className="flex items-end">
-            <button
-              type="button"
-              onClick={handleAutoFill}
-              disabled={fetchingExternal}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
-            >
-              {fetchingExternal ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-              Rellenar datos
-            </button>
-          </div>
-        </div>
-      </div>
 
       <PosterField value={poster} onChange={(poster) => setPoster(poster)} />
 
@@ -265,6 +226,46 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       </div>
 
       <CastListEditor value={cast} onChange={setCast} />
+
+      {/* Sección especial para meter los IDs y autocompletar */}
+      <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
+        <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          Autocompletar mediante ID Externo
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="block space-y-1">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TVMaze</span>
+            <input
+              inputMode="numeric"
+              value={tvmazeId}
+              onChange={(e) => setTvmazeId(e.target.value)}
+              placeholder="Ej: 82"
+              className={inputClass}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TMDB</span>
+            <input
+              inputMode="numeric"
+              value={tmdbIdInput}
+              onChange={(e) => setTmdbIdInput(e.target.value)}
+              placeholder="Ej: 1399"
+              className={inputClass}
+            />
+          </label>
+          <div className="flex items-end">
+            <button
+              type="button"
+              onClick={handleAutoFill}
+              disabled={fetchingExternal}
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
+            >
+              {fetchingExternal ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Rellenar datos
+            </button>
+          </div>
+        </div>
+      </div>
 
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
 
