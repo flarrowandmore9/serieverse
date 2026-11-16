@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import CastListEditor from '@/components/CastListEditor';
 import PosterField from '@/components/PosterField';
-import { SHOW_STATUS_OPTIONS, SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
+import { SHOW_STATUS_OPTIONS, formatPlatforms } from '@/lib/format';
 import { updateShow } from '@/lib/admin';
 import type { Character, Show, ShowListItem } from '@/lib/types';
 
@@ -25,8 +25,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
   const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
   const [status, setStatus] = useState(show.tv_status ?? '');
-  const [showType, setShowType] = useState(show.show_type ?? '');
-  const [franchise, setFranchise] = useState(show.franchise ?? '');
   const [rating, setRating] = useState(show.rating?.toString() ?? '');
   const [genres, setGenres] = useState(show.genres ?? '');
   const [network, setNetwork] = useState(show.network_name ?? '');
@@ -119,8 +117,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
         premiered: premiered.trim() || null,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
@@ -136,10 +132,10 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-
+      {/* 1. Carátula */}
       <PosterField value={poster} onChange={(poster) => setPoster(poster)} />
 
-      {/* Sección especial para meter los IDs y autocompletar */}
+      {/* 2. Autocompletar mediante ID Externo */}
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
         <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Autocompletar mediante ID Externo
@@ -170,7 +166,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
               type="button"
               onClick={handleAutoFill}
               disabled={fetchingExternal}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-pastel-accent px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-pastel-accentHover disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
             >
               {fetchingExternal ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Rellenar datos
@@ -179,16 +175,20 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         </div>
       </div>
 
+      {/* 3. Título */}
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Título</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
       </label>
+
+      {/* 4. Sinopsis en Español */}
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en Español</span>
         <textarea rows={4} value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className={inputClass} />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">
+        {/* 5. Fecha de Estreno */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de Estreno</span>
           <input
@@ -199,8 +199,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           />
         </label>
 
+        {/* 6. Estreno (Estado) */}
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estado</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estreno</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
             {SHOW_STATUS_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
@@ -208,22 +209,25 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           </select>
         </label>
 
+        {/* 7. Emisión Original */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Emisión Original</span>
           <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} />
         </label>
 
+        {/* 8. Géneros (separados por comas) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (separados por comas)</span>
           <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} />
         </label>
 
+        {/* 9. Duración Media (min) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
         </label>
-      </div>
 
+        {/* 10. Puntuación / Score */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Puntuación / Score</span>
           <input
@@ -235,36 +239,21 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
             className={inputClass}
           />
         </label>
-        
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
-          <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
-            {SHOW_TYPES_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
 
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
-          <input
-            value={franchise}
-            onChange={(e) => setFranchise(e.target.value)}
-            className={inputClass}
-            placeholder="Ej: One Chicago"
-          />
-        </label>        
-
+        {/* 11. Ver en EE.UU. (separadas por comas) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU. (separadas por comas)</span>
           <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
         </label>
 
+        {/* 12. Ver en España (separadas por comas) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España (separadas por comas)</span>
           <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
-        </label>        
+        </label>
+      </div>
 
+      {/* 13. Reparto principal */}
       <CastListEditor value={cast} onChange={setCast} />
 
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
