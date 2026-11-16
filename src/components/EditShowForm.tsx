@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import CastListEditor from '@/components/CastListEditor';
 import PosterField from '@/components/PosterField';
-import { SHOW_STATUS_OPTIONS, SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
+import { SHOW_STATUS_OPTIONS, formatPlatforms } from '@/lib/format';
 import { updateShow } from '@/lib/admin';
 import type { Character, Show, ShowListItem } from '@/lib/types';
 
@@ -25,8 +25,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
   const [rating, setRating] = useState(show.rating?.toString() ?? '');
   const [status, setStatus] = useState(show.tv_status ?? '');
-  const [showType, setShowType] = useState(show.show_type ?? '');
-  const [franchise, setFranchise] = useState(show.franchise ?? '');
   const [genres, setGenres] = useState(show.genres ?? '');
   const [network, setNetwork] = useState(show.network_name ?? '');
   const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
@@ -36,10 +34,12 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Función que se ejecuta al pulsar "Rellenar datos" con el ID de TVMaze o TMDB
   const handleAutoFill = async () => {
     setError(null);
     setFetchingExternal(true);
     try {
+      // 1. Si pusiste ID de TMDB
       if (tmdbIdInput.trim()) {
         const apiKey = import.meta.env.VITE_TMDB_API_KEY;
         if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en el archivo .env');
@@ -66,7 +66,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         const usList = (provData?.results?.US?.flatrate ?? []).map((p: any) => p.provider_name);
         if (esList.length) setEsPlatforms(esList.join(', '));
         if (usList.length) setUsPlatforms(usList.join(', '));
-      } else if (tvmazeId.trim()) {
+      }
+      // 2. Si pusiste ID de TVMaze
+      else if (tvmazeId.trim()) {
         const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId.trim()}?embed=cast`);
         if (!res.ok) throw new Error('No se encontró ninguna serie con ese ID en TVMaze.');
         const data = await res.json();
@@ -115,8 +117,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         network_name: network.trim() || null,
         poster_url: poster.trim() || null,
         runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
@@ -203,25 +203,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
-          <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
-            {SHOW_TYPES_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
-          <input
-            value={franchise}
-            onChange={(e) => setFranchise(e.target.value)}
-            className={inputClass}
-            placeholder="Ej: One Chicago"
-          />
         </label>
 
         <label className="block space-y-1.5">
