@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
 import CastListEditor from '@/components/CastListEditor';
 import PosterField from '@/components/PosterField';
-import { SHOW_STATUS_OPTIONS, formatPlatforms } from '@/lib/format';
+import { SHOW_STATUS_OPTIONS, SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
 import { updateShow } from '@/lib/admin';
 import type { Character, Show, ShowListItem } from '@/lib/types';
 
@@ -25,13 +25,16 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
   const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
   const [status, setStatus] = useState(show.tv_status ?? '');
-  const [rating, setRating] = useState(show.rating?.toString() ?? '');
-  const [genres, setGenres] = useState(show.genres ?? '');
   const [network, setNetwork] = useState(show.network_name ?? '');
+  const [genres, setGenres] = useState(show.genres ?? '');
+  const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
+  const [rating, setRating] = useState(show.rating?.toString() ?? '');
+  const [showType, setShowType] = useState(show.show_type ?? '');
+  const [franchise, setFranchise] = useState(show.franchise ?? '');
   const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
   const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
-  const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
+  
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,14 +112,15 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         rating: ratingNumber !== null && Number.isFinite(ratingNumber) ? ratingNumber : null,
         title: cleanTitle,
         synopsis_es: synopsis.trim() || null,
+        premiered: premiered.trim() || null,
+        tv_status: status || null,
+        network_name: network.trim() || null,
+        genres: genres.trim() || null,
+        runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
+        show_type: showType || null,
+        franchise: franchise.trim() || null,
         us_platforms: usPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
-        tv_status: status || null,
-        genres: genres.trim() || null,
-        network_name: network.trim() || null,
-        poster_url: poster.trim() || null,
-        runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
-        premiered: premiered.trim() || null,
         characters: cast
           .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
           .filter((member) => member.actor),
@@ -199,7 +203,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           />
         </label>
 
-        {/* 6. Estreno (Estado) */}
+        {/* 6. Estreno (Estado de emisión) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estreno</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
@@ -212,19 +216,19 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         {/* 7. Emisión Original */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Emisión Original</span>
-          <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} />
+          <input value={network} onChange={(e) => setNetwork(e.target.value)} className={inputClass} placeholder="Ej: HBO, Netflix..." />
         </label>
 
         {/* 8. Géneros (separados por comas) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (separados por comas)</span>
-          <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} />
+          <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} placeholder="Ej: Drama, Thriller" />
         </label>
 
         {/* 9. Duración Media (min) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
-          <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
+          <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} placeholder="Ej: 45" />
         </label>
 
         {/* 10. Puntuación / Score */}
@@ -240,20 +244,41 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           />
         </label>
 
-        {/* 11. Ver en EE.UU. (separadas por comas) */}
+        {/* 11. Tipo de Serie */}
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
+          <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
+            {SHOW_TYPES_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        {/* 12. Pertenece a (Franquicia / Serie Madre) */}
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie Madre)</span>
+          <input
+            value={franchise}
+            onChange={(e) => setFranchise(e.target.value)}
+            className={inputClass}
+            placeholder="Ej: One Chicago"
+          />
+        </label>
+
+        {/* 13. Ver en EE.UU. (separadas por comas) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU. (separadas por comas)</span>
           <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
         </label>
 
-        {/* 12. Ver en España (separadas por comas) */}
+        {/* 14. Ver en España (separadas por comas) */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España (separadas por comas)</span>
           <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
         </label>
       </div>
 
-      {/* 13. Reparto principal */}
+      {/* 15. Reparto principal */}
       <CastListEditor value={cast} onChange={setCast} />
 
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
