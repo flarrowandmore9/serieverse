@@ -95,7 +95,7 @@ export async function addShow(input: ShowInput): Promise<number> {
   const showId = (data as { id: number }).id;
   if (input.tvmaze_id === null) return showId;
 
-  // Intentamos sincronizar de forma segura sin romper la app si el token no es de servicio
+  
   export async function triggerCatalogSync(): Promise<void> {
   const response = await fetch(`${FUNCTIONS_URL}/sync-catalog`, {
     method: 'POST',
