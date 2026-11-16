@@ -166,5 +166,3 @@ export async function upsertAppSetting(key: string, value: string): Promise<void
     .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
   if (error) throw new Error(error.message);
 }
-
-    headers: {
