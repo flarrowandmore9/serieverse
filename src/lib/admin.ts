@@ -75,15 +75,21 @@ export async function deleteSuggestion(id: number): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export async function updateShow(id: number, patch: ShowPatch): Promise<ShowListItem> {
-  const { data, error } = await supabase
-    .from('shows')
-    .update(patch)
-    .eq('id', id)
-    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms')
-    .single();
-  if (error) throw new Error(error.message);
-  return data as ShowListItem;
+export async function updateShow(id: number, patch: any): Promise<ShowListItem> {
+  // Limpiamos los campos opcionales que puedan no existir en la base de datos para evitar errores al guardar
+  const cleanPatch = { ...patch };
+  delete cleanPatch.show_type;
+  delete cleanPatch.franchise;
+
+  const { data, error } = await supabase
+    .from('shows')
+    .update(cleanPatch)
+    .eq('id', id)
+    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms')
+    .single();
+    
+  if (error) throw new Error(error.message);
+  return data as ShowListItem;
 }
 
 export async function deleteShow(id: number): Promise<void> {
