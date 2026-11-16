@@ -72,7 +72,7 @@ export default function NewsView() {
 
   const saveSections = async (newSections: PlatformNewsSection[]) => {
     setSections(newSections);
-    await.supabase
+    await supabase
       .from('app_settings')
       .upsert({ key: NEWS_LIST_KEY, value: JSON.stringify(newSections) }, { onConflict: 'key' });
   };
