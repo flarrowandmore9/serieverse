@@ -76,7 +76,6 @@ export async function deleteSuggestion(id: number): Promise<void> {
 }
 
 export async function updateShow(id: number, patch: any): Promise<ShowListItem> {
-  // Limpiamos los campos opcionales que puedan no existir en la base de datos para evitar errores al guardar
   const cleanPatch = { ...patch };
   delete cleanPatch.show_type;
   delete cleanPatch.franchise;
