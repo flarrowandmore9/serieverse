@@ -11,18 +11,16 @@ export type ShowInput = {
 };
 
 export type ShowPatch = {
-  tvmaze_id?: number | null;
-  rating?: number | null;
-  title: string;
-  synopsis_es: string | null;
-  us_platforms: string[];
-  es_platforms: string[];
-  tv_status: string | null;
-  genres: string | null;
-  network_name: string | null;
-  poster_url: string | null;
-  runtime: number | null;
-  characters: Character[];
+  title: string;
+  synopsis_es: string | null;
+  us_platforms: string[];
+  es_platforms: string[];
+  tv_status: string | null;
+  genres: string | null;
+  network_name: string | null;
+  poster_url: string | null;
+  runtime: number | null;
+  characters: Character[];
 };
 
 export type EpisodePatch = {
@@ -75,34 +73,15 @@ export async function deleteSuggestion(id: number): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export async function updateShow(id: number, patch: any): Promise<ShowListItem> {
-  // Creamos un objeto limpio eliminando cualquier propiedad que pueda no existir en la tabla de Supabase
-  const cleanPatch = {
-    title: patch.title,
-    synopsis_es: patch.synopsis_es,
-    us_platforms: patch.us_platforms,
-    es_platforms: patch.es_platforms,
-    tv_status: patch.tv_status,
-    genres: patch.genres,
-    network_name: patch.network_name,
-    poster_url: patch.poster_url,
-    runtime: patch.runtime,
-    characters: patch.characters,
-    tvmaze_id: patch.tvmaze_id,
-    tmdb_id: patch.tmdb_id,
-    rating: patch.rating,
-    premiered: patch.premiered,
-  };
-
-  const { data, error } = await supabase
-    .from('shows')
-    .update(cleanPatch)
-    .eq('id', id)
-    .select('id, tvmaze_id, id, tmdb_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms')
-    .single();
-    
-  if (error) throw new Error(error.message);
-  return data as ShowListItem;
+export async function updateShow(id: number, patch: ShowPatch): Promise<ShowListItem> {
+  const { data, error } = await supabase
+    .from('shows')
+    .update(patch)
+    .eq('id', id)
+    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms')
+    .single();
+  if (error) throw new Error(error.message);
+  return data as ShowListItem;
 }
 
 export async function deleteShow(id: number): Promise<void> {
@@ -186,19 +165,4 @@ export async function upsertAppSetting(key: string, value: string): Promise<void
     .from('app_settings')
     .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
   if (error) throw new Error(error.message);
-}
-
-export async function triggerCatalogSync(): Promise<void> {
-  const response = await fetch(`${FUNCTIONS_URL}/sync-catalog`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-    body: JSON.stringify({ mode: 'sync', force: true }),
-  });
-
-  if (!response.ok) {
-    throw new Error('No se pudo sincronizar el catálogo.');
-  }
 }
