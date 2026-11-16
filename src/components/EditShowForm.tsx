@@ -181,8 +181,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       });
 
       onSaved(updated);
-    } catch (err) {
-      setError('Error al guardar los cambios en la base de datos.');
+    } catch (err: any) {
+      // Mostramos el mensaje real que devuelve Supabase para saber exactamente qué pasa
+      setError(`Error al guardar: ${err?.message || 'Error desconocido'}`);
     } finally {
       setSaving(false);
     }
