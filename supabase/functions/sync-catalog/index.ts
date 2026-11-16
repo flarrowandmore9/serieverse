@@ -151,21 +151,36 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
   let tvmazeData: TvmazeShow | null = null;
   let episodesData: TvmazeEpisode[] = [];
   let tmdbData: any = null;
+  let tmdbId = show.tmdb_id;
+  let tvmazeId = show.tvmaze_id;
 
-  // 1. Obtener datos de TVMaze si tiene ID de TVMaze
-  if (show.tvmaze_id) {
-    const res = await fetchTvmaze(`/shows/${show.tvmaze_id}?embed[]=episodes&embed[]=cast`);
+  // 1. Sincronización desde TVMaze si dispone de ID o título
+  if (tvmazeId) {
+    const res = await fetchTvmaze(`/shows/${tvmazeId}?embed[]=episodes&embed[]=cast`);
     if (res.ok) {
       tvmazeData = (await res.json()) as TvmazeShow;
       episodesData = tvmazeData._embedded?.episodes ?? [];
     }
+  } else if (show.title) {
+    // Buscar en TVMaze por título si no tiene tvmaze_id pero sí título
+    try {
+      const searchRes = await fetchTvmaze(`/singlesearch/shows?q=${encodeURIComponent(show.title)}&embed[]=episodes&embed[]=cast`);
+      if (searchRes.ok) {
+        tvmazeData = (await searchRes.json()) as TvmazeShow;
+        if (tvmazeData?.id) {
+          tvmazeId = tvmazeData.id;
+          episodesData = tvmazeData._embedded?.episodes ?? [];
+        }
+      }
+    } catch {
+      // Continuamos hacia TMDB si TVMaze no la encuentra
+    }
   }
 
-  // 2. Obtener datos de TMDB si tiene tmdb_id (o buscarlo si no lo tiene)
-  let tmdbId = show.tmdb_id;
-  if (!tmdbId && tvmazeData) {
-    // Intento opcional de buscar en TMDB por nombre si tenemos el título
-    const searchRes = await fetchTmdb(`/search/tv?query=${encodeURIComponent(show.title)}`, tmdbApiKey);
+  // 2. Sincronización desde TMDB (si tiene ID o buscándola por título)
+  if (!tmdbId && (show.title || tvmazeData?.name)) {
+    const searchTitle = show.title || tvmazeData?.name;
+    const searchRes = await fetchTmdb(`/search/tv?query=${encodeURIComponent(searchTitle)}`, tmdbApiKey);
     if (searchRes?.results?.[0]) {
       tmdbId = searchRes.results[0].id;
     }
@@ -175,7 +190,7 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
     tmdbData = await fetchTmdb(`/tv/${tmdbId}`, tmdbApiKey);
   }
 
-  // Combinar información de ambas fuentes (priorizando TMDB para carteles HD y sinopsis si están disponibles, respaldado por TVMaze)
+  // Combinación inteligente priorizando TMDB para metadatos/gráficos y TVMaze para episodios
   const networkName = tmdbData?.networks?.[0]?.name ?? tvmazeData?.network?.name ?? tvmazeData?.webChannel?.name ?? null;
   const platforms = platformFields(networkName);
 
@@ -189,7 +204,7 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
   const genres = tmdbData?.genres ? tmdbData.genres.map((g: any) => g.name).join(", ") : ((tvmazeData?.genres ?? []).join(", ") || null);
 
   const updatePayload: any = {
-    tv_type: tvmazeData?.type ?? "Scripted",
+    tv_type: tvmazeData?.type ?? tmdbData?.type ?? "Scripted",
     ...platforms,
     tv_status: tmdbData?.status ?? tvmazeData?.status,
     premiered: tmdbData?.first_air_date ?? tvmazeData?.premiered,
@@ -199,13 +214,12 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
     network_name: networkName,
     genres,
     poster_url: posterUrl,
-    synopsis_source: synopsis,
+    synopsis_es: synopsis,
     tv_synced_at: new Date().toISOString(),
   };
 
-  if (tmdbId) {
-    updatePayload.tmdb_id = tmdbId;
-  }
+  if (tmdbId) updatePayload.tmdb_id = tmdbId;
+  if (tvmazeId) updatePayload.tvmaze_id = tvmazeId;
 
   if (tvmazeData?._embedded?.cast) {
     updatePayload.characters = toCharacters(tvmazeData._embedded.cast);
@@ -218,7 +232,7 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
 
   if (updateError) throw new Error(updateError.message);
 
-  // Sincronizar episodios si vienen de TVMaze
+  // Sincronizar episodios si están disponibles en TVMaze
   if (episodesData.length > 0) {
     const episodes = episodesData
       .filter((e) => e.season !== null && e.number !== null && e.airdate)
@@ -242,9 +256,8 @@ async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow
   }
 }
 
-async function discover(supabase: ReturnType<typeof createClient>, fromPage: number, toPage: number, tmdbApiKey: string) {
+async function discover(supabase: ReturnType<typeof createClient>, fromPage: number, toPage: number, _tmdbApiKey: string) {
   const rows: any[] = [];
-  const removeIds: number[] = [];
   let pages = 0;
   let reachedEnd = false;
 
@@ -267,27 +280,21 @@ async function discover(supabase: ReturnType<typeof createClient>, fromPage: num
           network_name: networkName,
           ...platformFields(networkName),
         });
-      } else if (isSeries(show)) {
-        removeIds.push(show.id);
       }
     }
     pages += 1;
     await sleep(REQUEST_SPACING_MS);
   }
 
+  // IMPORTANTE: Solo hacemos UPSERT para añadir o actualizar, NUNCA BORRAMOS series existentes
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
     const { error } = await supabase
       .from("shows")
-      .upsert(rows.slice(i, i + BATCH_SIZE), { onConflict: "tvmaze_id" });
+      .upsert(rows.slice(i, i + BATCH_SIZE), { onConflict: "tvmaze_id", ignoreDuplicates: false });
     if (error) throw new Error(error.message);
   }
 
-  for (let i = 0; i < removeIds.length; i += BATCH_SIZE) {
-    const { error } = await supabase.from("shows").delete().in("tvmaze_id", removeIds.slice(i, i + BATCH_SIZE));
-    if (error) throw new Error(error.message);
-  }
-
-  return { pages, series: rows.length, removed: removeIds.length, reachedEnd, nextPage: toPage + 1 };
+  return { pages, series: rows.length, removed: 0, reachedEnd, nextPage: toPage + 1 };
 }
 
 async function syncBatch(supabase: ReturnType<typeof createClient>, tmdbApiKey: string) {
@@ -329,7 +336,7 @@ Deno.serve(async (req: Request) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const tmdbApiKey = Deno.env.get("TMDB_API_KEY") || Deno.env.get("TMDB_API_KEY") || "";
+    const tmdbApiKey = Deno.env.get("TMDB_API_KEY") || "";
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
