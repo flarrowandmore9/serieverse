@@ -34,20 +34,19 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
     localStorage.setItem('theme', dark ? 'dark' : 'light');
   }, [dark]);
 
-  const handleForceSync = async () => {
-    if (syncing) return;
+  const [syncing, setSyncing] = useState(false);
 
-    setSyncing(true);
-    try {
-      await triggerCatalogSync();
-      alert('¡Catálogo actualizado y sincronizado correctamente con éxito!');
-      window.location.reload();
-    } catch (err) {
-      console.error(err);
-      alert('Hubo un problema al conectar con el servidor de sincronización. Comprueba los secretos de la API.');
-      setSyncing(false);
-    }
-  };
+const handleForceSync = async () => {
+  if (syncing) return;
+  setSyncing(true);
+  try {
+    await triggerCatalogSync();
+    window.location.reload();
+  } catch {
+    alert('Hubo un problema al sincronizar con TVMaze y TMDB.');
+    setSyncing(false);
+  }
+};
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 backdrop-blur-md transition-colors dark:border-slate-800/80 dark:bg-slate-950/90">
