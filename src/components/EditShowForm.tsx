@@ -258,7 +258,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
               type="button"
               onClick={handleAutoFill}
               disabled={fetchingExternal}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-pastel-accent px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-pastel-accentHover disabled:opacity-60 dark:bg-slate-700 dark:hover:bg-slate-600"
             >
               {fetchingExternal ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Rellenar datos
