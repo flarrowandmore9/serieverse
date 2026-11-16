@@ -26,7 +26,7 @@ const CATEGORY_META: Record<NewsCategory, { label: string; badgeClass: string; i
     icon: Sparkles,
   },
   upcoming: {
-    label: 'Anunciada (Próximamente)',
+    label: 'Anunciada (Futuro)',
     badgeClass: 'bg-violet-100 text-violet-800 dark:bg-violet-950/80 dark:text-violet-300',
     icon: Clock,
   },
@@ -44,6 +44,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const [showForm, setShowForm] = useState(false);
   const [selectedShowId, setSelectedShowId] = useState<string>('');
   const [title, setTitle] = useState('');
+  const [seasonText, setSeasonText] = useState(''); // Ej: Season 16 / Spin-off / Reboot
   const [category, setCategory] = useState<NewsCategory>('renewed');
   const [headline, setHeadline] = useState('');
   const [network, setNetwork] = useState('');
@@ -61,7 +62,6 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     });
   }, []);
 
-  // Extraer dinámicamente las cadenas/plataformas presentes en las noticias
   const networks = useMemo(() => {
     const set = new Set<string>();
     news.forEach((n) => {
@@ -87,10 +87,13 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
 
     setSaving(true);
     try {
+      // Combinamos título y temporada al estilo blog si se especifica (ej: Chicago Fire | Season 16)
+      const fullTitle = seasonText.trim() ? `${title.trim()} | ${seasonText.trim()}` : title.trim();
+
       const newItem: SeriesNewsItem = {
         id: crypto.randomUUID(),
         showId: selectedShowId ? Number(selectedShowId) : null,
-        title: title.trim(),
+        title: fullTitle,
         category,
         headline: headline.trim(),
         network: network.trim() || 'Otras plataformas',
@@ -105,6 +108,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
 
       setSelectedShowId('');
       setTitle('');
+      setSeasonText('');
       setHeadline('');
       setNetwork('');
       setPosterUrl('');
@@ -115,7 +119,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('¿Eliminar esta noticia manual?')) return;
+    if (!window.confirm('¿Eliminar este apunte?')) return;
     const updated = news.filter((item) => item.id !== id);
     await saveSeriesNews(updated);
     setNews(updated);
@@ -136,7 +140,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             Renovaciones, Cancelaciones y Nuevas Series 2026
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Seguimiento actualizado por cadena y plataforma de las series renovadas, canceladas y anunciadas este año.
+            Seguimiento clasificado por temporada, cadena y notas de producción (Spin-offs, reboots, etc.).
           </p>
         </div>
 
@@ -147,14 +151,14 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             className="flex items-center gap-2 rounded-xl bg-pastel-accent px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
           >
             <Plus className="h-4 w-4" />
-            {showForm ? 'Cerrar editor' : 'Añadir anuncio manual'}
+            {showForm ? 'Cerrar editor' : 'Añadir apunte al listado'}
           </button>
         )}
       </div>
 
       {isAdmin && showForm && (
         <form onSubmit={handlePublish} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Añadir serie al listado de 2026</h2>
+          <h2 className="text-sm font-bold text-slate-900 dark:text-white">Añadir entrada estilo blog</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-1">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vincular serie del catálogo (opcional)</span>
@@ -171,7 +175,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             </label>
 
             <label className="space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Estado en 2026</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Sección del post</span>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as NewsCategory)}
@@ -179,8 +183,8 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               >
                 <option value="renewed">🟢 Renovada</option>
                 <option value="canceled">🔴 Cancelada / Terminada</option>
-                <option value="new_2026">🔵 Nueva estrenada en 2026</option>
-                <option value="upcoming">🟣 Anunciada (Estreno más adelante)</option>
+                <option value="new_2026">🔵 Nueva 2026 (con fecha)</option>
+                <option value="upcoming">🟣 Futuras / Spin-off / Reboot / Anunciadas</option>
               </select>
             </label>
 
@@ -190,7 +194,17 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej: Tulsa King"
+                placeholder="Ej: Chicago Fire"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Temporada o Nota corta (Opcional)</span>
+              <input
+                value={seasonText}
+                onChange={(e) => setSeasonText(e.target.value)}
+                placeholder="Ej: Season 16 / Spin-off / Reboot"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -201,28 +215,28 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
-                placeholder="Ej: CBS, Netflix, Paramount+, Movistar+"
+                placeholder="Ej: NBC, Paramount+, Netflix"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
-            <label className="space-y-1 sm:col-span-2">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Detalle del anuncio</span>
-              <input
-                required
-                value={headline}
-                onChange={(e) => setHeadline(e.target.value)}
-                placeholder="Ej: Renovada por una 4ª temporada / Cancelada tras 2 temporadas."
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
-              />
-            </label>
-
-            <label className="space-y-1 sm:col-span-2">
+            <label className="space-y-1">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de carátula (opcional)</span>
               <input
                 value={posterUrl}
                 onChange={(e) => setPosterUrl(e.target.value)}
                 placeholder="https://..."
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
+              />
+            </label>
+
+            <label className="space-y-1 sm:col-span-2">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nota / Sinopsis o detalles del proyecto</span>
+              <input
+                required
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                placeholder="Ej: Protagonizada por tal actor, proyecto procedimental en desarrollo..."
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -235,13 +249,13 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-2 rounded-xl bg-pastel-accent px-5 py-2.5 text-xs font-bold text-white hover:bg-pastel-accentHover disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Guardar en el listado
+              Añadir al listado
             </button>
           </div>
         </form>
       )}
 
-      {/* Barra de filtros: Categorías de tu blog + Selector de Cadena/Plataforma */}
+      {/* Filtros */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
           {[
@@ -249,7 +263,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             { id: 'renewed', label: 'Renovadas' },
             { id: 'canceled', label: 'Canceladas / Terminadas' },
             { id: 'new_2026', label: 'Nuevas 2026' },
-            { id: 'upcoming', label: 'Anunciadas (Futuro)' },
+            { id: 'upcoming', label: 'Spin-offs / Reboots / Anunciadas' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -287,7 +301,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-10 text-center dark:border-slate-700 dark:bg-slate-900/50">
           <Newspaper className="mx-auto h-8 w-8 text-slate-400" />
           <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-            No hay series registradas en este filtro todavía.
+            No hay apuntes en este filtro todavía.
           </p>
         </div>
       ) : (
@@ -347,7 +361,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                   <button
                     type="button"
                     onClick={() => handleDelete(item.id)}
-                    title="Eliminar noticia"
+                    title="Eliminar apunte"
                     className="absolute right-2.5 top-2.5 rounded-lg bg-white/90 p-1.5 text-slate-400 opacity-0 shadow-sm transition hover:text-rose-600 group-hover:opacity-100 dark:bg-slate-800"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
