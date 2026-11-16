@@ -162,7 +162,7 @@ export default function Navbar({ view, onNavigate, onOpenAuth, onOpenInstall, on
       <nav className="flex gap-1 overflow-x-auto border-t border-slate-100 px-4 py-2 dark:border-slate-800 md:hidden" aria-label="Principal móvil">
         <NavButton item={{ id: 'catalog', label: settings.nav_catalog ?? 'Catálogo', icon: LayoutGrid }} active={view === 'catalog'} onClick={() => onNavigate('catalog')} compact />
         <NavButton item={{ id: 'calendar', label: settings.nav_calendar ?? 'Calendario', icon: CalendarDays }} active={view === 'calendar'} onClick={() => onNavigate('calendar')} compact />
-        <NavButton item={{ id: 'news', label: 'Noticias', icon: Newspaper }} active={view === 'news'} onClick={() => onNavigate('news')} />
+        <NavButton item={{ id: 'news', label: 'Noticias', icon: Newspaper }} active={view === 'news'} onClick={() => onNavigate('news')} compact />
         <NavButton item={{ id: 'platforms', label: settings.nav_platforms ?? 'Plataformas y Cadenas', icon: Tv }} active={view === 'platforms'} onClick={() => onNavigate('platforms')} compact />
         <NavButton item={{ id: 'library', label: settings.nav_library ?? 'Mis Listas', icon: Bookmark }} active={view === 'library'} onClick={() => onNavigate('library')} compact />
         <NavButton item={{ id: 'suggestions', label: settings.nav_suggestions ?? 'Sugerencias', icon: MessageSquare }} active={view === 'suggestions'} onClick={() => onNavigate('suggestions')} compact />
