@@ -22,7 +22,6 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados para sincronización mediante ID directo en este panel
   const [tvmazeInput, setTvmazeInput] = useState('');
   const [tmdbInput, setTmdbInput] = useState('');
   const [syncingExternal, setSyncingExternal] = useState(false);
@@ -30,7 +29,6 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
 
   const seasons = useMemo(() => [...new Set(episodes.map((episode) => episode.season))].sort((a, b) => a - b), [episodes]);
 
-  // Sincronizar episodios directamente desde TMDB o TVMaze
   const handleFetchExternalEpisodes = async () => {
     setSyncingExternal(true);
     setError(null);
@@ -38,7 +36,6 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
     try {
       let rawEpisodes: any[] = [];
 
-      // 1. Si metió ID de TMDB (Consulta directa a TMDB sin errores de mapeo)
       if (tmdbInput.trim()) {
         const apiKey = import.meta.env.VITE_TMDB_API_KEY;
         if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en el archivo .env');
@@ -48,30 +45,26 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
         const showData = await detailRes.json();
         const seasonsList = showData.seasons || [];
 
-        // Obtenemos los episodios de cada temporada de TMDB en paralelo
         const seasonPromises = seasonsList.map(async (season: any) => {
-          if (season.season_number === 0) return []; // Opcional: ignorar especiales si se desea
+          if (season.season_number === 0) return [];
           const sRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbInput.trim()}/season/${season.season_number}?api_key=${apiKey}&language=es-ES`);
           if (!sRes.ok) return [];
           const sData = await sRes.json();
           return (sData.episodes || []).map((e: any) => ({
-            tvmaze_episode_id: Number(`${season.season_number}${e.episode_number}`), // ID único temporal para TMDB
+            tvmaze_episode_id: Number(`${season.season_number}${String(e.episode_number).padStart(3, '0')}`),
             show_id: show.id,
             season: e.season_number,
             number: e.episode_number,
             name: e.name || `Episodio ${e.episode_number}`,
-            airdate: e.air_date || '2000-01-01',
+            airdate: e.air_date || null, // Permite nulos
             runtime: e.runtime || showData.episode_run_time?.[0] || null,
-            synopsis: e.overview || null,
             episode_type: 'regular',
           }));
         });
 
         const results = await Promise.all(seasonPromises);
         rawEpisodes = results.flat();
-      } 
-      // 2. Si metió ID de TVMaze
-      else if (tvmazeInput.trim()) {
+      } else if (tvmazeInput.trim()) {
         const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeInput.trim()}?embed[]=episodes`);
         if (!res.ok) throw new Error('No se encontró la serie en TVMaze con ese ID.');
         const data = await res.json();
@@ -81,9 +74,8 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
           season: e.season,
           number: e.number,
           name: e.name,
-          airdate: e.airdate || '2000-01-01',
+          airdate: e.airdate || null, // Permite nulos
           runtime: e.runtime,
-          synopsis: e.summary ? e.summary.replace(/<[^>]*>/g, '').trim() : null,
           episode_type: e.type,
         }));
       } else {
@@ -114,11 +106,11 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
     setBusyId(episode.tvmaze_episode_id);
     setError(null);
     try {
+      const airdateValue = String(data.get('airdate') ?? '').trim();
       await updateEpisode(episode.tvmaze_episode_id, {
         name: String(data.get('name') ?? '').trim() || null,
-        airdate: String(data.get('airdate') ?? '') || '2000-01-01', // Fecha opcional con fallback
+        airdate: airdateValue !== '' ? airdateValue : null, // Fecha totalmente opcional
         runtime: data.get('runtime') ? Number(data.get('runtime')) : null,
-        synopsis: String(data.get('synopsis') ?? '').trim() || null, // Sinopsis manual
         episode_type: episode.episode_type ?? null,
         role_override: (String(data.get('role_override') ?? '') || null) as Episode['role_override'],
         special_tag: (String(data.get('special_tag') ?? '') || null) as Episode['special_tag'],
@@ -159,7 +151,6 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
         </button>
       </div>
 
-      {/* Panel integrado para sincronizar episodios por ID */}
       <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
         <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-pastel-accent">Sincronizar episodios por ID Externo</p>
         <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
@@ -220,7 +211,6 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
                 {seasonEpisodes.map((episode) => (
                   <div key={episode.tvmaze_episode_id} className="p-3">
                     {editingId === episode.tvmaze_episode_id ? (
-                      /* Formulario de edición limpio con campo de sinopsis manual y fecha opcional */
                       <form onSubmit={(event) => save(event, episode)} className="space-y-3 rounded-xl bg-slate-50 p-3 dark:bg-slate-800/50">
                         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                           <label className="space-y-1">
@@ -246,12 +236,6 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
                             </select>
                           </label>
                         </div>
-
-                        {/* Campo para editar la Sinopsis del episodio manualmente */}
-                        <label className="block space-y-1">
-                          <span className="text-[10px] font-semibold text-slate-500">Sinopsis del episodio</span>
-                          <textarea name="synopsis" rows={2} defaultValue={(episode as any).synopsis ?? ''} className={inputClass} placeholder="Escribe la sinopsis del episodio..." />
-                        </label>
 
                         <div className="flex items-center justify-between gap-2 pt-1">
                           <label className="flex-1 space-y-1">
@@ -291,14 +275,8 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
                             </span>
                           )}
                           <p className="w-full mt-1 text-[11px] text-slate-500">
-                            {episode.airdate && episode.airdate !== '2000-01-01' ? formatDate(episode.airdate) : 'Fecha por confirmar'} · {episode.runtime ? `${episode.runtime} min` : 'Duración por confirmar'}
+                            {episode.airdate ? formatDate(episode.airdate) : 'Fecha por confirmar'} · {episode.runtime ? `${episode.runtime} min` : 'Duración por confirmar'}
                           </p>
-                          {/* Muestra la sinopsis debajo del título si existe */}
-                          {(episode as any).synopsis && (
-                            <p className="w-full mt-1 text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2">
-                              {(episode as any).synopsis}
-                            </p>
-                          )}
                         </div>
                         <div className="flex shrink-0 gap-1">
                           <button type="button" aria-label="Editar episodio" onClick={() => setEditingId(episode.tvmaze_episode_id)} className="rounded-lg p-2 text-slate-500 hover:bg-pastel-rose hover:text-pastel-accent">
