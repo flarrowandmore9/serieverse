@@ -43,34 +43,24 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setError(null);
     setFetchingExternal(true);
     try {
-      let resolvedTvmazeId = tvmazeId.trim();
+      const apiKey = import.meta.env.VITE_TMDB_API_KEY;
 
-      // 1. Si metieron ID de TMDB, buscamos su equivalente en TVMaze para los episodios
+      // 1. Sincronización completa vía ID de TMDB (Ideal para series españolas y catálogo general)
       if (tmdbIdInput.trim()) {
-        const apiKey = import.meta.env.VITE_TMDB_API_KEY;
         if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en el archivo .env');
-        
+        const tmdbId = tmdbIdInput.trim();
+
+        // Petición a TMDB para detalles y proveedores de streaming
         const [detailRes, provRes] = await Promise.all([
-          fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}?api_key=${apiKey}&language=es-ES`),
-          fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}/watch/providers?api_key=${apiKey}`),
+          fetch(`https://api.themoviedb.org/3/tv/${tmdbId}?api_key=${apiKey}&language=es-ES`),
+          fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/watch/providers?api_key=${apiKey}`),
         ]);
         
         if (!detailRes.ok) throw new Error('No se encontró ninguna serie con ese ID en TMDB.');
         const data = await detailRes.json();
         const provData = provRes.ok ? await provRes.json() : null;
 
-        if (data.name) {
-          setTitle(data.name);
-          const tvmSearch = await fetch(`https://api.tvmaze.com/singlesearch/shows?q=${encodeURIComponent(data.name)}`);
-          if (tvmSearch.ok) {
-            const tvmJson = await tvmSearch.json();
-            if (tvmJson?.id) {
-              resolvedTvmazeId = String(tvmJson.id);
-              setTvmazeId(resolvedTvmazeId);
-            }
-          }
-        }
-
+        if (data.name) setTitle(data.name);
         if (data.overview) setSynopsis(data.overview);
         if (data.poster_path) setPoster(`https://image.tmdb.org/t/p/original${data.poster_path}`);
         if (data.vote_average) setRating(Number(data.vote_average).toFixed(1));
@@ -84,16 +74,50 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         const usList = (provData?.results?.US?.flatrate ?? []).map((p: any) => p.provider_name);
         if (esList.length) setEsPlatforms(esList.join(', '));
         if (usList.length) setUsPlatforms(usList.join(', '));
-      }
 
-      // 2. Si tenemos ID de TVMaze (directo o encontrado), descargamos la serie con episodios y reparto incrustados
-      if (resolvedTvmazeId) {
-        const res = await fetch(`https://api.tvmaze.com/shows/${resolvedTvmazeId}?embed[]=episodes&embed[]=cast`);
+        // Descarga de todas las temporadas y episodios desde TMDB
+        const seasons = data.seasons ?? [];
+        const allEpisodesPayload = [];
+
+        for (const season of seasons) {
+          const seasonNum = season.season_number;
+          if (seasonNum === undefined || seasonNum === null) continue;
+
+          const seasonRes = await fetch(`https://api.themoviedb.org/3/tv/${tmdbId}/season/${seasonNum}?api_key=${apiKey}&language=es-ES`);
+          if (seasonRes.ok) {
+            const seasonData = await seasonRes.json();
+            const episodes = seasonData.episodes ?? [];
+
+            for (const ep of episodes) {
+              if (ep.episode_number !== undefined && ep.air_date) {
+                allEpisodesPayload.push({
+                  tvmaze_episode_id: Number(`${tmdbId}${seasonNum}${ep.episode_number}`), // ID único compuesto para TMDB
+                  show_id: show.id,
+                  season: seasonNum,
+                  number: ep.episode_number,
+                  name: ep.name || `Episodio ${ep.episode_number}`,
+                  airdate: ep.air_date,
+                  runtime: ep.runtime || data.episode_run_time?.[0] || 45,
+                  episode_type: 'standard',
+                });
+              }
+            }
+          }
+        }
+
+        if (allEpisodesPayload.length > 0) {
+          await supabase.from('episodes').upsert(allEpisodesPayload, { onConflict: 'tvmaze_episode_id' });
+        }
+      }
+      // 2. Sincronización completa vía ID de TVMaze
+      else if (tvmazeId.trim()) {
+        const tvmId = tvmazeId.trim();
+        const res = await fetch(`https://api.tvmaze.com/shows/${tvmId}?embed[]=episodes&embed[]=cast`);
         if (!res.ok) throw new Error('No se encontró información en TVMaze con ese ID.');
         const data = await res.json();
 
-        if (data.name && !title) setTitle(data.name);
-        if (data.summary && !synopsis) setSynopsis(data.summary.replace(/<[^>]*>/g, '').trim());
+        if (data.name) setTitle(data.name);
+        if (data.summary) setSynopsis(data.summary.replace(/<[^>]*>/g, '').trim());
         if (data.image?.original || data.image?.medium) setPoster(data.image.original ?? data.image.medium);
         if (data.rating?.average) setRating(String(data.rating.average));
         if (data.status) setStatus(data.status);
@@ -102,7 +126,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
         if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
 
-        // Descarga e inserción forzosa de episodios en Supabase
         const episodesList = data._embedded?.episodes ?? [];
         if (episodesList.length > 0) {
           const episodesPayload = episodesList
@@ -118,15 +141,10 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
               episode_type: e.type,
             }));
 
-          const { error: epError } = await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
-          if (epError) {
-            console.error('Error insertando episodios:', epError.message);
-          }
+          await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
         }
-      }
-
-      if (!tmdbIdInput.trim() && !resolvedTvmazeId) {
-        setError('Escribe primero un ID de TVMaze o un ID de TMDB.');
+      } else {
+        setError('Escribe un ID de TVMaze o un ID de TMDB para autocompletar.');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al obtener datos externos.');
@@ -169,8 +187,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       });
 
       onSaved(updated);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudieron guardar los cambios. Inténtalo de nuevo.');
+    } catch {
+      setError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
     } finally {
       setSaving(false);
     }
@@ -184,7 +202,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       {/* 2. Autocompletar mediante ID Externo */}
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
         <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Autocompletar mediante ID Externo (Descarga Info y Episodios)
+          Autocompletar mediante ID Externo (TVMaze o TMDB con Episodios)
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block space-y-1">
