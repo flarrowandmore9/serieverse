@@ -25,15 +25,16 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
   const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
   const [status, setStatus] = useState(show.tv_status ?? '');
+  const [network, setNetwork] = useState(show.network_name ?? '');
+  const [genres, setGenres] = useState(show.genres ?? '');
+  const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
+  const [rating, setRating] = useState(show.rating?.toString() ?? '');
   const [showType, setShowType] = useState(show.show_type ?? '');
   const [franchise, setFranchise] = useState(show.franchise ?? '');
-  const [rating, setRating] = useState(show.rating?.toString() ?? '');
-  const [genres, setGenres] = useState(show.genres ?? '');
-  const [network, setNetwork] = useState(show.network_name ?? '');
   const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
   const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
-  const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
+  
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,16 +44,11 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     try {
       if (tmdbIdInput.trim()) {
         const apiKey = import.meta.env.VITE_TMDB_API_KEY;
-        if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en el archivo .env');
+        if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en .env');
         
-        const [detailRes, provRes] = await Promise.all([
-          fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}?api_key=${apiKey}&language=es-ES`),
-          fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}/watch/providers?api_key=${apiKey}`),
-        ]);
-        
-        if (!detailRes.ok) throw new Error('No se encontró ninguna serie con ese ID en TMDB.');
-        const data = await detailRes.json();
-        const provData = provRes.ok ? await provRes.json() : null;
+        const res = await fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}?api_key=${apiKey}&language=es-ES`);
+        if (!res.ok) throw new Error('No se encontró la serie en TMDB.');
+        const data = await res.json();
 
         if (data.name) setTitle(data.name);
         if (data.overview) setSynopsis(data.overview);
@@ -64,13 +60,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (data.networks?.[0]?.name) setNetwork(data.networks[0].name);
         if (data.episode_run_time?.[0]) setRuntime(String(data.episode_run_time[0]));
 
-        const esList = (provData?.results?.ES?.flatrate ?? []).map((p: any) => p.provider_name);
-        const usList = (provData?.results?.US?.flatrate ?? []).map((p: any) => p.provider_name);
-        if (esList.length) setEsPlatforms(esList.join(', '));
-        if (usList.length) setUsPlatforms(usList.join(', '));
       } else if (tvmazeId.trim()) {
-        const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId.trim()}?embed=cast`);
-        if (!res.ok) throw new Error('No se encontró ninguna serie con ese ID en TVMaze.');
+        const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId.trim()}?embed[]=episodes&embed[]=cast`);
+        if (!res.ok) throw new Error('No se encontró la serie en TVMaze.');
         const data = await res.json();
 
         if (data.name) setTitle(data.name);
@@ -82,11 +74,31 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (data.genres?.length) setGenres(data.genres.join(', '));
         if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
         if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
+
+        // Inserción directa de episodios si vienen en TVMaze
+        const rawEpisodes = data._embedded?.episodes ?? [];
+        if (rawEpisodes.length > 0) {
+          const episodesPayload = rawEpisodes
+            .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
+            .map((e: any) => ({
+              tvmaze_episode_id: e.id,
+              show_id: show.id,
+              season: e.season,
+              number: e.number,
+              name: e.name,
+              airdate: e.airdate,
+              runtime: e.runtime,
+              episode_type: e.type,
+            }));
+
+          const { supabase } = await import('@/lib/supabase');
+          await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
+        }
       } else {
-        setError('Escribe primero un ID de TVMaze o un ID de TMDB.');
+        setError('Introduce un ID de TVMaze o TMDB.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al obtener datos externos.');
+      setError(err instanceof Error ? err.message : 'Error al obtener datos.');
     } finally {
       setFetchingExternal(false);
     }
@@ -96,39 +108,32 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     event.preventDefault();
     const cleanTitle = title.trim();
     if (!cleanTitle) {
-      setError('El título no puede estar vacío.');
+      setError('El título es obligatorio.');
       return;
     }
-    const runtimeNumber = Number(runtime);
-    const ratingNumber = rating.trim() !== '' ? Number(rating.replace(',', '.')) : null;
-    const tvmazeNumber = tvmazeId.trim() !== '' ? Number(tvmazeId) : null;
 
     setSaving(true);
     setError(null);
     try {
       const updated = await updateShow(show.id, {
-        tvmaze_id: tvmazeNumber && Number.isFinite(tvmazeNumber) ? tvmazeNumber : null,
-        rating: ratingNumber !== null && Number.isFinite(ratingNumber) ? ratingNumber : null,
+        tvmaze_id: tvmazeId.trim() ? Number(tvmazeId) : null,
+        rating: rating.trim() ? Number(rating.replace(',', '.')) : null,
         title: cleanTitle,
         synopsis_es: synopsis.trim() || null,
+        premiered: premiered.trim() || null,
+        tv_status: status || null,
+        network_name: network.trim() || null,
+        genres: genres.trim() || null,
+        runtime: runtime.trim() ? Number(runtime) : null,
         us_platforms: usPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
-        tv_status: status || null,
-        genres: genres.trim() || null,
-        network_name: network.trim() || null,
         poster_url: poster.trim() || null,
-        runtime: runtime && Number.isFinite(runtimeNumber) ? runtimeNumber : null,
-        premiered: premiered.trim() || null,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
-        characters: cast
-          .map((member) => ({ actor: member.actor.trim(), character: member.character.trim(), image: member.image.trim() }))
-          .filter((member) => member.actor),
+        characters: cast.map((c) => ({ actor: c.actor.trim(), character: c.character.trim(), image: c.image.trim() })).filter((c) => c.actor),
       });
 
       onSaved(updated);
-    } catch {
-      setError('No se pudieron guardar los cambios. Inténtalo de nuevo.');
+    } catch (err) {
+      setError('Error al guardar los cambios en la base de datos.');
     } finally {
       setSaving(false);
     }
@@ -136,7 +141,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Sección especial para meter los IDs y autocompletar */}
+      <PosterField value={poster} onChange={setPoster} />
+
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
         <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Autocompletar mediante ID Externo
@@ -144,30 +150,18 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block space-y-1">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TVMaze</span>
-            <input
-              inputMode="numeric"
-              value={tvmazeId}
-              onChange={(e) => setTvmazeId(e.target.value)}
-              placeholder="Ej: 82"
-              className={inputClass}
-            />
+            <input inputMode="numeric" value={tvmazeId} onChange={(e) => setTvmazeId(e.target.value)} placeholder="Ej: 59344" className={inputClass} />
           </label>
           <label className="block space-y-1">
             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">ID TMDB</span>
-            <input
-              inputMode="numeric"
-              value={tmdbIdInput}
-              onChange={(e) => setTmdbIdInput(e.target.value)}
-              placeholder="Ej: 1399"
-              className={inputClass}
-            />
+            <input inputMode="numeric" value={tmdbIdInput} onChange={(e) => setTmdbIdInput(e.target.value)} placeholder="Ej: 1399" className={inputClass} />
           </label>
           <div className="flex items-end">
             <button
               type="button"
               onClick={handleAutoFill}
               disabled={fetchingExternal}
-              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2.5 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-700"
             >
               {fetchingExternal ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               Rellenar datos
@@ -176,12 +170,11 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         </div>
       </div>
 
-      <PosterField value={poster} onChange={(poster) => setPoster(poster)} />
-
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Título</span>
         <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} />
       </label>
+
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Sinopsis en Español</span>
         <textarea rows={4} value={synopsis} onChange={(e) => setSynopsis(e.target.value)} className={inputClass} />
@@ -190,57 +183,14 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Fecha de Estreno</span>
-          <input
-            type="date"
-            value={premiered}
-            onChange={(e) => setPremiered(e.target.value)}
-            className={inputClass}
-          />
+          <input type="date" value={premiered} onChange={(e) => setPremiered(e.target.value)} className={inputClass} />
         </label>
 
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Puntuación / Score</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={rating}
-            onChange={(e) => setRating(e.target.value)}
-            placeholder="Ej: 8.5"
-            className={inputClass}
-          />
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estado</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Estreno / Estado</span>
           <select value={status} onChange={(e) => setStatus(e.target.value)} className={inputClass}>
-            {SHOW_STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
+            {SHOW_STATUS_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
           </select>
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
-          <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
-            {SHOW_TYPES_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
-          <input
-            value={franchise}
-            onChange={(e) => setFranchise(e.target.value)}
-            className={inputClass}
-            placeholder="Ej: One Chicago"
-          />
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (separados por comas)</span>
-          <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} />
         </label>
 
         <label className="block space-y-1.5">
@@ -249,18 +199,28 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         </label>
 
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU. (separadas por comas)</span>
-          <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España (separadas por comas)</span>
-          <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Géneros (comas)</span>
+          <input value={genres} onChange={(e) => setGenres(e.target.value)} className={inputClass} />
         </label>
 
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Duración Media (min)</span>
           <input inputMode="numeric" value={runtime} onChange={(e) => setRuntime(e.target.value)} className={inputClass} />
+        </label>
+
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Puntuación / Score</span>
+          <input type="text" inputMode="decimal" value={rating} onChange={(e) => setRating(e.target.value)} className={inputClass} />
+        </label>
+
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU.</span>
+          <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
+        </label>
+
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en España</span>
+          <input value={esPlatforms} onChange={(e) => setEsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
         </label>
       </div>
 
@@ -269,7 +229,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
 
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-pastel-rose/40 dark:text-slate-300">
+        <button type="button" onClick={onCancel} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200">
           Cancelar
         </button>
         <button
