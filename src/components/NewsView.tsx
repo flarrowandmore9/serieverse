@@ -42,20 +42,11 @@ const CATEGORY_META = {
   },
 };
 
-export default function NewsView() {
-  const { isAdmin } = useAuth();
-  const [cards, setCards] = useState<EditorialCard[]>([]);
-  const [catalog, setCatalog] = useState<ShowListItem[]>([]);
-  const [loading, setLoading] = useState(true);
+// Estados de sincronización con Blogger y formulario manual
   const [syncing, setSyncing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'all' | 'renewed' | 'canceled' | 'estrenos' | 'nuevas'>('all');
-  const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
-
-  // Configuración de Blogger
   const [showConfig, setShowConfig] = useState(false);
-  const [bloggerUrl, setBloggerUrl] = useState('');
+  const [bloggerUrl, setBloggerUrl] = useState('https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json');
 
-  // Formulario manual
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedShowId, setSelectedShowId] = useState<string>('');
