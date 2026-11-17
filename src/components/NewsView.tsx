@@ -502,7 +502,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             </div>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título de la serie</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título Serie</span>
               <input
                 required
                 value={title}
