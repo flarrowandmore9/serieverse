@@ -337,7 +337,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     await saveCards(updated);
   };
 
-  const networksList = useMemo(() => {
+ const networksList = useMemo(() => {
     const set = new Set<string>();
     cards.forEach((c) => {
       if (c.network) {
