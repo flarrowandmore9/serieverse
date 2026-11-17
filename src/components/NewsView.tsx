@@ -532,7 +532,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       {/* Cuadrícula de Tarjetas con Alineación Perfecta Vertical */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-7 w-2 animate-spin text-pastel-accent" />
+          <Loader2 className="h-7 w-7 animate-spin text-pastel-accent" />
         </div>
       ) : filteredCards.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
