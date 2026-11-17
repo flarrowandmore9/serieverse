@@ -340,7 +340,12 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const networksList = useMemo(() => {
     const set = new Set<string>();
     cards.forEach((c) => {
-      if (c.network) set.add(c.network);
+      if (c.network) {
+        c.network.split(',').forEach((net) => {
+          const trimmed = net.trim();
+          if (trimmed) set.add(trimmed);
+        });
+      }
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [cards]);
