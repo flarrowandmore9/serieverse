@@ -364,7 +364,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             Actualidad Seriéfila · Flarrow & More
           </span>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-            Noticias, Renovaciones y Cancelaciones
+            Renovaciones, Cancelaciones y Series Nuevas
           </h1>
           <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
             El estado oficial de tus series favoritas y los próximos estrenos confirmados.
@@ -379,7 +379,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
             >
               <Settings className="h-4 w-4" />
-              Configurar Blog
+              Configurar
             </button>
 
             <button
@@ -389,7 +389,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-1.5 rounded-2xl border border-pastel-accent bg-pastel-accent/10 px-4 py-3 text-xs font-bold text-pastel-accent shadow-sm transition hover:bg-pastel-accent/20"
             >
               <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-              Sincronizar Post
+              Sincronizar
             </button>
 
             <button
@@ -398,7 +398,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-2 rounded-2xl bg-pastel-accent px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
             >
               <Plus className="h-4 w-4" />
-              Publicar noticia
+              Publicar
             </button>
           </div>
         )}
