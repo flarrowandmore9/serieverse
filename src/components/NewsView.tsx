@@ -555,7 +555,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 <div 
                   onClick={() => card.showId && onOpenShow(card.showId)}
                   title={card.showId ? "Ver ficha completa de la serie" : "Serie personalizada"}
-                  className={`h-28 w-32 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800 ${card.showId ? 'cursor-pointer transition-transform hover:scale-[1.03]' : ''}`}
+                  className={`h-36 w-28 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800 ${card.showId ? 'cursor-pointer transition-transform hover:scale-[1.03]' : ''}`}
                 >
                   {card.posterUrl ? (
                     <img src={card.posterUrl} alt={card.title} className="h-full w-full object-cover" />
