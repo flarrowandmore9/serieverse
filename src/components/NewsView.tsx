@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Calendar, CheckCircle2, Clock, Edit3, Loader2, Plus, Sparkles, Trash2, Tv, XCircle } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, Edit3, Loader2, Plus, RefreshCw, Settings, Sparkles, Trash2, Tv, X, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { fetchCatalog } from '@/lib/catalog';
 import { supabase } from '@/lib/supabase';
@@ -8,15 +8,16 @@ import type { ShowListItem } from '@/lib/types';
 type EditorialCard = {
   id: string;
   showId?: number | null;
-  title: string;          // Título de la serie
-  season: string;         // Ej: Season 3 / Temporada 5
+  title: string;
+  season: string;
   category: 'renewed' | 'canceled' | 'estrenos' | 'nuevas';
-  network: string;        // Ej: CBS, Netflix, NBC, The CW...
-  date: string;           // Fecha de estreno o actualización
-  posterUrl?: string;     // Carátula oficial
+  network: string;
+  date: string;
+  posterUrl?: string;
 };
 
-const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v1';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v2';
+const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
 
 const CATEGORY_META = {
   renewed: {
@@ -46,10 +47,15 @@ export default function NewsView() {
   const [cards, setCards] = useState<EditorialCard[]>([]);
   const [catalog, setCatalog] = useState<ShowListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'renewed' | 'canceled' | 'estrenos' | 'nuevas'>('all');
   const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
 
-  // Estados del formulario (Añadir / Editar)
+  // Configuración de Blogger
+  const [showConfig, setShowConfig] = useState(false);
+  const [bloggerUrl, setBloggerUrl] = useState('');
+
+  // Formulario manual
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedShowId, setSelectedShowId] = useState<string>('');
@@ -64,10 +70,12 @@ export default function NewsView() {
   useEffect(() => {
     Promise.all([
       fetchCards(),
-      fetchCatalog({ search: '', genre: '', sort: 'title' }, 500).catch(() => []),
-    ]).then(([cardsData, showsData]) => {
+      fetchCatalog({ search: '', genre: '', sort: 'title' }, 1000).catch(() => []),
+      fetchBloggerConfig(),
+    ]).then(([cardsData, showsData, savedUrl]) => {
       setCards(cardsData);
       setCatalog(showsData);
+      if (savedUrl) setBloggerUrl(savedUrl);
       setLoading(false);
     });
   }, []);
@@ -85,36 +93,22 @@ export default function NewsView() {
         if (Array.isArray(parsed)) return parsed;
       } catch {}
     }
+    return [];
+  };
 
-    // Datos iniciales de demostración basados exactamente en tu diseño
-    return [
-      {
-        id: '1',
-        title: 'Criminal Minds',
-        season: 'Evolution S3',
-        category: 'renewed' as const,
-        network: 'Paramount+',
-        date: '2026-11-16',
-        posterUrl: 'https://image.tmdb.org/t/p/w500/7TCwgG7oWgysvAdqrvHAlC4gTvx.jpg',
-      },
-      {
-        id: '2',
-        title: 'Tulsa King',
-        season: 'Season 2',
-        category: 'renewed' as const,
-        network: 'Paramount+',
-        date: '2026-11-16',
-        posterUrl: 'https://image.tmdb.org/t/p/w500/blPkXfdwK95j7s2V5u35h2pS8sW.jpg',
-      },
-      {
-        id: '3',
-        title: 'Under the Dome',
-        season: 'Finalizada',
-        category: 'canceled' as const,
-        network: 'CBS',
-        date: '2026-11-16',
-      },
-    ];
+  const fetchBloggerConfig = async () => {
+    const { data } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', BLOGGER_FEED_KEY)
+      .maybeSingle();
+    if (data?.value) {
+      try {
+        const parsed = JSON.parse(data.value);
+        return parsed.url || '';
+      } catch {}
+    }
+    return '';
   };
 
   const saveCards = async (updated: EditorialCard[]) => {
@@ -122,6 +116,90 @@ export default function NewsView() {
     await supabase
       .from('app_settings')
       .upsert({ key: EDITORIAL_CARDS_KEY, value: JSON.stringify(updated) }, { onConflict: 'key' });
+  };
+
+  // Función inteligente para sincronizar con tu post de Blogger y autocompletar carátulas
+  const handleSyncBlogger = async () => {
+    if (!bloggerUrl.trim()) {
+      alert('Por favor, introduce primero la URL del feed de tu blog en Configurar.');
+      setShowConfig(true);
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      // Guardar URL
+      await supabase.from('app_settings').upsert(
+        { key: BLOGGER_FEED_KEY, value: JSON.stringify({ url: bloggerUrl }) },
+        { onConflict: 'key' }
+      );
+
+      // Usar proxy seguro para leer el feed JSON de Blogger
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(bloggerUrl)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error('Error al conectar con el blog');
+
+      const json = await res.json();
+      const feedData = JSON.parse(json.contents);
+      const entries = feedData.feed?.entry || [];
+
+      if (entries.length === 0) {
+        alert('No se han encontrado entradas en el feed.');
+        setSyncing(false);
+        return;
+      }
+
+      // Cogemos el post más reciente (tu guía anual)
+      const latestPost = entries[0];
+      const contentHtml = latestPost.content?.$t || latestPost.summary?.$t || '';
+      
+      // Extraer menciones del contenido HTML del post (ej: listados o títulos)
+      // Buscamos coincidencias con tu catálogo existente para autocompletar carátulas e IDs
+      const tempCards: EditorialCard[] = [...cards];
+      const pubDate = latestPost.published?.$t ? latestPost.published.$t.split('T')[0] : new Date().toISOString().split('T')[0];
+
+      // Analizar párrafos o elementos de lista del post para extraer series
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(contentHtml, 'text/html');
+      const listItems = doc.querySelectorAll('li, p');
+
+      listItems.forEach((el) => {
+        const text = el.textContent || '';
+        if (text.length < 3 || text.length > 150) return;
+
+        const lower = text.toLowerCase();
+        let cat: EditorialCard['category'] = 'renewed';
+        if (lower.includes('cancel') || lower.includes('terminad')) cat = 'canceled';
+        else if (lower.includes('estreno') || lower.includes('nueva serie')) cat = 'nuevas';
+
+        // Intentar cruzar con el catálogo de la app para extraer la carátula oficial automáticamente
+        const matchedShow = catalog.find((s) => text.toLowerCase().includes(s.title.toLowerCase()));
+
+        if (matchedShow) {
+          // Verificar si ya existe en la lista para no duplicar
+          const exists = tempCards.some((c) => c.title.toLowerCase() === matchedShow.title.toLowerCase());
+          if (!exists) {
+            tempCards.unshift({
+              id: crypto.randomUUID(),
+              showId: matchedShow.id,
+              title: matchedShow.title,
+              season: 'Actualizado',
+              category: cat,
+              network: matchedShow.es_platforms?.[0] || matchedShow.network_name || 'TV',
+              date: pubDate,
+              posterUrl: matchedShow.poster_url || undefined,
+            });
+          }
+        }
+      });
+
+      await saveCards(tempCards);
+      alert('¡Sincronización completada con éxito!');
+    } catch {
+      alert('Error al sincronizar con el blog. Comprueba que la URL del feed sea correcta.');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const handleSelectCatalogShow = (idStr: string) => {
@@ -165,8 +243,14 @@ export default function NewsView() {
 
     setSaving(true);
     try {
+      // Si se seleccionó del catálogo y no se puso póster manual, coger el del catálogo
+      let finalPoster = posterUrl.trim();
+      if (selectedShowId && !finalPoster) {
+        const found = catalog.find((s) => String(s.id) === selectedShowId);
+        if (found?.poster_url) finalPoster = found.poster_url;
+      }
+
       if (editingId) {
-        // Editar existente
         const updated = cards.map((c) =>
           c.id === editingId
             ? {
@@ -177,13 +261,12 @@ export default function NewsView() {
                 category,
                 network: network.trim(),
                 date,
-                posterUrl: posterUrl.trim() || undefined,
+                posterUrl: finalPoster || undefined,
               }
             : c
         );
         await saveCards(updated);
       } else {
-        // Crear nueva
         const newCard: EditorialCard = {
           id: crypto.randomUUID(),
           showId: selectedShowId ? Number(selectedShowId) : null,
@@ -192,7 +275,7 @@ export default function NewsView() {
           category,
           network: network.trim(),
           date,
-          posterUrl: posterUrl.trim() || undefined,
+          posterUrl: finalPoster || undefined,
         };
         await saveCards([newCard, ...cards]);
       }
@@ -209,7 +292,6 @@ export default function NewsView() {
     await saveCards(updated);
   };
 
-  // Obtener plataformas para el selector
   const networksList = useMemo(() => {
     const set = new Set<string>();
     cards.forEach((c) => {
@@ -241,16 +323,81 @@ export default function NewsView() {
         </div>
 
         {isAdmin && (
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            className="flex items-center gap-2 rounded-2xl bg-pastel-accent px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
-          >
-            <Plus className="h-4 w-4" />
-            Publicar noticia
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowConfig(true)}
+              className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            >
+              <Settings className="h-4 w-4" />
+              Configurar Blog
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSyncBlogger}
+              disabled={syncing}
+              className="flex items-center gap-1.5 rounded-2xl border border-pastel-accent bg-pastel-accent/10 px-4 py-3 text-xs font-bold text-pastel-accent shadow-sm transition hover:bg-pastel-accent/20"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              Sincronizar Post
+            </button>
+
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="flex items-center gap-2 rounded-2xl bg-pastel-accent px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
+            >
+              <Plus className="h-4 w-4" />
+              Publicar noticia
+            </button>
+          </div>
         )}
       </div>
+
+      {/* Modal de Configuración de Blogger */}
+      {isAdmin && showConfig && (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Configurar URL del Feed de Blogger</h2>
+            <button type="button" onClick={() => setShowConfig(false)} className="text-slate-400 hover:text-slate-600">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="text-xs text-slate-500">
+            Introduce el enlace del feed JSON de tu blog (ej: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json</code>). Al pulsar en "Sincronizar Post", la app leerá tus actualizaciones automáticamente.
+          </p>
+          <input
+            value={bloggerUrl}
+            onChange={(e) => setBloggerUrl(e.target.value)}
+            placeholder="https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json"
+            className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowConfig(false)}
+              className="rounded-xl px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Cerrar
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.from('app_settings').upsert(
+                  { key: BLOGGER_FEED_KEY, value: JSON.stringify({ url: bloggerUrl }) },
+                  { onConflict: 'key' }
+                );
+                setShowConfig(false);
+                alert('URL guardada correctamente.');
+              }}
+              className="rounded-xl bg-pastel-accent px-5 py-2 text-xs font-bold text-white hover:bg-pastel-accentHover"
+            >
+              Guardar URL
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Formulario de Administradora (Crear / Editar) */}
       {isAdmin && showForm && (
@@ -266,13 +413,13 @@ export default function NewsView() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vincular de tu Catálogo (Opcional)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vincular de tu Catálogo (Carátula automática)</span>
               <select
                 value={selectedShowId}
                 onChange={(e) => handleSelectCatalogShow(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
-                <option value="">-- Autocompletar desde catálogo --</option>
+                <option value="">-- Seleccionar serie para carátula --</option>
                 {catalog.map((s) => (
                   <option key={s.id} value={s.id}>{s.title}</option>
                 ))}
@@ -331,16 +478,6 @@ export default function NewsView() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
-              />
-            </label>
-
-            <label className="block space-y-1 sm:col-span-2 lg:col-span-3">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la carátula (Opcional si se vincula del catálogo)</span>
-              <input
-                value={posterUrl}
-                onChange={(e) => setPosterUrl(e.target.value)}
-                placeholder="https://image.tmdb.org/..."
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -406,6 +543,7 @@ export default function NewsView() {
         <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
           <Tv className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
           <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-300">No hay series registradas en este filtro.</p>
+          <p className="mt-1 text-xs text-slate-400">Usa "Configurar Blog" y "Sincronizar Post" o añade series manualmente.</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
