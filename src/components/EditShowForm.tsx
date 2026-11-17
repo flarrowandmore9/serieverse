@@ -16,26 +16,26 @@ const inputClass =
   'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
 
 export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormProps) {
-  const [tvmazeId, setTvmazeId] = useState(show.tvmaze_id?.toString() ?? '');
+  const [tvmazeId, setTvmazeId] = useState(show?.tvmaze_id?.toString() ?? '');
   const [tmdbIdInput, setTmdbIdInput] = useState('');
   const [fetchingExternal, setFetchingExternal] = useState(false);
 
-  const [poster, setPoster] = useState(show.poster_url ?? '');
-  const [title, setTitle] = useState(show.title);
-  const [synopsis, setSynopsis] = useState(show.synopsis_es ?? '');
-  const [premiered, setPremiered] = useState(show.premiered ? show.premiered.split('T')[0] : '');
-  const [status, setStatus] = useState(show.tv_status ?? '');
-  const [network, setNetwork] = useState(show.network_name ?? '');
-  const [genres, setGenres] = useState(show.genres ?? '');
-  const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
-  const [rating, setRating] = useState(show.rating?.toString() ?? '');
+  const [poster, setPoster] = useState(show?.poster_url ?? '');
+  const [title, setTitle] = useState(show?.title ?? '');
+  const [synopsis, setSynopsis] = useState(show?.synopsis_es ?? '');
+  const [premiered, setPremiered] = useState(show?.premiered ? show.premiered.split('T')[0] : '');
+  const [status, setStatus] = useState(show?.tv_status ?? '');
+  const [network, setNetwork] = useState(show?.network_name ?? '');
+  const [genres, setGenres] = useState(show?.genres ?? '');
+  const [runtime, setRuntime] = useState(show?.runtime?.toString() ?? '');
+  const [rating, setRating] = useState(show?.rating?.toString() ?? '');
   
-  const [showType, setShowType] = useState((show as any).show_type ?? '');
-  const [franchise, setFranchise] = useState((show as any).franchise ?? '');
+  const [showType, setShowType] = useState((show as any)?.show_type ?? '');
+  const [franchise, setFranchise] = useState((show as any)?.franchise ?? '');
   
-  const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
-  const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
-  const [cast, setCast] = useState<Character[]>(show.characters ?? []);
+  const [usPlatforms, setUsPlatforms] = useState(Array.isArray(show?.us_platforms) ? show.us_platforms.join(', ') : '');
+  const [esPlatforms, setEsPlatforms] = useState(Array.isArray(show?.es_platforms) ? show.es_platforms.join(', ') : '');
+  const [cast, setCast] = useState<Character[]>(show?.characters ?? []);
   
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +109,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const cleanTitle = title.trim();
+    const cleanTitle = title?.trim() ?? '';
     if (!cleanTitle) {
       setError('El título es obligatorio.');
       return;
@@ -119,21 +119,25 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setError(null);
     try {
       const payload = {
-        tvmaze_id: tvmazeId.trim() ? Number(tvmazeId) : null,
-        rating: rating.trim() ? Number(rating.replace(',', '.')) : null,
+        tvmaze_id: tvmazeId?.trim() ? Number(tvmazeId) : null,
+        rating: rating?.trim() ? Number(rating.replace(',', '.')) : null,
         title: cleanTitle,
-        synopsis_es: synopsis.trim() || null,
-        premiered: premiered.trim() || null,
+        synopsis_es: synopsis?.trim() || null,
+        premiered: premiered?.trim() || null,
         tv_status: status || null,
-        network_name: network.trim() || null,
-        genres: genres.trim() || null,
-        runtime: runtime.trim() ? Number(runtime) : null,
-        us_platforms: usPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
-        es_platforms: esPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
-        poster_url: poster.trim() || null,
+        network_name: network?.trim() || null,
+        genres: genres?.trim() || null,
+        runtime: runtime?.trim() ? Number(runtime) : null,
+        us_platforms: usPlatforms ? usPlatforms.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        es_platforms: esPlatforms ? esPlatforms.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        poster_url: poster?.trim() || null,
         show_type: showType || null,
-        franchise: franchise.trim() || null,
-        characters: cast.map((c) => ({ actor: c.actor.trim(), character: c.character.trim(), image: c.image.trim() })).filter((c) => c.actor),
+        franchise: franchise?.trim() || null,
+        characters: (cast || []).map((c) => ({
+          actor: c?.actor ? String(c.actor).trim() : '',
+          character: c?.character ? String(c.character).trim() : '',
+          image: c?.image ? String(c.image).trim() : '',
+        })).filter((c) => c.actor),
       };
 
       const { data, error: sbError } = await supabase
