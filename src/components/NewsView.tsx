@@ -16,6 +16,10 @@ type EditorialCard = {
   posterUrl?: string;
 };
 
+type NewsViewProps = {
+  onOpenShow: (showId: number) => void;
+};
+
 const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v6';
 const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
 
@@ -42,7 +46,7 @@ const CATEGORY_META = {
   },
 };
 
-export default function NewsView() {
+export default function NewsView({ onOpenShow }: NewsViewProps) {
   const { isAdmin } = useAuth();
   const [cards, setCards] = useState<EditorialCard[]>([]);
   const [catalog, setCatalog] = useState<ShowListItem[]>([]);
@@ -128,16 +132,10 @@ export default function NewsView() {
       .upsert({ key: EDITORIAL_CARDS_KEY, value: JSON.stringify(updated) }, { onConflict: 'key' });
   };
 
-  // Sincronización automática con Blogger y cruce de datos con catálogo
   const handleSyncBlogger = async () => {
     const targetUrl = bloggerUrl.trim() || 'https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json';
     setSyncing(true);
     try {
-      await supabase.from('app_settings').upsert(
-        { key: BLOGGER_FEED_KEY, value: JSON.stringify({ url: targetUrl }) },
-        { onConflict: 'key' }
-      );
-
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       const res = await fetch(proxyUrl);
       if (!res.ok) throw new Error('Error al conectar');
@@ -147,7 +145,7 @@ export default function NewsView() {
       const entries = feedData.feed?.entry || [];
 
       if (entries.length === 0) {
-        alert('No se encontraron entradas en el feed de Blogger.');
+        alert('No se encontraron entradas en el feed.');
         setSyncing(false);
         return;
       }
@@ -191,10 +189,9 @@ export default function NewsView() {
       });
 
       await saveCards(tempCards);
-      alert('¡Sincronización con Blogger completada con éxito!');
-    } catch (err) {
-      console.error(err);
-      alert('Error al sincronizar. Comprueba la URL del feed JSON.');
+      alert('¡Sincronización completada con éxito!');
+    } catch {
+      alert('No se ha podido sincronizar debido a restricciones del navegador. Puedes gestionar tus series cómodamente de forma manual.');
     } finally {
       setSyncing(false);
     }
@@ -388,7 +385,7 @@ export default function NewsView() {
         </div>
       )}
 
-      {/* Formulario Administradora (Crear / Editar) */}
+      {/* Formulario Administradora */}
       {isAdmin && showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
@@ -402,7 +399,7 @@ export default function NewsView() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo (Opcional)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo (Carátula automática)</span>
               <select
                 value={selectedShowId}
                 onChange={(e) => handleSelectCatalogShow(e.target.value)}
@@ -495,7 +492,7 @@ export default function NewsView() {
         </form>
       )}
 
-      {/* Menú con los 5 Botones de Filtro exactos */}
+      {/* Menú de Filtros */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {[
@@ -542,7 +539,6 @@ export default function NewsView() {
         <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
           <Tv className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
           <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-300">No hay series registradas en este filtro.</p>
-          <p className="mt-1 text-xs text-slate-400">Usa "Configurar Blog" y "Sincronizar Post" o añade series manualmente.</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -555,10 +551,14 @@ export default function NewsView() {
                 key={card.id}
                 className="group relative flex overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                {/* Carátula Oficial */}
-                <div className="h-32 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
+                {/* Carátula Oficial más grande y clicable para abrir la serie */}
+                <div 
+                  onClick={() => card.showId && onOpenShow(card.showId)}
+                  title={card.showId ? "Ver ficha completa de la serie" : "Serie personalizada"}
+                  className={`h-36 w-28 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800 ${card.showId ? 'cursor-pointer transition-transform hover:scale-[1.03]' : ''}`}
+                >
                   {card.posterUrl ? (
-                    <img src={card.posterUrl} alt={card.title} className="h-full w-full object-cover transition group-hover:scale-105" />
+                    <img src={card.posterUrl} alt={card.title} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-slate-400">
                       <Tv className="h-6 w-6" />
@@ -574,7 +574,10 @@ export default function NewsView() {
                       {meta.label}
                     </span>
 
-                    <h3 className="mt-1.5 text-base font-black tracking-tight text-slate-900 dark:text-white">
+                    <h3 
+                      onClick={() => card.showId && onOpenShow(card.showId)}
+                      className={`mt-1.5 text-base font-black tracking-tight text-slate-900 dark:text-white ${card.showId ? 'cursor-pointer hover:text-pastel-accent transition-colors' : ''}`}
+                    >
                       {card.title}
                     </h3>
 
