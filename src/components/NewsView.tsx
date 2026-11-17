@@ -16,7 +16,7 @@ type EditorialCard = {
   posterUrl?: string;
 };
 
-const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v4';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v5';
 const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
 
 const CATEGORY_META = {
@@ -65,13 +65,14 @@ export default function NewsView() {
   const [posterUrl, setPosterUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Carga inicial única y estable (sin bucles de recarga)
   useEffect(() => {
     let isMounted = true;
     async function init() {
       try {
         const [cardsData, showsData, savedUrl] = await Promise.all([
           fetchCards(),
-          fetchCatalog({ search: '', genre: '', sort: 'title' }, 1000).catch(() => []),
+          fetchCatalog({ search: '', genre: '', sort: 'title' }, 2000).catch(() => []),
           fetchBloggerConfig(),
         ]);
         if (isMounted) {
@@ -137,7 +138,7 @@ export default function NewsView() {
       .upsert({ key: EDITORIAL_CARDS_KEY, value: JSON.stringify(updated) }, { onConflict: 'key' });
   };
 
-  // Sincronizador robusto con proxy alternativo de alta velocidad
+  // Sincronizador inteligente con Blogger y cruce automático con TVMaze/TMDB
   const handleSyncBlogger = async () => {
     const targetUrl = bloggerUrl.trim() || 'https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json';
     setSyncing(true);
@@ -147,7 +148,6 @@ export default function NewsView() {
         { onConflict: 'key' }
       );
 
-      // Usamos un proxy alternativo ultrarrápido compatible con JSON de Blogger
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       const res = await fetch(proxyUrl);
       if (!res.ok) throw new Error('Error de red');
@@ -162,6 +162,7 @@ export default function NewsView() {
         return;
       }
 
+      // Cogemos el post más reciente (tu guía anual)
       const latestPost = entries[0];
       const contentHtml = latestPost.content?.$t || latestPost.summary?.$t || '';
       const pubDate = latestPost.published?.$t ? latestPost.published.$t.split('T')[0] : new Date().toISOString().split('T')[0];
@@ -169,17 +170,19 @@ export default function NewsView() {
       const tempCards: EditorialCard[] = [...cards];
       const parser = new DOMParser();
       const doc = parser.parseFromString(contentHtml, 'text/html');
-      const listItems = doc.querySelectorAll('li, p');
+      const listItems = doc.querySelectorAll('li, p, strong');
 
-      listItems.forEach((el) => {
+      for (const el of Array.from(listItems)) {
         const text = el.textContent || '';
-        if (text.length < 3 || text.length > 150) return;
+        if (text.length < 3 || text.length > 120) continue;
 
         const lower = text.toLowerCase();
         let cat: EditorialCard['category'] = 'renewed';
         if (lower.includes('cancel') || lower.includes('terminad')) cat = 'canceled';
-        else if (lower.includes('estreno') || lower.includes('nueva serie')) cat = 'nuevas';
+        else if (lower.includes('estreno')) cat = 'estrenos';
+        else if (lower.includes('nueva')) cat = 'nuevas';
 
+        // Buscar coincidencia en el catálogo de la app (que tiene los IDs de TVMaze/TMDB y carátulas)
         const matchedShow = catalog.find((s) => text.toLowerCase().includes(s.title.toLowerCase()));
 
         if (matchedShow) {
@@ -189,21 +192,21 @@ export default function NewsView() {
               id: crypto.randomUUID(),
               showId: matchedShow.id,
               title: matchedShow.title,
-              season: 'Actualizado',
+              season: 'Temporada Actual',
               category: cat,
               network: matchedShow.es_platforms?.[0] || matchedShow.network_name || 'TV',
-              date: pubDate,
+              date: matchedShow.first_air_date || pubDate,
               posterUrl: matchedShow.poster_url || undefined,
             });
           }
         }
-      });
+      }
 
       await saveCards(tempCards);
       alert('¡Sincronización con Blogger completada con éxito!');
     } catch (err) {
       console.error(err);
-      alert('No se pudo conectar automáticamente. Asegúrate de que la URL es el feed JSON de Blogger o añade las series manualmente con el botón superior.');
+      alert('No se pudo sincronizar automáticamente. Comprueba tu conexión o añade las series manualmente.');
     } finally {
       setSyncing(false);
     }
@@ -215,8 +218,8 @@ export default function NewsView() {
     if (found) {
       setTitle(found.title);
       setPosterUrl(found.poster_url ?? '');
-      const platform = found.es_platforms?.[0] || found.us_platforms?.[0] || found.network_name || '';
-      setNetwork(platform);
+      setNetwork(found.es_platforms?.[0] || found.us_platforms?.[0] || found.network_name || '');
+      if (found.first_air_date) setDate(found.first_air_date);
     }
   };
 
@@ -371,7 +374,7 @@ export default function NewsView() {
             </button>
           </div>
           <p className="text-xs text-slate-500">
-            Asegúrate de usar la URL del feed JSON: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json</code>
+            Introduce la URL del feed JSON de tu blog: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json</code>
           </p>
           <input
             value={bloggerUrl}
@@ -397,7 +400,7 @@ export default function NewsView() {
         </div>
       )}
 
-      {/* Formulario Administradora */}
+      {/* Formulario Administradora con opción de carátula manual */}
       {isAdmin && showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
@@ -411,13 +414,13 @@ export default function NewsView() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Catálogo (Carátula automática)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Autocompletar desde Catálogo</span>
               <select
                 value={selectedShowId}
                 onChange={(e) => handleSelectCatalogShow(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
-                <option value="">-- Seleccionar --</option>
+                <option value="">-- Seleccionar serie --</option>
                 {catalog.map((s) => (
                   <option key={s.id} value={s.id}>{s.title}</option>
                 ))}
@@ -469,11 +472,21 @@ export default function NewsView() {
             </label>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Fecha</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Fecha de estreno</span>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+              />
+            </label>
+
+            <label className="block space-y-1 sm:col-span-2 lg:col-span-3">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la Carátula (Manual por si no está en el catálogo)</span>
+              <input
+                value={posterUrl}
+                onChange={(e) => setPosterUrl(e.target.value)}
+                placeholder="https://image.tmdb.org/t/p/w500/... o URL de imagen"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -492,7 +505,7 @@ export default function NewsView() {
         </form>
       )}
 
-      {/* Botones de filtro */}
+      {/* Menú con los 5 Botones de Filtro exactos */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {[
@@ -529,7 +542,7 @@ export default function NewsView() {
         </select>
       </div>
 
-      {/* Listado de Tarjetas */}
+      {/* Listado de Tarjetas Limpias */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-7 w-7 animate-spin text-pastel-accent" />
@@ -556,10 +569,6 @@ export default function NewsView() {
                       src={card.posterUrl} 
                       alt={card.title} 
                       className="h-full w-full object-cover transition group-hover:scale-105"
-                      onError={(e) => {
-                        // Respaldo automático si la imagen externa falla
-                        (e.target as HTMLElement).style.display = 'none';
-                      }} 
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-slate-400">
