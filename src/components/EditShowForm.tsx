@@ -122,6 +122,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         synopsis_es: synopsis.trim() || null,
         premiered: premiered.trim() || null,
         tv_status: status || null,
+        show_type: showType || null,
+franchise: franchise.trim() || null,
         network_name: network.trim() || null,
         genres: genres.trim() || null,
         runtime: runtime.trim() ? Number(runtime) : null,
