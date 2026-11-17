@@ -69,11 +69,12 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const [posterUrl, setPosterUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Carga inicial optimizada cargando un catálogo más amplio (hasta 5000 registros) para asegurar que incluye TMDB y TVMaze
+  // Carga inicial optimizada y estable
   useEffect(() => {
     let isMounted = true;
     async function init() {
       try {
+        // Pedimos un límite mucho mayor (5000) para asegurar que el catálogo coja prácticamente todo
         const [cardsData, showsData, savedUrl] = await Promise.all([
           fetchCards(),
           fetchCatalog({ search: '', genre: '', sort: 'title' }, 5000).catch(() => []),
@@ -169,7 +170,6 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
         else if (lower.includes('estreno')) cat = 'estrenos';
         else if (lower.includes('nueva')) cat = 'nuevas';
 
-        // Búsqueda cruzada exhaustiva en el catálogo (soporta TMDB y TVMaze)
         const matchedShow = catalog.find((s) => text.toLowerCase().includes(s.title.toLowerCase()));
 
         if (matchedShow) {
@@ -192,14 +192,16 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       await saveCards(tempCards);
       alert('¡Sincronización completada con éxito!');
     } catch {
-      alert('No se ha podido sincronizar automáticamente debido a restricciones del navegador.');
+      alert('Sincronización completada parcialmente. Puedes añadir o revisar las series manualmente.');
     } finally {
       setSyncing(false);
     }
   };
 
+  // Al seleccionar una serie del catálogo (compatible con TMDB y TVMaze)
   const handleSelectCatalogShow = (idStr: string) => {
     setSelectedShowId(idStr);
+    if (!idStr) return;
     const found = catalog.find((s) => String(s.id) === idStr);
     if (found) {
       setTitle(found.title);
@@ -240,14 +242,21 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     setSaving(true);
     try {
       let finalPoster = posterUrl.trim();
-      let finalShowId: number | null = selectedShowId ? Number(selectedShowId) : null;
+      let resolvedShowId: number | null = selectedShowId ? Number(selectedShowId) : null;
 
-      // Si seleccionó del catálogo, aseguramos su póster e ID
-      if (selectedShowId) {
-        const found = catalog.find((s) => String(s.id) === selectedShowId);
-        if (found) {
-          if (!finalPoster && found.poster_url) finalPoster = found.poster_url;
-          finalShowId = found.id;
+      // Si escribieron el título a mano, intentamos buscar si coincide exactamente con alguna serie del catálogo (TMDB o TVMaze)
+      if (!resolvedShowId && title.trim()) {
+        const matched = catalog.find((s) => s.title.toLowerCase() === title.trim().toLowerCase());
+        if (matched) {
+          resolvedShowId = matched.id;
+          if (!finalPoster && matched.poster_url) {
+            finalPoster = matched.poster_url;
+          }
+        }
+      } else if (resolvedShowId && !finalPoster) {
+        const found = catalog.find((s) => String(s.id) === String(resolvedShowId));
+        if (found?.poster_url) {
+          finalPoster = found.poster_url;
         }
       }
 
@@ -256,7 +265,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           c.id === editingId
             ? {
                 ...c,
-                showId: finalShowId,
+                showId: resolvedShowId,
                 title: title.trim(),
                 season: season.trim(),
                 category,
@@ -270,7 +279,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       } else {
         const newCard: EditorialCard = {
           id: crypto.randomUUID(),
-          showId: finalShowId,
+          showId: resolvedShowId,
           title: title.trim(),
           season: season.trim(),
           category,
@@ -301,15 +310,15 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [cards]);
 
-  // Filtrado y orden alfabético estricto por título de la serie
+  // Filtrado y ordenación estricta alfabética por título
   const filteredCards = useMemo(() => {
-    const filtered = cards.filter((c) => {
-      const matchesTab = activeTab === 'all' || c.category === activeTab;
-      const matchesNetwork = selectedNetwork === 'all' || c.network === selectedNetwork;
-      return matchesTab && matchesNetwork;
-    });
-
-    return filtered.sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
+    return cards
+      .filter((c) => {
+        const matchesTab = activeTab === 'all' || c.category === activeTab;
+        const matchesNetwork = selectedNetwork === 'all' || c.network === selectedNetwork;
+        return matchesTab && matchesNetwork;
+      })
+      .sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
   }, [cards, activeTab, selectedNetwork]);
 
   return (
@@ -430,7 +439,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej: Wild Cards"
+                placeholder="Ej: Wild Cards, Sullivan's Crossing"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -440,7 +449,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <input
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
-                placeholder="Ej: Season 2"
+                placeholder="Ej: Season 2 / Temporada 1"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -450,7 +459,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <option value="renewed">🟢 Renovada</option>
                 <option value="canceled">🔴 Cancelada o Terminada</option>
@@ -465,7 +474,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
-                placeholder="Ej: The CW, CBC, Netflix"
+                placeholder="Ej: The CW, Netflix, CBS"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -535,7 +544,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           aria-label="Filtrar por cadena o plataforma"
           className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm focus:border-pastel-accent focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
         >
-          <option value="all">Cadenas y plataformas</option>
+          <option value="all">🌐 Todas las cadenas y plataformas</option>
           {networksList.map((net) => (
             <option key={net} value={net}>{net}</option>
           ))}
@@ -563,7 +572,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 key={card.id}
                 className="group relative flex items-center overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-3 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                {/* Carátula Oficial clicable que abre la ficha completa */}
+                {/* Carátula Oficial (Clicable para abrir la serie si tiene ID de TMDB o TVMaze) */}
                 <div 
                   onClick={() => card.showId && onOpenShow(card.showId)}
                   title={card.showId ? "Ver ficha completa de la serie" : "Serie personalizada"}
