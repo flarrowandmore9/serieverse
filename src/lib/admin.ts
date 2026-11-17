@@ -77,8 +77,7 @@ export async function deleteSuggestion(id: number): Promise<void> {
 
 export async function updateShow(id: number, patch: any): Promise<ShowListItem> {
   const cleanPatch = { ...patch };
-  delete cleanPatch.show_type;
-  delete cleanPatch.franchise;
+  // Eliminamos los 'delete' para que show_type y franchise sí se envíen a la base de datos
 
   const { data, error } = await supabase
     .from('shows')
