@@ -1,23 +1,22 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Calendar, CheckCircle2, Clock, Loader2, Plus, Sparkles, Trash2, Tv, XCircle } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, Edit3, Loader2, Plus, Sparkles, Trash2, Tv, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
 import { fetchCatalog } from '@/lib/catalog';
+import { supabase } from '@/lib/supabase';
 import type { ShowListItem } from '@/lib/types';
 
-type EditorialCardItem = {
+type EditorialCard = {
   id: string;
   showId?: number | null;
-  title: string;          // Ej: Chicago Fire
-  seasonText: string;     // Ej: Season 16
-  category: 'renewed' | 'canceled' | 'new_year' | 'upcoming';
-  headline: string;       // Nota corta / sinopsis
-  network: string;        // Ej: NBC, Paramount+, CBS
-  posterUrl?: string;     // Carátula de la serie
-  date: string;
+  title: string;          // Título de la serie
+  season: string;         // Ej: Season 3 / Temporada 5
+  category: 'renewed' | 'canceled' | 'estrenos' | 'nuevas';
+  network: string;        // Ej: CBS, Netflix, NBC, The CW...
+  date: string;           // Fecha de estreno o actualización
+  posterUrl?: string;     // Carátula oficial
 };
 
-const CARDS_STORAGE_KEY = 'serieverse_editorial_cards_v1';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v1';
 
 const CATEGORY_META = {
   renewed: {
@@ -30,13 +29,13 @@ const CATEGORY_META = {
     badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300',
     icon: XCircle,
   },
-  new_year: {
+  estrenos: {
     label: 'Estrenos del año',
     badgeClass: 'bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300',
     icon: Sparkles,
   },
-  upcoming: {
-    label: 'Series Nuevas / Futuras',
+  nuevas: {
+    label: 'Series Nuevas',
     badgeClass: 'bg-violet-100 text-violet-800 dark:bg-violet-950/80 dark:text-violet-300',
     icon: Clock,
   },
@@ -44,39 +43,40 @@ const CATEGORY_META = {
 
 export default function NewsView() {
   const { isAdmin } = useAuth();
-  const [items, setItems] = useState<EditorialCardItem[]>([]);
+  const [cards, setCards] = useState<EditorialCard[]>([]);
   const [catalog, setCatalog] = useState<ShowListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'renewed' | 'canceled' | 'new_year' | 'upcoming'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'renewed' | 'canceled' | 'estrenos' | 'nuevas'>('all');
   const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
 
-  // Formulario de administración
+  // Estados del formulario (Añadir / Editar)
   const [showForm, setShowForm] = useState(false);
-  const [selectedCatalogId, setSelectedCatalogId] = useState<string>('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedShowId, setSelectedShowId] = useState<string>('');
   const [title, setTitle] = useState('');
-  const [seasonText, setSeasonText] = useState('');
-  const [category, setCategory] = useState<EditorialCardItem['category']>('renewed');
-  const [headline, setHeadline] = useState('');
+  const [season, setSeason] = useState('');
+  const [category, setCategory] = useState<EditorialCard['category']>('renewed');
   const [network, setNetwork] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [posterUrl, setPosterUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     Promise.all([
-      fetchCardsData(),
+      fetchCards(),
       fetchCatalog({ search: '', genre: '', sort: 'title' }, 500).catch(() => []),
-    ]).then(([cardsData, catalogData]) => {
-      setItems(cardsData);
-      setCatalog(catalogData);
+    ]).then(([cardsData, showsData]) => {
+      setCards(cardsData);
+      setCatalog(showsData);
       setLoading(false);
     });
   }, []);
 
-  const fetchCardsData = async () => {
+  const fetchCards = async () => {
     const { data } = await supabase
       .from('app_settings')
       .select('value')
-      .eq('key', CARDS_STORAGE_KEY)
+      .eq('key', EDITORIAL_CARDS_KEY)
       .maybeSingle();
 
     if (data?.value) {
@@ -86,40 +86,46 @@ export default function NewsView() {
       } catch {}
     }
 
-    // Datos iniciales de demostración con el diseño visual exacto
+    // Datos iniciales de demostración basados exactamente en tu diseño
     return [
       {
         id: '1',
-        title: 'Chicago Fire',
-        seasonText: 'Season 16',
+        title: 'Criminal Minds',
+        season: 'Evolution S3',
         category: 'renewed' as const,
-        headline: 'En emisión / Renovada: la serie continúa activa con nuevos episodios.',
-        network: 'NBC',
-        posterUrl: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=500&auto=format&fit=crop&q=60',
+        network: 'Paramount+',
         date: '2026-11-16',
+        posterUrl: 'https://image.tmdb.org/t/p/w500/7TCwgG7oWgysvAdqrvHAlC4gTvx.jpg',
       },
       {
         id: '2',
-        title: 'The Hunting Party',
-        seasonText: 'Season 2',
+        title: 'Tulsa King',
+        season: 'Season 2',
+        category: 'renewed' as const,
+        network: 'Paramount+',
+        date: '2026-11-16',
+        posterUrl: 'https://image.tmdb.org/t/p/w500/blPkXfdwK95j7s2V5u35h2pS8sW.jpg',
+      },
+      {
+        id: '3',
+        title: 'Under the Dome',
+        season: 'Finalizada',
         category: 'canceled' as const,
-        headline: 'Serie finalizada o cancelada oficialmente tras completar su emisión.',
-        network: 'NBC',
-        posterUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500&auto=format&fit=crop&q=60',
+        network: 'CBS',
         date: '2026-11-16',
       },
     ];
   };
 
-  const saveCardsData = async (updated: EditorialCardItem[]) => {
-    setItems(updated);
+  const saveCards = async (updated: EditorialCard[]) => {
+    setCards(updated);
     await supabase
       .from('app_settings')
-      .upsert({ key: CARDS_STORAGE_KEY, value: JSON.stringify(updated) }, { onConflict: 'key' });
+      .upsert({ key: EDITORIAL_CARDS_KEY, value: JSON.stringify(updated) }, { onConflict: 'key' });
   };
 
   const handleSelectCatalogShow = (idStr: string) => {
-    setSelectedCatalogId(idStr);
+    setSelectedShowId(idStr);
     const found = catalog.find((s) => String(s.id) === idStr);
     if (found) {
       setTitle(found.title);
@@ -129,71 +135,107 @@ export default function NewsView() {
     }
   };
 
-  const handleAddCard = async (e: FormEvent) => {
+  const handleOpenCreate = () => {
+    setEditingId(null);
+    setSelectedShowId('');
+    setTitle('');
+    setSeason('');
+    setCategory('renewed');
+    setNetwork('');
+    setDate(new Date().toISOString().split('T')[0]);
+    setPosterUrl('');
+    setShowForm(true);
+  };
+
+  const handleOpenEdit = (card: EditorialCard) => {
+    setEditingId(card.id);
+    setSelectedShowId(card.showId ? String(card.showId) : '');
+    setTitle(card.title);
+    setSeason(card.season);
+    setCategory(card.category);
+    setNetwork(card.network);
+    setDate(card.date || new Date().toISOString().split('T')[0]);
+    setPosterUrl(card.posterUrl || '');
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !headline.trim() || !network.trim()) return;
+    if (!title.trim() || !network.trim()) return;
 
     setSaving(true);
     try {
-      const newItem: EditorialCardItem = {
-        id: crypto.randomUUID(),
-        showId: selectedCatalogId ? Number(selectedCatalogId) : null,
-        title: title.trim(),
-        seasonText: seasonText.trim(),
-        category,
-        headline: headline.trim(),
-        network: network.trim(),
-        posterUrl: posterUrl.trim() || undefined,
-        date: new Date().toISOString().split('T')[0],
-      };
+      if (editingId) {
+        // Editar existente
+        const updated = cards.map((c) =>
+          c.id === editingId
+            ? {
+                ...c,
+                showId: selectedShowId ? Number(selectedShowId) : null,
+                title: title.trim(),
+                season: season.trim(),
+                category,
+                network: network.trim(),
+                date,
+                posterUrl: posterUrl.trim() || undefined,
+              }
+            : c
+        );
+        await saveCards(updated);
+      } else {
+        // Crear nueva
+        const newCard: EditorialCard = {
+          id: crypto.randomUUID(),
+          showId: selectedShowId ? Number(selectedShowId) : null,
+          title: title.trim(),
+          season: season.trim(),
+          category,
+          network: network.trim(),
+          date,
+          posterUrl: posterUrl.trim() || undefined,
+        };
+        await saveCards([newCard, ...cards]);
+      }
 
-      const updated = [newItem, ...items];
-      await saveCardsData(updated);
-
-      setSelectedCatalogId('');
-      setTitle('');
-      setSeasonText('');
-      setHeadline('');
-      setNetwork('');
-      setPosterUrl('');
       setShowForm(false);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeleteCard = async (id: string) => {
-    if (!window.confirm('¿Eliminar esta tarjeta de la guía?')) return;
-    const updated = items.filter((i) => i.id !== id);
-    await saveCardsData(updated);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('¿Eliminar esta serie de la guía?')) return;
+    const updated = cards.filter((c) => c.id !== id);
+    await saveCards(updated);
   };
 
-  // Obtener plataformas para el filtro
+  // Obtener plataformas para el selector
   const networksList = useMemo(() => {
     const set = new Set<string>();
-    items.forEach((i) => {
-      if (i.network) set.add(i.network);
+    cards.forEach((c) => {
+      if (c.network) set.add(c.network);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [items]);
+  }, [cards]);
 
-  // Filtrado por Pestaña (los 5 botones) y por Plataforma
-  const filteredItems = items.filter((item) => {
-    const matchesTab = activeTab === 'all' || item.category === activeTab;
-    const matchesNetwork = selectedNetwork === 'all' || item.network === selectedNetwork;
+  const filteredCards = cards.filter((c) => {
+    const matchesTab = activeTab === 'all' || c.category === activeTab;
+    const matchesNetwork = selectedNetwork === 'all' || c.network === selectedNetwork;
     return matchesTab && matchesNetwork;
   });
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
-      {/* Cabecera idéntica a tu diseño ideal */}
+    <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      {/* Cabecera */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/80 pb-6 dark:border-slate-800">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-pastel-accent">Actualidad Seriéfila</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+          <span className="rounded-full bg-pastel-accent/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-pastel-accent">
+            Actualidad Seriéfila · Flarrow & More
+          </span>
+          <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
             Noticias, Renovaciones y Cancelaciones
           </h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
             El estado oficial de tus series favoritas y los próximos estrenos confirmados.
           </p>
         </div>
@@ -201,32 +243,36 @@ export default function NewsView() {
         {isAdmin && (
           <button
             type="button"
-            onClick={() => setShowForm((v) => !v)}
+            onClick={handleOpenCreate}
             className="flex items-center gap-2 rounded-2xl bg-pastel-accent px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
           >
             <Plus className="h-4 w-4" />
-            {showForm ? 'Cerrar editor' : 'Publicar noticia'}
+            Publicar noticia
           </button>
         )}
       </div>
 
-      {/* Formulario Administradora */}
+      {/* Formulario de Administradora (Crear / Editar) */}
       {isAdmin && showForm && (
-        <form onSubmit={handleAddCard} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-            <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">Añadir nueva tarjeta a la guía</h2>
-            <span className="text-xs text-slate-400">Control visual total</span>
+            <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
+              {editingId ? 'Editar serie en la guía' : 'Publicar nueva serie'}
+            </h2>
+            <button type="button" onClick={() => setShowForm(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600">
+              Cancelar
+            </button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vincular del catálogo (opcional)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vincular de tu Catálogo (Opcional)</span>
               <select
-                value={selectedCatalogId}
+                value={selectedShowId}
                 onChange={(e) => handleSelectCatalogShow(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
-                <option value="">-- Serie personalizada --</option>
+                <option value="">-- Autocompletar desde catálogo --</option>
                 {catalog.map((s) => (
                   <option key={s.id} value={s.id}>{s.title}</option>
                 ))}
@@ -239,32 +285,32 @@ export default function NewsView() {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej: Tulsa King"
+                placeholder="Ej: Criminal Minds"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Temporada (Ej: Season 2)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Temporada / Subtítulo</span>
               <input
-                value={seasonText}
-                onChange={(e) => setSeasonText(e.target.value)}
-                placeholder="Ej: Season 2"
+                value={season}
+                onChange={(e) => setSeason(e.target.value)}
+                placeholder="Ej: Season 3 / Evolution S3"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Categoría (Estado)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Estado / Categoría</span>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value as EditorialCardItem['category'])}
+                onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <option value="renewed">🟢 Renovada</option>
                 <option value="canceled">🔴 Cancelada o Terminada</option>
-                <option value="new_year">🔵 Estrenos del año</option>
-                <option value="upcoming">🟣 Series Nuevas / Futuras</option>
+                <option value="estrenos">🔵 Estrenos del año</option>
+                <option value="nuevas">🟣 Series Nuevas</option>
               </select>
             </label>
 
@@ -280,22 +326,21 @@ export default function NewsView() {
             </label>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de Carátula (opcional)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Fecha</span>
               <input
-                value={posterUrl}
-                onChange={(e) => setPosterUrl(e.target.value)}
-                placeholder="https://..."
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
             <label className="block space-y-1 sm:col-span-2 lg:col-span-3">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Nota / Sinopsis corta</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la carátula (Opcional si se vincula del catálogo)</span>
               <input
-                required
-                value={headline}
-                onChange={(e) => setHeadline(e.target.value)}
-                placeholder="Ej: En emisión / Renovada: la serie continúa activa con nuevos episodios..."
+                value={posterUrl}
+                onChange={(e) => setPosterUrl(e.target.value)}
+                placeholder="https://image.tmdb.org/..."
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -308,27 +353,27 @@ export default function NewsView() {
               className="flex items-center gap-2 rounded-xl bg-pastel-accent px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Guardar y publicar tarjeta
+              {editingId ? 'Guardar cambios' : 'Publicar noticia'}
             </button>
           </div>
         </form>
       )}
 
-      {/* Menú con los 5 Botones de Filtro + Selector de Plataforma */}
+      {/* Menú con los 5 Botones de Filtro y Selector de Plataforma */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {[
             { id: 'all', label: 'Todas' },
             { id: 'renewed', label: 'Renovadas' },
             { id: 'canceled', label: 'Canceladas o Terminadas' },
-            { id: 'new_year', label: 'Estrenos del año' },
-            { id: 'upcoming', label: 'Series Nuevas' },
+            { id: 'estrenos', label: 'Estrenos del año' },
+            { id: 'nuevas', label: 'Series Nuevas' },
           ].map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`rounded-full px-5 py-2 text-xs font-black transition shadow-sm ${
+              className={`rounded-2xl px-4 py-2 text-xs font-extrabold transition shadow-sm ${
                 activeTab === tab.id
                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
                   : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
@@ -342,93 +387,99 @@ export default function NewsView() {
         <select
           value={selectedNetwork}
           onChange={(e) => setSelectedNetwork(e.target.value)}
-          aria-label="Filtrar por plataforma"
+          aria-label="Filtrar por cadena o plataforma"
           className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm focus:border-pastel-accent focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
         >
-          <option value="all">🌐 Todas las cadenas / plataformas</option>
+          <option value="all">🌐 Todas las cadenas y plataformas</option>
           {networksList.map((net) => (
             <option key={net} value={net}>{net}</option>
           ))}
         </select>
       </div>
 
-      {/* Cuadrícula de Tarjetas (Idéntica a tu captura de referencia) */}
+      {/* Cuadrícula de Tarjetas */}
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-pastel-accent" />
+        <div className="flex justify-center py-16">
+          <Loader2 className="h-7 w-7 animate-spin text-pastel-accent" />
         </div>
-      ) : filteredItems.length === 0 ? (
+      ) : filteredCards.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
           <Tv className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
-          <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-300">No hay series en este filtro.</p>
+          <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-300">No hay series registradas en este filtro.</p>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredItems.map((item) => {
-            const meta = CATEGORY_META[item.category];
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredCards.map((card) => {
+            const meta = CATEGORY_META[card.category];
             const Icon = meta.icon;
 
             return (
               <article
-                key={item.id}
-                className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                key={card.id}
+                className="group relative flex overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                <div className="flex gap-4">
-                  {/* Carátula */}
-                  <div className="h-32 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800 shadow-sm">
-                    {item.posterUrl ? (
-                      <img src={item.posterUrl} alt={item.title} className="h-full w-full object-cover transition group-hover:scale-105" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-slate-400">
-                        <Tv className="h-6 w-6" />
-                      </div>
+                {/* Carátula Oficial */}
+                <div className="h-32 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
+                  {card.posterUrl ? (
+                    <img src={card.posterUrl} alt={card.title} className="h-full w-full object-cover transition group-hover:scale-105" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-slate-400">
+                      <Tv className="h-6 w-6" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Contenido de la Tarjeta */}
+                <div className="ml-4 flex flex-1 flex-col justify-between">
+                  <div>
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${meta.badgeClass}`}>
+                      <Icon className="h-3 w-3" />
+                      {meta.label}
+                    </span>
+
+                    <h3 className="mt-1.5 text-base font-black tracking-tight text-slate-900 dark:text-white">
+                      {card.title}
+                    </h3>
+
+                    {card.season && (
+                      <p className="text-xs font-bold text-pastel-accent">
+                        {card.season}
+                      </p>
                     )}
                   </div>
 
-                  {/* Contenido de la tarjeta */}
-                  <div className="flex min-w-0 flex-1 flex-col justify-between">
-                    <div>
-                      {/* Insignia de estado */}
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-[11px] font-extrabold ${meta.badgeClass}`}>
-                        <Icon className="h-3 w-3" />
-                        {meta.label}
-                      </span>
+                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] text-slate-400 dark:border-slate-800">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
+                      {card.network}
+                    </span>
 
-                      {/* Título y Temporada */}
-                      <h3 className="mt-2 text-base font-black tracking-tight text-slate-900 dark:text-white">
-                        {item.title}
-                        {item.seasonText && (
-                          <span className="block text-xs font-bold text-pastel-accent">{item.seasonText}</span>
-                        )}
-                      </h3>
-
-                      {/* Sinopsis corta */}
-                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                        {item.headline}
-                      </p>
-                    </div>
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Calendar className="h-3 w-3" />
+                      {card.date}
+                    </span>
                   </div>
                 </div>
 
-                {/* Pie de tarjeta: Cadena y Fecha */}
-                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-400 dark:border-slate-800">
-                  <span className="font-extrabold text-slate-700 dark:text-slate-200">{item.network}</span>
-                  <span className="flex items-center gap-1 font-medium">
-                    <Calendar className="h-3 w-3" />
-                    {item.date}
-                  </span>
-                </div>
-
-                {/* Botón de borrado para administradora */}
+                {/* Botones de Administradora (Editar / Borrar) flotantes */}
                 {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteCard(item.id)}
-                    title="Eliminar tarjeta"
-                    className="absolute right-3 top-3 rounded-xl bg-white/90 p-1.5 text-slate-400 opacity-0 shadow-sm transition hover:text-rose-600 group-hover:opacity-100 dark:bg-slate-800"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="absolute right-3 top-3 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(card)}
+                      title="Editar serie"
+                      className="rounded-lg bg-white/90 p-1.5 text-slate-600 shadow-sm transition hover:text-pastel-accent dark:bg-slate-800 dark:text-slate-200"
+                    >
+                      <Edit3 className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(card.id)}
+                      title="Eliminar"
+                      className="rounded-lg bg-white/90 p-1.5 text-slate-600 shadow-sm transition hover:text-rose-600 dark:bg-slate-800 dark:text-slate-200"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
               </article>
             );
