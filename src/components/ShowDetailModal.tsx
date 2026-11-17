@@ -1,4 +1,4 @@
-import React, { Component, type ErrorInfo, type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { Info, Layers, Pencil, Star, Tv } from 'lucide-react';
 import Modal from '@/components/Modal';
 import ListToggle from '@/components/ListToggle';
@@ -17,6 +17,7 @@ type ShowDetailModalProps = {
   onRequireLogin: () => void;
 };
 
+// Traducción limpia para el tipo de serie
 const showTypeLabels: Record<string, string> = {
   SpinOff: 'Spin-off',
   Reboot: 'Reboot',
@@ -25,39 +26,6 @@ const showTypeLabels: Record<string, string> = {
   Anthology: 'Antología',
   Miniseries: 'Miniserie',
 };
-
-// Componente protector para evitar pantallas en negro si EditShowForm falla
-class EditErrorBoundary extends Component<{ children: ReactNode; onFallback: () => void }, { hasError: boolean }> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError(_: Error) {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Error en EditShowForm:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-8 text-center space-y-4 rounded-3xl border border-rose-200 bg-rose-50/50 dark:border-rose-900 dark:bg-rose-950/20">
-          <p className="text-sm font-bold text-rose-800 dark:text-rose-300">
-            El formulario de edición ha encontrado un dato incompatible en esta serie.
-          </p>
-          <button
-            type="button"
-            onClick={this.props.onFallback}
-            className="rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 dark:bg-white dark:text-slate-900"
-          >
-            Volver a la ficha
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 export default function ShowDetailModal({ showId, onClose, onRequireLogin }: ShowDetailModalProps) {
   const { isAdmin } = useAuth();
@@ -73,6 +41,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
 
+  // Leemos de forma segura los datos personalizados guardados localmente para esta serie
   const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_custom_${showId}`) || '{}') : {};
   const rawShowType = savedCustom.show_type ?? (show as any)?.show_type;
   const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
@@ -84,18 +53,14 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
       {detail.error && <ErrorState message={detail.error} onRetry={detail.reload} />}
 
       {show && editing && (
-        <EditErrorBoundary onFallback={() => setEditing(false)}>
-          <div className="py-2">
-            <EditShowForm
-              show={show}
-              onCancel={() => setEditing(false)}
-              onSaved={() => {
-                setEditing(false);
-                detail.reload();
-              }}
-            />
-          </div>
-        </EditErrorBoundary>
+        <EditShowForm
+          show={show}
+          onCancel={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            detail.reload();
+          }}
+        />
       )}
 
       {show && !editing && (
@@ -113,11 +78,14 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
 
             <div className="flex-1 space-y-4">
               <div className="space-y-2">
+                {/* Título, Estado y Miniserie arriba */}
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
+                  
                 </div>
 
+                {/* Fila 1: Estreno · Cadena · Duración */}
                 <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Estreno:</span> {formatDate(show.premiered)}</span>
                   <span aria-hidden="true">·</span>
@@ -126,6 +94,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
                 </p>
 
+                {/* Fila 2: Género · Tipo de serie · Franquicia/Serie Madre */}
                 <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 dark:text-slate-400">
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Género:</span> {show.genres ?? 'Sin datos'}</span>
                   
@@ -145,6 +114,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                 </p>
               </div>
 
+              {/* Plataformas */}
               <div className="flex flex-col divide-y divide-slate-200 rounded-xl bg-slate-50 text-sm sm:flex-row sm:divide-x sm:divide-y-0 dark:divide-slate-700 dark:bg-slate-800/80">
                 <p className="flex-1 px-4 py-2.5">
                   <span className="font-semibold text-slate-600 dark:text-slate-300">Ver en EE.UU:</span>{' '}
