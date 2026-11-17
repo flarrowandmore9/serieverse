@@ -99,6 +99,13 @@ export async function updateShow(showId: number, data: any) {
   if (error) throw error;
   return data;
 }
+  return data as ShowListItem;
+}
+
+export async function deleteShow(id: number): Promise<void> {
+  const { error } = await supabase.from('shows').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
 
 export async function addShow(showData: {
   tvmaze_id?: number | null;
