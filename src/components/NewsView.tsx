@@ -69,7 +69,6 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const [posterUrl, setPosterUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Carga inicial estable sin recargas en bucle
   useEffect(() => {
     let isMounted = true;
     async function init() {
@@ -191,7 +190,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       await saveCards(tempCards);
       alert('¡Sincronización completada con éxito!');
     } catch {
-      alert('No se ha podido sincronizar debido a restricciones del navegador. Puedes gestionar tus series cómodamente de forma manual.');
+      alert('No se ha podido sincronizar debido a restricciones del navegador.');
     } finally {
       setSyncing(false);
     }
@@ -438,7 +437,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <option value="renewed">🟢 Renovada</option>
                 <option value="canceled">🔴 Cancelada o Terminada</option>
@@ -530,7 +529,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
         </select>
       </div>
 
-      {/* Cuadrícula de Tarjetas */}
+      {/* Cuadrícula de Tarjetas con Alineación Perfecta Vertical */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-7 w-7 animate-spin text-pastel-accent" />
@@ -549,13 +548,13 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             return (
               <article
                 key={card.id}
-                className="group relative flex overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+                className="group relative flex items-center overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-3 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                {/* Carátula Oficial más grande y clicable para abrir la serie */}
+                {/* Carátula Oficial (Medida exacta y optimizada para ocupar mejor el espacio) */}
                 <div 
                   onClick={() => card.showId && onOpenShow(card.showId)}
                   title={card.showId ? "Ver ficha completa de la serie" : "Serie personalizada"}
-                  className={`h-36 w-28 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800 ${card.showId ? 'cursor-pointer transition-transform hover:scale-[1.03]' : ''}`}
+                  className={`h-32 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800 ${card.showId ? 'cursor-pointer transition-transform hover:scale-[1.03]' : ''}`}
                 >
                   {card.posterUrl ? (
                     <img src={card.posterUrl} alt={card.title} className="h-full w-full object-cover" />
@@ -566,8 +565,8 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                   )}
                 </div>
 
-                {/* Contenido de la Tarjeta */}
-                <div className="ml-4 flex flex-1 flex-col justify-between">
+                {/* Contenido alineado verticalmente al centro */}
+                <div className="ml-3.5 flex flex-1 flex-col justify-center space-y-1.5 py-1">
                   <div>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${meta.badgeClass}`}>
                       <Icon className="h-3 w-3" />
@@ -576,7 +575,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
 
                     <h3 
                       onClick={() => card.showId && onOpenShow(card.showId)}
-                      className={`mt-1.5 text-base font-black tracking-tight text-slate-900 dark:text-white ${card.showId ? 'cursor-pointer hover:text-pastel-accent transition-colors' : ''}`}
+                      className={`mt-1 text-sm font-black tracking-tight text-slate-900 dark:text-white leading-snug ${card.showId ? 'cursor-pointer hover:text-pastel-accent transition-colors' : ''}`}
                     >
                       {card.title}
                     </h3>
@@ -588,8 +587,8 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                     )}
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-[11px] text-slate-400 dark:border-slate-800">
-                    <span className="font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[100px]">
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] text-slate-400 dark:border-slate-800">
+                    <span className="font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[90px]">
                       {card.network}
                     </span>
 
