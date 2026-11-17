@@ -4,6 +4,7 @@ import CastListEditor from '@/components/CastListEditor';
 import PosterField from '@/components/PosterField';
 import { SHOW_STATUS_OPTIONS, SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
 import { updateShow } from '@/lib/admin';
+import { supabase } from '@/lib/supabase';
 import type { Character, Show, ShowListItem } from '@/lib/types';
 
 type EditShowFormProps = {
@@ -16,9 +17,6 @@ const inputClass =
   'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
 
 export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormProps) {
-  // Recuperamos de forma segura de localStorage o de las propiedades del show
-  const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_custom_${show.id}`) || '{}') : {};
-
   const [tvmazeId, setTvmazeId] = useState(show.tvmaze_id?.toString() ?? '');
   const [tmdbIdInput, setTmdbIdInput] = useState('');
   const [fetchingExternal, setFetchingExternal] = useState(false);
@@ -33,9 +31,9 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [rating, setRating] = useState(show.rating?.toString() ?? '');
   
-  // Inicialización correcta para que no aparezcan en blanco al volver a editar
-  const [showType, setShowType] = useState(savedCustom.show_type ?? (show as any).show_type ?? '');
-  const [franchise, setFranchise] = useState(savedCustom.franchise ?? (show as any).franchise ?? '');
+  // Ahora leemos directamente de la propiedad oficial del show
+  const [showType, setShowType] = useState((show as any).show_type ?? '');
+  const [franchise, setFranchise] = useState((show as any).franchise ?? '');
   
   const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
   const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
@@ -81,23 +79,26 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
         if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
 
+        // Sincronización automática de temporadas y episodios en Supabase
         const rawEpisodes = data._embedded?.episodes ?? [];
         if (rawEpisodes.length > 0) {
           const episodesPayload = rawEpisodes
             .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
             .map((e: any) => ({
-              tvmaze_episode_id: e.id,
+              tvmaze_episode_id: Number(e.id),
               show_id: show.id,
-              season: e.season,
-              number: e.number,
-              name: e.name,
-              airdate: e.airdate,
-              runtime: e.runtime,
-              episode_type: e.type,
+              season: Number(e.season),
+              number: Number(e.number),
+              name: e.name ? String(e.name) : `Episodio ${e.number}`,
+              airdate: String(e.airdate),
+              runtime: e.runtime ? Number(e.runtime) : null,
+              episode_type: e.type ? String(e.type) : 'regular',
             }));
 
-          const { supabase } = await import('@/lib/supabase');
-          await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
+          for (let i = 0; i < episodesPayload.length; i += 100) {
+            const batch = episodesPayload.slice(i, i + 100);
+            await supabase.from('episodes').upsert(batch, { onConflict: 'tvmaze_episode_id' });
+          }
         }
       } else {
         setError('Introduce un ID de TVMaze o TMDB.');
@@ -120,9 +121,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setSaving(true);
     setError(null);
     try {
-      // Guardamos también en localStorage como respaldo inmediato
-      const customPayload = { show_type: showType, franchise };
-      localStorage.setItem(`show_custom_${show.id}`, JSON.stringify(customPayload));
+      // Limpiamos el localStorage antiguo si existiera para usar exclusivamente la base de datos
+      localStorage.removeItem(`show_custom_${show.id}`);
 
       const updated = await updateShow(show.id, {
         tvmaze_id: tvmazeId.trim() ? Number(tvmazeId) : null,
@@ -137,8 +137,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         us_platforms: usPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         poster_url: poster.trim() || null,
-        show_type: showType || null,       // <-- Enviado a la BD para que lo vea todo el mundo
-        franchise: franchise.trim() || null, // <-- Enviado a la BD para que lo vea todo el mundo
+        show_type: showType || null,         // Guardado oficial en BD para todo el mundo
+        franchise: franchise.trim() || null, // Guardado oficial en BD para todo el mundo
         characters: cast.map((c) => ({ actor: c.actor.trim(), character: c.character.trim(), image: c.image.trim() })).filter((c) => c.actor),
       });
 
@@ -156,7 +156,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
         <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Autocompletar mediante ID Externo
+          Autocompletar mediante ID Externo (Descarga temporadas y episodios automáticamente)
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block space-y-1">
