@@ -16,7 +16,7 @@ type EditorialCard = {
   posterUrl?: string;
 };
 
-const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v2';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v6';
 const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
 
 const CATEGORY_META = {
@@ -51,11 +51,9 @@ export default function NewsView() {
   const [activeTab, setActiveTab] = useState<'all' | 'renewed' | 'canceled' | 'estrenos' | 'nuevas'>('all');
   const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
 
-  // Configuración de Blogger
   const [showConfig, setShowConfig] = useState(false);
-  const [bloggerUrl, setBloggerUrl] = useState('');
+  const [bloggerUrl, setBloggerUrl] = useState('https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json');
 
-  // Formulario manual
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedShowId, setSelectedShowId] = useState<string>('');
@@ -67,17 +65,29 @@ export default function NewsView() {
   const [posterUrl, setPosterUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Carga inicial estable sin recargas en bucle
   useEffect(() => {
-    Promise.all([
-      fetchCards(),
-      fetchCatalog({ search: '', genre: '', sort: 'title' }, 1000).catch(() => []),
-      fetchBloggerConfig(),
-    ]).then(([cardsData, showsData, savedUrl]) => {
-      setCards(cardsData);
-      setCatalog(showsData);
-      if (savedUrl) setBloggerUrl(savedUrl);
-      setLoading(false);
-    });
+    let isMounted = true;
+    async function init() {
+      try {
+        const [cardsData, showsData, savedUrl] = await Promise.all([
+          fetchCards(),
+          fetchCatalog({ search: '', genre: '', sort: 'title' }, 3000).catch(() => []),
+          fetchBloggerConfig(),
+        ]);
+        if (isMounted) {
+          setCards(cardsData);
+          setCatalog(showsData);
+          if (savedUrl) setBloggerUrl(savedUrl);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const fetchCards = async () => {
@@ -118,75 +128,62 @@ export default function NewsView() {
       .upsert({ key: EDITORIAL_CARDS_KEY, value: JSON.stringify(updated) }, { onConflict: 'key' });
   };
 
-  // Función inteligente para sincronizar con tu post de Blogger y autocompletar carátulas
+  // Sincronización automática con Blogger y cruce de datos con catálogo
   const handleSyncBlogger = async () => {
-    if (!bloggerUrl.trim()) {
-      alert('Por favor, introduce primero la URL del feed de tu blog en Configurar.');
-      setShowConfig(true);
-      return;
-    }
-
+    const targetUrl = bloggerUrl.trim() || 'https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json';
     setSyncing(true);
     try {
-      // Guardar URL
       await supabase.from('app_settings').upsert(
-        { key: BLOGGER_FEED_KEY, value: JSON.stringify({ url: bloggerUrl }) },
+        { key: BLOGGER_FEED_KEY, value: JSON.stringify({ url: targetUrl }) },
         { onConflict: 'key' }
       );
 
-      // Usar proxy seguro para leer el feed JSON de Blogger
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(bloggerUrl)}`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
       const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error('Error al conectar con el blog');
+      if (!res.ok) throw new Error('Error al conectar');
 
       const json = await res.json();
       const feedData = JSON.parse(json.contents);
       const entries = feedData.feed?.entry || [];
 
       if (entries.length === 0) {
-        alert('No se han encontrado entradas en el feed.');
+        alert('No se encontraron entradas en el feed de Blogger.');
         setSyncing(false);
         return;
       }
 
-      // Cogemos el post más reciente (tu guía anual)
       const latestPost = entries[0];
       const contentHtml = latestPost.content?.$t || latestPost.summary?.$t || '';
-      
-      // Extraer menciones del contenido HTML del post (ej: listados o títulos)
-      // Buscamos coincidencias con tu catálogo existente para autocompletar carátulas e IDs
-      const tempCards: EditorialCard[] = [...cards];
       const pubDate = latestPost.published?.$t ? latestPost.published.$t.split('T')[0] : new Date().toISOString().split('T')[0];
 
-      // Analizar párrafos o elementos de lista del post para extraer series
+      const tempCards: EditorialCard[] = [...cards];
       const parser = new DOMParser();
       const doc = parser.parseFromString(contentHtml, 'text/html');
-      const listItems = doc.querySelectorAll('li, p');
+      const listItems = doc.querySelectorAll('li, p, strong, h3, h4');
 
       listItems.forEach((el) => {
-        const text = el.textContent || '';
-        if (text.length < 3 || text.length > 150) return;
+        const text = el.textContent?.trim() || '';
+        if (text.length < 2 || text.length > 100) return;
 
         const lower = text.toLowerCase();
         let cat: EditorialCard['category'] = 'renewed';
         if (lower.includes('cancel') || lower.includes('terminad')) cat = 'canceled';
-        else if (lower.includes('estreno') || lower.includes('nueva serie')) cat = 'nuevas';
+        else if (lower.includes('estreno')) cat = 'estrenos';
+        else if (lower.includes('nueva')) cat = 'nuevas';
 
-        // Intentar cruzar con el catálogo de la app para extraer la carátula oficial automáticamente
         const matchedShow = catalog.find((s) => text.toLowerCase().includes(s.title.toLowerCase()));
 
         if (matchedShow) {
-          // Verificar si ya existe en la lista para no duplicar
           const exists = tempCards.some((c) => c.title.toLowerCase() === matchedShow.title.toLowerCase());
           if (!exists) {
             tempCards.unshift({
               id: crypto.randomUUID(),
               showId: matchedShow.id,
               title: matchedShow.title,
-              season: 'Actualizado',
+              season: 'Temporada Actual',
               category: cat,
               network: matchedShow.es_platforms?.[0] || matchedShow.network_name || 'TV',
-              date: pubDate,
+              date: matchedShow.first_air_date || pubDate,
               posterUrl: matchedShow.poster_url || undefined,
             });
           }
@@ -194,9 +191,10 @@ export default function NewsView() {
       });
 
       await saveCards(tempCards);
-      alert('¡Sincronización completada con éxito!');
-    } catch {
-      alert('Error al sincronizar con el blog. Comprueba que la URL del feed sea correcta.');
+      alert('¡Sincronización con Blogger completada con éxito!');
+    } catch (err) {
+      console.error(err);
+      alert('Error al sincronizar. Comprueba la URL del feed JSON.');
     } finally {
       setSyncing(false);
     }
@@ -208,8 +206,8 @@ export default function NewsView() {
     if (found) {
       setTitle(found.title);
       setPosterUrl(found.poster_url ?? '');
-      const platform = found.es_platforms?.[0] || found.us_platforms?.[0] || found.network_name || '';
-      setNetwork(platform);
+      setNetwork(found.es_platforms?.[0] || found.us_platforms?.[0] || found.network_name || '');
+      if (found.first_air_date) setDate(found.first_air_date);
     }
   };
 
@@ -243,7 +241,6 @@ export default function NewsView() {
 
     setSaving(true);
     try {
-      // Si se seleccionó del catálogo y no se puso póster manual, coger el del catálogo
       let finalPoster = posterUrl.trim();
       if (selectedShowId && !finalPoster) {
         const found = catalog.find((s) => String(s.id) === selectedShowId);
@@ -355,32 +352,24 @@ export default function NewsView() {
         )}
       </div>
 
-      {/* Modal de Configuración de Blogger */}
+      {/* Modal de Configuración */}
       {isAdmin && showConfig && (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Configurar URL del Feed de Blogger</h2>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Configurar Feed de Blogger</h2>
             <button type="button" onClick={() => setShowConfig(false)} className="text-slate-400 hover:text-slate-600">
               <X className="h-4 w-4" />
             </button>
           </div>
           <p className="text-xs text-slate-500">
-            Introduce el enlace del feed JSON de tu blog (ej: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json</code>). Al pulsar en "Sincronizar Post", la app leerá tus actualizaciones automáticamente.
+            Introduce la URL del feed JSON de tu blog: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json</code>
           </p>
           <input
             value={bloggerUrl}
             onChange={(e) => setBloggerUrl(e.target.value)}
-            placeholder="https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json"
             className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
           />
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setShowConfig(false)}
-              className="rounded-xl px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              Cerrar
-            </button>
             <button
               type="button"
               onClick={async () => {
@@ -389,17 +378,17 @@ export default function NewsView() {
                   { onConflict: 'key' }
                 );
                 setShowConfig(false);
-                alert('URL guardada correctamente.');
+                alert('URL guardada.');
               }}
               className="rounded-xl bg-pastel-accent px-5 py-2 text-xs font-bold text-white hover:bg-pastel-accentHover"
             >
-              Guardar URL
+              Guardar
             </button>
           </div>
         </div>
       )}
 
-      {/* Formulario de Administradora (Crear / Editar) */}
+      {/* Formulario Administradora (Crear / Editar) */}
       {isAdmin && showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
@@ -413,13 +402,13 @@ export default function NewsView() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vincular de tu Catálogo (Carátula automática)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo (Opcional)</span>
               <select
                 value={selectedShowId}
                 onChange={(e) => handleSelectCatalogShow(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
-                <option value="">-- Seleccionar serie para carátula --</option>
+                <option value="">-- Seleccionar serie de la app --</option>
                 {catalog.map((s) => (
                   <option key={s.id} value={s.id}>{s.title}</option>
                 ))}
@@ -452,7 +441,7 @@ export default function NewsView() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <option value="renewed">🟢 Renovada</option>
                 <option value="canceled">🔴 Cancelada o Terminada</option>
@@ -481,6 +470,16 @@ export default function NewsView() {
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
+
+            <label className="block space-y-1 sm:col-span-2 lg:col-span-3">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la Carátula (Manual por si no está en el catálogo)</span>
+              <input
+                value={posterUrl}
+                onChange={(e) => setPosterUrl(e.target.value)}
+                placeholder="https://image.tmdb.org/t/p/w500/... o enlace directo de imagen"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+              />
+            </label>
           </div>
 
           <div className="flex justify-end pt-2">
@@ -496,7 +495,7 @@ export default function NewsView() {
         </form>
       )}
 
-      {/* Menú con los 5 Botones de Filtro y Selector de Plataforma */}
+      {/* Menú con los 5 Botones de Filtro exactos */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {[
@@ -598,7 +597,7 @@ export default function NewsView() {
                   </div>
                 </div>
 
-                {/* Botones de Administradora (Editar / Borrar) flotantes */}
+                {/* Botones de Administradora (Editar / Borrar) */}
                 {isAdmin && (
                   <div className="absolute right-3 top-3 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                     <button
