@@ -214,6 +214,25 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         </label>
 
         <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
+          <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
+            {SHOW_TYPES_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
+          <input
+            value={franchise}
+            onChange={(e) => setFranchise(e.target.value)}
+            className={inputClass}
+            placeholder="Ej: One Chicago"
+          />
+        </label>
+
+        <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ver en EE.UU.</span>
           <input value={usPlatforms} onChange={(e) => setUsPlatforms(e.target.value)} className={inputClass} placeholder={formatPlatforms([])} />
         </label>
