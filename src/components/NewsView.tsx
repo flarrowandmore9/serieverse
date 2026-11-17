@@ -535,7 +535,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           aria-label="Filtrar por cadena o plataforma"
           className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm focus:border-pastel-accent focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
         >
-          <option value="all">🌐 Todas las cadenas y plataformas</option>
+          <option value="all">Cadenas y plataformas</option>
           {networksList.map((net) => (
             <option key={net} value={net}>{net}</option>
           ))}
