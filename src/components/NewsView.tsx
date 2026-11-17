@@ -382,7 +382,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
             >
               <Settings className="h-4 w-4" />
-              Configurar Blog
+              Configurar
             </button>
 
             <button
@@ -392,7 +392,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-1.5 rounded-2xl border border-pastel-accent bg-pastel-accent/10 px-4 py-3 text-xs font-bold text-pastel-accent shadow-sm transition hover:bg-pastel-accent/20"
             >
               <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-              Sincronizar Post
+              Sincronizar
             </button>
 
             <button
@@ -401,7 +401,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-2 rounded-2xl bg-pastel-accent px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
             >
               <Plus className="h-4 w-4" />
-              Publicar noticia
+              Publicar
             </button>
           </div>
         )}
@@ -505,7 +505,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             </div>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título de la serie</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título Serie</span>
               <input
                 required
                 value={title}
@@ -532,10 +532,10 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
-                <option value="renewed">🟢 Renovada</option>
-                <option value="canceled">🔴 Cancelada o Terminada</option>
-                <option value="estrenos">🔵 Estrenos del año</option>
-                <option value="nuevas">🟣 Series Nuevas</option>
+                <option value="renewed">Renovada</option>
+                <option value="canceled">Cancelada o Terminada</option>
+                <option value="estrenos">Estrenos del año</option>
+                <option value="nuevas">Series Nuevas</option>
               </select>
             </label>
 
@@ -561,7 +561,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             </label>
 
             <label className="block space-y-1 sm:col-span-2 lg:col-span-3">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la Carátula (Manual por si no la autocompleta)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la Carátula</span>
               <input
                 value={posterUrl}
                 onChange={(e) => setPosterUrl(e.target.value)}
@@ -615,7 +615,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           aria-label="Filtrar por cadena o plataforma"
           className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm focus:border-pastel-accent focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
         >
-          <option value="all">🌐 Todas las cadenas y plataformas</option>
+          <option value="all">Cadenas y plataformas</option>
           {networksList.map((net) => (
             <option key={net} value={net}>{net}</option>
           ))}
