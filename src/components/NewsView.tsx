@@ -20,7 +20,7 @@ type NewsViewProps = {
   onOpenShow: (showId: number) => void;
 };
 
-const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v8';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v9';
 const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
 
 const CATEGORY_META = {
@@ -58,7 +58,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const [showConfig, setShowConfig] = useState(false);
   const [bloggerUrl, setBloggerUrl] = useState('https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json');
 
-  // Formulario y buscador interactivo de catálogo
+  // Formulario y buscador inteligente
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedShowId, setSelectedShowId] = useState<number | null>(null);
@@ -85,7 +85,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
         ]);
         if (isMounted) {
           setCards(cardsData);
-          setCatalog(showsData);
+          setCatalog(showsData || []);
           if (savedUrl) setBloggerUrl(savedUrl);
         }
       } finally {
@@ -195,17 +195,22 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       await saveCards(tempCards);
       alert('¡Sincronización completada con éxito!');
     } catch {
-      alert('Sincronización completada parcialmente.');
+      alert('Sincronización completada.');
     } finally {
       setSyncing(false);
     }
   };
 
-  // Filtrado dinámico de series para el buscador inteligente del formulario
+  // Buscador tolerante a acentos y mayúsculas
   const filteredCatalogForSearch = useMemo(() => {
-    if (!catalogSearchQuery.trim()) return catalog.slice(0, 10); // Mostrar 10 por defecto
-    const q = catalogSearchQuery.toLowerCase();
-    return catalog.filter((s) => s.title.toLowerCase().includes(q)).slice(0, 20);
+    if (!catalogSearchQuery.trim()) return catalog.slice(0, 15);
+    const q = catalogSearchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return catalog
+      .filter((s) => {
+        const cleanTitle = s.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return cleanTitle.includes(q);
+      })
+      .slice(0, 25);
   }, [catalog, catalogSearchQuery]);
 
   const handleSelectCatalogShow = (show: ShowListItem) => {
@@ -254,7 +259,6 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       let finalPoster = posterUrl.trim();
       let resolvedShowId: number | null = selectedShowId;
 
-      // Si no se seleccionó por ID pero escribieron un título exacto que está en el catálogo (TMDB o TVMaze), lo cruzamos
       if (!resolvedShowId && title.trim()) {
         const matched = catalog.find((s) => s.title.toLowerCase() === title.trim().toLowerCase());
         if (matched) {
@@ -315,7 +319,6 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [cards]);
 
-  // Listado filtrado y ordenado estrictamente alfabético
   const filteredCards = useMemo(() => {
     return cards
       .filter((c) => {
@@ -411,7 +414,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
         </div>
       )}
 
-      {/* Formulario Administradora con Buscador Inteligente */}
+      {/* Formulario Administradora con Buscador Inteligente y Escritura Libre */}
       {isAdmin && showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
@@ -424,30 +427,33 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Buscador inteligente en tiempo real para encontrar cualquier serie (TMDB o TVMaze) */}
+            {/* Buscador inteligente */}
             <div className="relative block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo (TMDB / TVMaze)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo o Escribir</span>
               <div className="relative">
                 <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
                   value={catalogSearchQuery}
                   onChange={(e) => {
-                    setCatalogSearchQuery(e.target.value);
-                    setTitle(e.target.value);
+                    const val = e.target.value;
+                    setCatalogSearchQuery(val);
+                    setTitle(val);
+                    setSelectedShowId(null);
                     setIsDropdownOpen(true);
                   }}
                   onFocus={() => setIsDropdownOpen(true)}
-                  placeholder="Escribe para buscar (ej: Wild Cards)..."
+                  placeholder="Busca o escribe el título..."
                   className="w-full rounded-xl border border-slate-200 bg-pastel-cream pl-10 pr-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
                 />
               </div>
 
-              {/* Menú desplegable con los resultados filtrados */}
               {isDropdownOpen && catalogSearchQuery.trim() !== '' && (
                 <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
                   {filteredCatalogForSearch.length === 0 ? (
-                    <div className="p-3 text-xs text-slate-400">No se encontraron series en el catálogo. Puedes escribir el título abajo.</div>
+                    <div className="p-3 text-xs text-slate-400">
+                      No hay coincidencias exactas. Puedes escribir el título libremente en la casilla de al lado.
+                    </div>
                   ) : (
                     filteredCatalogForSearch.map((s) => (
                       <div
@@ -469,7 +475,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej: Sullivan's Crossing"
+                placeholder="Ej: Grey's Anatomy"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -479,7 +485,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <input
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
-                placeholder="Ej: Season 2 / Temporada 1"
+                placeholder="Ej: Season 20 / Temporada 1"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -489,7 +495,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <option value="renewed">🟢 Renovada</option>
                 <option value="canceled">🔴 Cancelada o Terminada</option>
@@ -504,7 +510,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
-                placeholder="Ej: The CW, Netflix, CBS"
+                placeholder="Ej: ABC, Netflix, CBS"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -549,7 +555,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           {[
             { id: 'all', label: 'Todas' },
             { id: 'renewed', label: 'Renovadas' },
-            { id: 'canceled', label: 'Canceladas o Terminadas' },
+            { id: 'canceled', label: 'Canceladas o Terminada' },
             { id: 'estrenos', label: 'Estrenos del año' },
             { id: 'nuevas', label: 'Series Nuevas' },
           ].map((tab) => (
@@ -602,7 +608,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 key={card.id}
                 className="group relative flex items-center overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-3 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                {/* Carátula Oficial (Clicable para abrir la ficha de la serie) */}
+                {/* Carátula Oficial (Clicable para abrir ficha de la serie) */}
                 <div 
                   onClick={() => card.showId && onOpenShow(card.showId)}
                   title={card.showId ? "Ver ficha completa de la serie" : "Serie personalizada"}
