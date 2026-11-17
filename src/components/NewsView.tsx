@@ -16,7 +16,7 @@ type EditorialCard = {
   posterUrl?: string;
 };
 
-const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v5';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v2';
 const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
 
 const CATEGORY_META = {
@@ -51,9 +51,11 @@ export default function NewsView() {
   const [activeTab, setActiveTab] = useState<'all' | 'renewed' | 'canceled' | 'estrenos' | 'nuevas'>('all');
   const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
 
+  // Configuración de Blogger
   const [showConfig, setShowConfig] = useState(false);
-  const [bloggerUrl, setBloggerUrl] = useState('https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json');
+  const [bloggerUrl, setBloggerUrl] = useState('');
 
+  // Formulario manual
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedShowId, setSelectedShowId] = useState<string>('');
@@ -65,29 +67,17 @@ export default function NewsView() {
   const [posterUrl, setPosterUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Carga inicial única y estable (sin bucles de recarga)
   useEffect(() => {
-    let isMounted = true;
-    async function init() {
-      try {
-        const [cardsData, showsData, savedUrl] = await Promise.all([
-          fetchCards(),
-          fetchCatalog({ search: '', genre: '', sort: 'title' }, 2000).catch(() => []),
-          fetchBloggerConfig(),
-        ]);
-        if (isMounted) {
-          setCards(cardsData);
-          setCatalog(showsData);
-          if (savedUrl) setBloggerUrl(savedUrl);
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-    init();
-    return () => {
-      isMounted = false;
-    };
+    Promise.all([
+      fetchCards(),
+      fetchCatalog({ search: '', genre: '', sort: 'title' }, 1000).catch(() => []),
+      fetchBloggerConfig(),
+    ]).then(([cardsData, showsData, savedUrl]) => {
+      setCards(cardsData);
+      setCatalog(showsData);
+      if (savedUrl) setBloggerUrl(savedUrl);
+      setLoading(false);
+    });
   }, []);
 
   const fetchCards = async () => {
@@ -103,17 +93,7 @@ export default function NewsView() {
         if (Array.isArray(parsed)) return parsed;
       } catch {}
     }
-    return [
-      {
-        id: '1',
-        title: 'Criminal Minds',
-        season: 'Evolution S3',
-        category: 'renewed' as const,
-        network: 'Paramount+',
-        date: '2026-11-16',
-        posterUrl: 'https://image.tmdb.org/t/p/w500/7TCwgG7oWgysvAdqrvHAlC4gTvx.jpg',
-      },
-    ];
+    return [];
   };
 
   const fetchBloggerConfig = async () => {
@@ -138,26 +118,33 @@ export default function NewsView() {
       .upsert({ key: EDITORIAL_CARDS_KEY, value: JSON.stringify(updated) }, { onConflict: 'key' });
   };
 
-  // Sincronizador inteligente con Blogger y cruce automático con TVMaze/TMDB
+  // Función inteligente para sincronizar con tu post de Blogger y autocompletar carátulas
   const handleSyncBlogger = async () => {
-    const targetUrl = bloggerUrl.trim() || 'https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json';
+    if (!bloggerUrl.trim()) {
+      alert('Por favor, introduce primero la URL del feed de tu blog en Configurar.');
+      setShowConfig(true);
+      return;
+    }
+
     setSyncing(true);
     try {
+      // Guardar URL
       await supabase.from('app_settings').upsert(
-        { key: BLOGGER_FEED_KEY, value: JSON.stringify({ url: targetUrl }) },
+        { key: BLOGGER_FEED_KEY, value: JSON.stringify({ url: bloggerUrl }) },
         { onConflict: 'key' }
       );
 
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+      // Usar proxy seguro para leer el feed JSON de Blogger
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(bloggerUrl)}`;
       const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error('Error de red');
+      if (!res.ok) throw new Error('Error al conectar con el blog');
 
       const json = await res.json();
       const feedData = JSON.parse(json.contents);
       const entries = feedData.feed?.entry || [];
 
       if (entries.length === 0) {
-        alert('No se encontraron entradas en el feed de Blogger.');
+        alert('No se han encontrado entradas en el feed.');
         setSyncing(false);
         return;
       }
@@ -165,48 +152,51 @@ export default function NewsView() {
       // Cogemos el post más reciente (tu guía anual)
       const latestPost = entries[0];
       const contentHtml = latestPost.content?.$t || latestPost.summary?.$t || '';
+      
+      // Extraer menciones del contenido HTML del post (ej: listados o títulos)
+      // Buscamos coincidencias con tu catálogo existente para autocompletar carátulas e IDs
+      const tempCards: EditorialCard[] = [...cards];
       const pubDate = latestPost.published?.$t ? latestPost.published.$t.split('T')[0] : new Date().toISOString().split('T')[0];
 
-      const tempCards: EditorialCard[] = [...cards];
+      // Analizar párrafos o elementos de lista del post para extraer series
       const parser = new DOMParser();
       const doc = parser.parseFromString(contentHtml, 'text/html');
-      const listItems = doc.querySelectorAll('li, p, strong');
+      const listItems = doc.querySelectorAll('li, p');
 
-      for (const el of Array.from(listItems)) {
+      listItems.forEach((el) => {
         const text = el.textContent || '';
-        if (text.length < 3 || text.length > 120) continue;
+        if (text.length < 3 || text.length > 150) return;
 
         const lower = text.toLowerCase();
         let cat: EditorialCard['category'] = 'renewed';
         if (lower.includes('cancel') || lower.includes('terminad')) cat = 'canceled';
-        else if (lower.includes('estreno')) cat = 'estrenos';
-        else if (lower.includes('nueva')) cat = 'nuevas';
+        else if (lower.includes('estreno') || lower.includes('nueva serie')) cat = 'nuevas';
 
-        // Buscar coincidencia en el catálogo de la app (que tiene los IDs de TVMaze/TMDB y carátulas)
+        // Intentar cruzar con el catálogo de la app para extraer la carátula oficial automáticamente
         const matchedShow = catalog.find((s) => text.toLowerCase().includes(s.title.toLowerCase()));
 
         if (matchedShow) {
+          // Verificar si ya existe en la lista para no duplicar
           const exists = tempCards.some((c) => c.title.toLowerCase() === matchedShow.title.toLowerCase());
           if (!exists) {
             tempCards.unshift({
               id: crypto.randomUUID(),
               showId: matchedShow.id,
               title: matchedShow.title,
-              season: 'Temporada Actual',
+              season: 'Actualizado',
               category: cat,
               network: matchedShow.es_platforms?.[0] || matchedShow.network_name || 'TV',
-              date: matchedShow.first_air_date || pubDate,
+              date: pubDate,
               posterUrl: matchedShow.poster_url || undefined,
             });
           }
         }
-      }
+      });
 
       await saveCards(tempCards);
-      alert('¡Sincronización con Blogger completada con éxito!');
-    } catch (err) {
-      console.error(err);
-      alert('No se pudo sincronizar automáticamente. Comprueba tu conexión o añade las series manualmente.');
+      alert('¡Sincronización completada con éxito!');
+    } catch {
+      alert('Error al sincronizar con el blog. Comprueba que la URL del feed sea correcta.');
     } finally {
       setSyncing(false);
     }
@@ -218,8 +208,8 @@ export default function NewsView() {
     if (found) {
       setTitle(found.title);
       setPosterUrl(found.poster_url ?? '');
-      setNetwork(found.es_platforms?.[0] || found.us_platforms?.[0] || found.network_name || '');
-      if (found.first_air_date) setDate(found.first_air_date);
+      const platform = found.es_platforms?.[0] || found.us_platforms?.[0] || found.network_name || '';
+      setNetwork(platform);
     }
   };
 
@@ -253,6 +243,7 @@ export default function NewsView() {
 
     setSaving(true);
     try {
+      // Si se seleccionó del catálogo y no se puso póster manual, coger el del catálogo
       let finalPoster = posterUrl.trim();
       if (selectedShowId && !finalPoster) {
         const found = catalog.find((s) => String(s.id) === selectedShowId);
@@ -364,24 +355,32 @@ export default function NewsView() {
         )}
       </div>
 
-      {/* Modal de Configuración */}
+      {/* Modal de Configuración de Blogger */}
       {isAdmin && showConfig && (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900 space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Configurar Feed de Blogger</h2>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Configurar URL del Feed de Blogger</h2>
             <button type="button" onClick={() => setShowConfig(false)} className="text-slate-400 hover:text-slate-600">
               <X className="h-4 w-4" />
             </button>
           </div>
           <p className="text-xs text-slate-500">
-            Introduce la URL del feed JSON de tu blog: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json</code>
+            Introduce el enlace del feed JSON de tu blog (ej: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json</code>). Al pulsar en "Sincronizar Post", la app leerá tus actualizaciones automáticamente.
           </p>
           <input
             value={bloggerUrl}
             onChange={(e) => setBloggerUrl(e.target.value)}
+            placeholder="https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json"
             className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
           />
           <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowConfig(false)}
+              className="rounded-xl px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Cerrar
+            </button>
             <button
               type="button"
               onClick={async () => {
@@ -390,37 +389,37 @@ export default function NewsView() {
                   { onConflict: 'key' }
                 );
                 setShowConfig(false);
-                alert('URL guardada.');
+                alert('URL guardada correctamente.');
               }}
               className="rounded-xl bg-pastel-accent px-5 py-2 text-xs font-bold text-white hover:bg-pastel-accentHover"
             >
-              Guardar
+              Guardar URL
             </button>
           </div>
         </div>
       )}
 
-      {/* Formulario Administradora con opción de carátula manual */}
+      {/* Formulario de Administradora (Crear / Editar) */}
       {isAdmin && showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
             <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">
-              {editingId ? 'Editar serie' : 'Publicar serie'}
+              {editingId ? 'Editar serie en la guía' : 'Publicar nueva serie'}
             </h2>
-            <button type="button" onClick={() => setShowForm(false)} className="text-xs font-bold text-slate-400">
+            <button type="button" onClick={() => setShowForm(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600">
               Cancelar
             </button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Autocompletar desde Catálogo</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Vincular de tu Catálogo (Carátula automática)</span>
               <select
                 value={selectedShowId}
                 onChange={(e) => handleSelectCatalogShow(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
-                <option value="">-- Seleccionar serie --</option>
+                <option value="">-- Seleccionar serie para carátula --</option>
                 {catalog.map((s) => (
                   <option key={s.id} value={s.id}>{s.title}</option>
                 ))}
@@ -428,31 +427,32 @@ export default function NewsView() {
             </label>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título de la serie</span>
               <input
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej: Criminal Minds"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Temporada</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Temporada / Subtítulo</span>
               <input
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
-                placeholder="Ej: Season 3"
+                placeholder="Ej: Season 3 / Evolution S3"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Categoría</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Estado / Categoría</span>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <option value="renewed">🟢 Renovada</option>
                 <option value="canceled">🔴 Cancelada o Terminada</option>
@@ -467,26 +467,17 @@ export default function NewsView() {
                 required
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
+                placeholder="Ej: Paramount+, CBS, Netflix"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Fecha de estreno</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Fecha</span>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
-              />
-            </label>
-
-            <label className="block space-y-1 sm:col-span-2 lg:col-span-3">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la Carátula (Manual por si no está en el catálogo)</span>
-              <input
-                value={posterUrl}
-                onChange={(e) => setPosterUrl(e.target.value)}
-                placeholder="https://image.tmdb.org/t/p/w500/... o URL de imagen"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -496,16 +487,16 @@ export default function NewsView() {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 rounded-xl bg-pastel-accent px-6 py-2.5 text-xs font-bold text-white"
+              className="flex items-center gap-2 rounded-xl bg-pastel-accent px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover disabled:opacity-50"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              Guardar
+              {editingId ? 'Guardar cambios' : 'Publicar noticia'}
             </button>
           </div>
         </form>
       )}
 
-      {/* Menú con los 5 Botones de Filtro exactos */}
+      {/* Menú con los 5 Botones de Filtro y Selector de Plataforma */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {[
@@ -533,16 +524,17 @@ export default function NewsView() {
         <select
           value={selectedNetwork}
           onChange={(e) => setSelectedNetwork(e.target.value)}
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+          aria-label="Filtrar por cadena o plataforma"
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm focus:border-pastel-accent focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
         >
-          <option value="all">🌐 Todas las plataformas</option>
+          <option value="all">🌐 Todas las cadenas y plataformas</option>
           {networksList.map((net) => (
             <option key={net} value={net}>{net}</option>
           ))}
         </select>
       </div>
 
-      {/* Listado de Tarjetas Limpias */}
+      {/* Cuadrícula de Tarjetas */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-7 w-7 animate-spin text-pastel-accent" />
@@ -550,7 +542,8 @@ export default function NewsView() {
       ) : filteredCards.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
           <Tv className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
-          <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-300">No hay series registradas.</p>
+          <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-300">No hay series registradas en este filtro.</p>
+          <p className="mt-1 text-xs text-slate-400">Usa "Configurar Blog" y "Sincronizar Post" o añade series manualmente.</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -563,13 +556,10 @@ export default function NewsView() {
                 key={card.id}
                 className="group relative flex overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
+                {/* Carátula Oficial */}
                 <div className="h-32 w-24 shrink-0 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
                   {card.posterUrl ? (
-                    <img 
-                      src={card.posterUrl} 
-                      alt={card.title} 
-                      className="h-full w-full object-cover transition group-hover:scale-105"
-                    />
+                    <img src={card.posterUrl} alt={card.title} className="h-full w-full object-cover transition group-hover:scale-105" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-slate-400">
                       <Tv className="h-6 w-6" />
@@ -577,6 +567,7 @@ export default function NewsView() {
                   )}
                 </div>
 
+                {/* Contenido de la Tarjeta */}
                 <div className="ml-4 flex flex-1 flex-col justify-between">
                   <div>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${meta.badgeClass}`}>
@@ -607,11 +598,13 @@ export default function NewsView() {
                   </div>
                 </div>
 
+                {/* Botones de Administradora (Editar / Borrar) flotantes */}
                 {isAdmin && (
                   <div className="absolute right-3 top-3 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
                     <button
                       type="button"
                       onClick={() => handleOpenEdit(card)}
+                      title="Editar serie"
                       className="rounded-lg bg-white/90 p-1.5 text-slate-600 shadow-sm transition hover:text-pastel-accent dark:bg-slate-800 dark:text-slate-200"
                     >
                       <Edit3 className="h-3.5 w-3.5" />
@@ -619,6 +612,7 @@ export default function NewsView() {
                     <button
                       type="button"
                       onClick={() => handleDelete(card.id)}
+                      title="Eliminar"
                       className="rounded-lg bg-white/90 p-1.5 text-slate-600 shadow-sm transition hover:text-rose-600 dark:bg-slate-800 dark:text-slate-200"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
