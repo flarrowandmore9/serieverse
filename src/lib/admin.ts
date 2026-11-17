@@ -18,8 +18,6 @@ export type ShowPatch = {
   us_platforms: string[];
   es_platforms: string[];
   tv_status: string | null;
-  show_types: string | null;
-  franchise: string | null;
   genres: string | null;
   network_name: string | null;
   poster_url: string | null;
@@ -86,7 +84,7 @@ export async function updateShow(id: number, patch: any): Promise<ShowListItem> 
     .from('shows')
     .update(cleanPatch)
     .eq('id', id)
-    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, show_type, franchise, premiered, rating, imdb_id, network_name, us_platforms, es_platforms')
+    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms')
     .single();
     
   if (error) throw new Error(error.message);
