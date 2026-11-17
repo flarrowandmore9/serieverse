@@ -19,6 +19,7 @@ export type ShowPatch = {
   es_platforms: string[];
   tv_status: string | null;
   show_types: string | null;
+  franchise: string | null;
   genres: string | null;
   network_name: string | null;
   poster_url: string | null;
