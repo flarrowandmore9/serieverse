@@ -367,7 +367,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             Actualidad Seriéfila · Flarrow & More
           </span>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-            Noticias, Renovaciones y Cancelaciones
+            Renovaciones, Cancelaciones y Series Nuevas
           </h1>
           <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
             El estado oficial de tus series favoritas y los próximos estrenos confirmados.
