@@ -15,4 +15,7 @@
 - Adding a column does not remove or alter any existing data.
 */
 
-ALTER TABLE shows ADD COLUMN IF NOT EXISTS tv_type text;
+ALTER TABLE shows 
+ADD COLUMN IF NOT EXISTS show_type TEXT,
+ADD COLUMN IF NOT EXISTS franchise TEXT;
+ADD COLUMN IF NOT EXISTS tv_type text;
