@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Calendar, CheckCircle2, Clock, Edit3, Loader2, Plus, RefreshCw, Settings, Sparkles, Trash2, Tv, X, XCircle } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, Edit3, Loader2, Plus, Sparkles, Trash2, Tv, XCircle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { fetchCatalog } from '@/lib/catalog';
 import { supabase } from '@/lib/supabase';
@@ -16,8 +16,7 @@ type EditorialCard = {
   posterUrl?: string;
 };
 
-const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v3';
-const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v4';
 
 const CATEGORY_META = {
   renewed: {
@@ -47,12 +46,8 @@ export default function NewsView() {
   const [cards, setCards] = useState<EditorialCard[]>([]);
   const [catalog, setCatalog] = useState<ShowListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'renewed' | 'canceled' | 'estrenos' | 'nuevas'>('all');
   const [selectedNetwork, setSelectedNetwork] = useState<string>('all');
-
-  const [showConfig, setShowConfig] = useState(false);
-  const [bloggerUrl, setBloggerUrl] = useState('https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json');
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -65,20 +60,17 @@ export default function NewsView() {
   const [posterUrl, setPosterUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Carga inicial controlada sin bucles
   useEffect(() => {
     let isMounted = true;
     async function init() {
       try {
-        const [cardsData, showsData, savedUrl] = await Promise.all([
+        const [cardsData, showsData] = await Promise.all([
           fetchCards(),
           fetchCatalog({ search: '', genre: '', sort: 'title' }, 1000).catch(() => []),
-          fetchBloggerConfig(),
         ]);
         if (isMounted) {
           setCards(cardsData);
           setCatalog(showsData);
-          if (savedUrl) setBloggerUrl(savedUrl);
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -116,100 +108,11 @@ export default function NewsView() {
     ];
   };
 
-  const fetchBloggerConfig = async () => {
-    const { data } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', BLOGGER_FEED_KEY)
-      .maybeSingle();
-    if (data?.value) {
-      try {
-        const parsed = JSON.parse(data.value);
-        return parsed.url || '';
-      } catch {}
-    }
-    return '';
-  };
-
   const saveCards = async (updated: EditorialCard[]) => {
     setCards(updated);
     await supabase
       .from('app_settings')
       .upsert({ key: EDITORIAL_CARDS_KEY, value: JSON.stringify(updated) }, { onConflict: 'key' });
-  };
-
-  const handleSyncBlogger = async () => {
-    if (!bloggerUrl.trim()) {
-      alert('Introduce la URL del feed JSON de tu blog.');
-      setShowConfig(true);
-      return;
-    }
-
-    setSyncing(true);
-    try {
-      await supabase.from('app_settings').upsert(
-        { key: BLOGGER_FEED_KEY, value: JSON.stringify({ url: bloggerUrl }) },
-        { onConflict: 'key' }
-      );
-
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(bloggerUrl)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error('Error al conectar');
-
-      const json = await res.json();
-      const feedData = JSON.parse(json.contents);
-      const entries = feedData.feed?.entry || [];
-
-      if (entries.length === 0) {
-        alert('No se encontraron entradas en el feed.');
-        setSyncing(false);
-        return;
-      }
-
-      const latestPost = entries[0];
-      const contentHtml = latestPost.content?.$t || latestPost.summary?.$t || '';
-      const pubDate = latestPost.published?.$t ? latestPost.published.$t.split('T')[0] : new Date().toISOString().split('T')[0];
-
-      const tempCards: EditorialCard[] = [...cards];
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(contentHtml, 'text/html');
-      const listItems = doc.querySelectorAll('li, p');
-
-      listItems.forEach((el) => {
-        const text = el.textContent || '';
-        if (text.length < 3 || text.length > 150) return;
-
-        const lower = text.toLowerCase();
-        let cat: EditorialCard['category'] = 'renewed';
-        if (lower.includes('cancel') || lower.includes('terminad')) cat = 'canceled';
-        else if (lower.includes('estreno') || lower.includes('nueva serie')) cat = 'nuevas';
-
-        const matchedShow = catalog.find((s) => text.toLowerCase().includes(s.title.toLowerCase()));
-
-        if (matchedShow) {
-          const exists = tempCards.some((c) => c.title.toLowerCase() === matchedShow.title.toLowerCase());
-          if (!exists) {
-            tempCards.unshift({
-              id: crypto.randomUUID(),
-              showId: matchedShow.id,
-              title: matchedShow.title,
-              season: 'Actualizado',
-              category: cat,
-              network: matchedShow.es_platforms?.[0] || matchedShow.network_name || 'TV',
-              date: pubDate,
-              posterUrl: matchedShow.poster_url || undefined,
-            });
-          }
-        }
-      });
-
-      await saveCards(tempCards);
-      alert('¡Sincronización completada con éxito!');
-    } catch {
-      alert('Error al sincronizar. Comprueba que la URL sea el feed JSON de Blogger.');
-    } finally {
-      setSyncing(false);
-    }
   };
 
   const handleSelectCatalogShow = (idStr: string) => {
@@ -317,6 +220,7 @@ export default function NewsView() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+      {/* Cabecera */}
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-200/80 pb-6 dark:border-slate-800">
         <div>
           <span className="rounded-full bg-pastel-accent/10 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-pastel-accent">
@@ -331,73 +235,18 @@ export default function NewsView() {
         </div>
 
         {isAdmin && (
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowConfig(true)}
-              className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-            >
-              <Settings className="h-4 w-4" />
-              Configurar Blog
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSyncBlogger}
-              disabled={syncing}
-              className="flex items-center gap-1.5 rounded-2xl border border-pastel-accent bg-pastel-accent/10 px-4 py-3 text-xs font-bold text-pastel-accent shadow-sm transition hover:bg-pastel-accent/20"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-              Sincronizar Post
-            </button>
-
-            <button
-              type="button"
-              onClick={handleOpenCreate}
-              className="flex items-center gap-2 rounded-2xl bg-pastel-accent px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
-            >
-              <Plus className="h-4 w-4" />
-              Publicar noticia
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleOpenCreate}
+            className="flex items-center gap-2 rounded-2xl bg-pastel-accent px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
+          >
+            <Plus className="h-4 w-4" />
+            Publicar noticia
+          </button>
         )}
       </div>
 
-      {isAdmin && showConfig && (
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">Configurar Feed de Blogger</h2>
-            <button type="button" onClick={() => setShowConfig(false)} className="text-slate-400 hover:text-slate-600">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <p className="text-xs text-slate-500">
-            Asegúrate de usar la URL del feed JSON: <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json</code>
-          </p>
-          <input
-            value={bloggerUrl}
-            onChange={(e) => setBloggerUrl(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
-          />
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={async () => {
-                await supabase.from('app_settings').upsert(
-                  { key: BLOGGER_FEED_KEY, value: JSON.stringify({ url: bloggerUrl }) },
-                  { onConflict: 'key' }
-                );
-                setShowConfig(false);
-                alert('URL guardada.');
-              }}
-              className="rounded-xl bg-pastel-accent px-5 py-2 text-xs font-bold text-white hover:bg-pastel-accentHover"
-            >
-              Guardar
-            </button>
-          </div>
-        </div>
-      )}
-
+      {/* Formulario de Administradora (Crear / Editar) */}
       {isAdmin && showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
@@ -483,7 +332,7 @@ export default function NewsView() {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 rounded-xl bg-pastel-accent px-6 py-2.5 text-xs font-bold text-white"
+              className="flex items-center gap-2 rounded-xl bg-pastel-accent px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
               Guardar
@@ -492,6 +341,7 @@ export default function NewsView() {
         </form>
       )}
 
+      {/* Menú de los 5 botones de filtro y selector de plataforma */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {[
@@ -528,6 +378,7 @@ export default function NewsView() {
         </select>
       </div>
 
+      {/* Tarjetas Visuales */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-7 w-7 animate-spin text-pastel-accent" />
@@ -535,7 +386,7 @@ export default function NewsView() {
       ) : filteredCards.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-300 bg-white/60 p-12 text-center dark:border-slate-800 dark:bg-slate-900/50">
           <Tv className="mx-auto h-10 w-10 text-slate-300 dark:text-slate-600" />
-          <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-300">No hay series registradas.</p>
+          <p className="mt-3 text-sm font-bold text-slate-700 dark:text-slate-300">No hay series registradas en este filtro.</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
