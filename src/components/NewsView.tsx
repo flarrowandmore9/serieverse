@@ -20,7 +20,7 @@ type NewsViewProps = {
   onOpenShow: (showId: number) => void;
 };
 
-const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v10';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v11';
 const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
 
 const CATEGORY_META = {
@@ -58,7 +58,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const [showConfig, setShowConfig] = useState(false);
   const [bloggerUrl, setBloggerUrl] = useState('https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json');
 
-  // Formulario y buscador inteligente con API externa en tiempo real
+  // Formulario y buscador inteligente
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedShowId, setSelectedShowId] = useState<number | null>(null);
@@ -203,7 +203,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     }
   };
 
-  // Buscador inteligente en tiempo real: busca en el catálogo local y consulta a la API si escribes más de 2 letras
+  // Buscador inteligente en tiempo real
   useEffect(() => {
     if (!catalogSearchQuery.trim() || catalogSearchQuery.length < 2) {
       setExternalSearchResults([]);
@@ -213,20 +213,17 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     const timer = setTimeout(async () => {
       setIsSearchingApi(true);
       try {
-        // Buscamos primero en el catálogo local (filtrado tolerante a acentos)
         const q = catalogSearchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const localMatches = catalog.filter((s) => {
           const cleanTitle = s.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
           return cleanTitle.includes(q);
         });
 
-        // Si hay pocos resultados locales, consultamos directamente con fetchCatalog usando el parámetro search
         let apiMatches: ShowListItem[] = [];
         if (localMatches.length < 5) {
           apiMatches = await fetchCatalog({ search: catalogSearchQuery, genre: '', sort: 'title' }, 20).catch(() => []);
         }
 
-        // Unimos y eliminamos duplicados por ID
         const combined = [...localMatches, ...apiMatches];
         const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
         setExternalSearchResults(unique.slice(0, 15));
@@ -268,12 +265,12 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const handleOpenEdit = (card: EditorialCard) => {
     setEditingId(card.id);
     setSelectedShowId(card.showId ?? null);
-    setTitle(card.title);
-    setCatalogSearchQuery(card.title);
+    setTitle(card.title || '');
+    setCatalogSearchQuery(card.title || '');
     setExternalSearchResults([]);
-    setSeason(card.season);
-    setCategory(card.category);
-    setNetwork(card.network);
+    setSeason(card.season || '');
+    setCategory(card.category || 'renewed');
+    setNetwork(card.network || '');
     setDate(card.date || new Date().toISOString().split('T')[0]);
     setPosterUrl(card.posterUrl || '');
     setShowForm(true);
@@ -367,7 +364,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             Actualidad Seriéfila · Flarrow & More
           </span>
           <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
-            Renovaciones, Cancelaciones y Series Nuevas
+            Noticias, Renovaciones y Cancelaciones
           </h1>
           <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
             El estado oficial de tus series favoritas y los próximos estrenos confirmados.
@@ -382,7 +379,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
             >
               <Settings className="h-4 w-4" />
-              Configurar
+              Configurar Blog
             </button>
 
             <button
@@ -392,7 +389,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-1.5 rounded-2xl border border-pastel-accent bg-pastel-accent/10 px-4 py-3 text-xs font-bold text-pastel-accent shadow-sm transition hover:bg-pastel-accent/20"
             >
               <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-              Sincronizar
+              Sincronizar Post
             </button>
 
             <button
@@ -401,7 +398,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               className="flex items-center gap-2 rounded-2xl bg-pastel-accent px-5 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-pastel-accentHover"
             >
               <Plus className="h-4 w-4" />
-              Publicar
+              Publicar noticia
             </button>
           </div>
         )}
@@ -443,7 +440,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
         </div>
       )}
 
-      {/* Formulario Administradora con Buscador Global en Tiempo Real */}
+      {/* Formulario Administradora (Crear / Editar) */}
       {isAdmin && showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
@@ -456,7 +453,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Buscador inteligente conectado a la API y catálogo */}
+            {/* Buscador inteligente */}
             <div className="relative block space-y-1">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en la App o Escribir</span>
               <div className="relative">
@@ -505,7 +502,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             </div>
 
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título Serie</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Título de la serie</span>
               <input
                 required
                 value={title}
@@ -530,12 +527,12 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
-                <option value="renewed">Renovada</option>
-                <option value="canceled">Cancelada o Terminada</option>
-                <option value="estrenos">Estrenos del año</option>
-                <option value="nuevas">Series Nuevas</option>
+                <option value="renewed">🟢 Renovada</option>
+                <option value="canceled">🔴 Cancelada o Terminada</option>
+                <option value="estrenos">🔵 Estrenos del año</option>
+                <option value="nuevas">🟣 Series Nuevas</option>
               </select>
             </label>
 
@@ -561,7 +558,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             </label>
 
             <label className="block space-y-1 sm:col-span-2 lg:col-span-3">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la Carátula</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la Carátula (Manual por si no la autocompleta)</span>
               <input
                 value={posterUrl}
                 onChange={(e) => setPosterUrl(e.target.value)}
@@ -615,7 +612,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           aria-label="Filtrar por cadena o plataforma"
           className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm focus:border-pastel-accent focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
         >
-          <option value="all">Cadenas y plataformas</option>
+          <option value="all">🌐 Todas las cadenas y plataformas</option>
           {networksList.map((net) => (
             <option key={net} value={net}>{net}</option>
           ))}
