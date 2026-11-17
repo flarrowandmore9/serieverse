@@ -14,7 +14,6 @@ import { registerShowView } from '@/lib/catalog';
 import AccountView from '@/views/AccountView';
 import AdminView from '@/views/AdminView';
 import CalendarView from '@/views/CalendarView';
-import NewsView from '@/components/NewsView';
 import CatalogView from '@/views/CatalogView';
 import LibraryView from '@/views/LibraryView';
 import PlatformsView from '@/views/PlatformsView';
@@ -50,8 +49,6 @@ export default function App() {
         return <CatalogView onOpenShow={openShow} onRequireLogin={openAuth} />;
       case 'calendar':
         return <CalendarView onOpenShow={openShow} />;
-      case 'news':
-        return <NewsView onOpenShow={openShow} />;
       case 'platforms':
         return <PlatformsView onOpenShow={openShow} onRequireLogin={openAuth} />;
       case 'suggestions':

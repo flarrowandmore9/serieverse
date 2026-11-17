@@ -141,9 +141,7 @@ function isNamedNetwork(show: TvmazeShow): boolean {
   const name = show.network?.name ?? show.webChannel?.name ?? null;
   if (!name) return false;
   const key = name.toLowerCase();
-  const allNetworks = [...US_NETWORKS, ...ES_NETWORKS];
-  // Coincidencia flexible: detecta la plataforma aunque TVMaze devuelva variantes en el nombre
-  return allNetworks.some((net) => key.includes(net) || net.includes(key));
+  return US_NETWORKS.has(key) || ES_NETWORKS.has(key);
 }
 
 async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow, tmdbApiKey: string): Promise<void> {
