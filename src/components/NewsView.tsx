@@ -20,7 +20,7 @@ type NewsViewProps = {
   onOpenShow: (showId: number) => void;
 };
 
-const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v9';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v10';
 const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
 
 const CATEGORY_META = {
@@ -58,12 +58,14 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const [showConfig, setShowConfig] = useState(false);
   const [bloggerUrl, setBloggerUrl] = useState('https://flarrowandmore.blogspot.com/feeds/posts/default?alt=json');
 
-  // Formulario y buscador inteligente
+  // Formulario y buscador inteligente con API externa en tiempo real
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedShowId, setSelectedShowId] = useState<number | null>(null);
   
   const [catalogSearchQuery, setCatalogSearchQuery] = useState('');
+  const [externalSearchResults, setExternalSearchResults] = useState<ShowListItem[]>([]);
+  const [isSearchingApi, setIsSearchingApi] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const [title, setTitle] = useState('');
@@ -201,17 +203,42 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     }
   };
 
-  // Buscador tolerante a acentos y mayúsculas
-  const filteredCatalogForSearch = useMemo(() => {
-    if (!catalogSearchQuery.trim()) return catalog.slice(0, 15);
-    const q = catalogSearchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return catalog
-      .filter((s) => {
-        const cleanTitle = s.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        return cleanTitle.includes(q);
-      })
-      .slice(0, 25);
-  }, [catalog, catalogSearchQuery]);
+  // Buscador inteligente en tiempo real: busca en el catálogo local y consulta a la API si escribes más de 2 letras
+  useEffect(() => {
+    if (!catalogSearchQuery.trim() || catalogSearchQuery.length < 2) {
+      setExternalSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingApi(true);
+      try {
+        // Buscamos primero en el catálogo local (filtrado tolerante a acentos)
+        const q = catalogSearchQuery.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const localMatches = catalog.filter((s) => {
+          const cleanTitle = s.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return cleanTitle.includes(q);
+        });
+
+        // Si hay pocos resultados locales, consultamos directamente con fetchCatalog usando el parámetro search
+        let apiMatches: ShowListItem[] = [];
+        if (localMatches.length < 5) {
+          apiMatches = await fetchCatalog({ search: catalogSearchQuery, genre: '', sort: 'title' }, 20).catch(() => []);
+        }
+
+        // Unimos y eliminamos duplicados por ID
+        const combined = [...localMatches, ...apiMatches];
+        const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+        setExternalSearchResults(unique.slice(0, 15));
+      } catch {
+        setExternalSearchResults([]);
+      } finally {
+        setIsSearchingApi(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [catalogSearchQuery, catalog]);
 
   const handleSelectCatalogShow = (show: ShowListItem) => {
     setSelectedShowId(show.id);
@@ -229,6 +256,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     setSelectedShowId(null);
     setTitle('');
     setCatalogSearchQuery('');
+    setExternalSearchResults([]);
     setSeason('');
     setCategory('renewed');
     setNetwork('');
@@ -242,6 +270,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     setSelectedShowId(card.showId ?? null);
     setTitle(card.title);
     setCatalogSearchQuery(card.title);
+    setExternalSearchResults([]);
     setSeason(card.season);
     setCategory(card.category);
     setNetwork(card.network);
@@ -414,7 +443,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
         </div>
       )}
 
-      {/* Formulario Administradora con Buscador Inteligente y Escritura Libre */}
+      {/* Formulario Administradora con Buscador Global en Tiempo Real */}
       {isAdmin && showForm && (
         <form onSubmit={handleSubmit} className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-md dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
@@ -427,9 +456,9 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Buscador inteligente */}
+            {/* Buscador inteligente conectado a la API y catálogo */}
             <div className="relative block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo o Escribir</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en la App o Escribir</span>
               <div className="relative">
                 <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
                 <input
@@ -443,25 +472,31 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                     setIsDropdownOpen(true);
                   }}
                   onFocus={() => setIsDropdownOpen(true)}
-                  placeholder="Busca o escribe el título..."
+                  placeholder="Ej: Wild Cards, Sullivan's..."
                   className="w-full rounded-xl border border-slate-200 bg-pastel-cream pl-10 pr-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
                 />
               </div>
 
-              {isDropdownOpen && catalogSearchQuery.trim() !== '' && (
+              {isDropdownOpen && catalogSearchQuery.trim().length >= 2 && (
                 <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
-                  {filteredCatalogForSearch.length === 0 ? (
+                  {isSearchingApi ? (
+                    <div className="flex items-center justify-center p-3 text-xs text-slate-400 gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-pastel-accent" />
+                      Buscando en TMDB y TVMaze...
+                    </div>
+                  ) : externalSearchResults.length === 0 ? (
                     <div className="p-3 text-xs text-slate-400">
-                      No hay coincidencias exactas. Puedes escribir el título libremente en la casilla de al lado.
+                      No hay coincidencias automáticas. Puedes escribir el título libremente en la casilla de al lado.
                     </div>
                   ) : (
-                    filteredCatalogForSearch.map((s) => (
+                    externalSearchResults.map((s) => (
                       <div
                         key={s.id}
                         onClick={() => handleSelectCatalogShow(s)}
-                        className="cursor-pointer px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                        className="cursor-pointer px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700 flex items-center justify-between"
                       >
-                        {s.title} <span className="text-[10px] text-slate-400">({s.network_name || 'TV'})</span>
+                        <span>{s.title}</span>
+                        <span className="text-[10px] text-slate-400">{s.network_name || 'TV'}</span>
                       </div>
                     ))
                   )}
@@ -475,7 +510,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej: Grey's Anatomy"
+                placeholder="Ej: Wild Cards"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -485,7 +520,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <input
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
-                placeholder="Ej: Season 20 / Temporada 1"
+                placeholder="Ej: Season 2 / Temporada 1"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -495,7 +530,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <option value="renewed">🟢 Renovada</option>
                 <option value="canceled">🔴 Cancelada o Terminada</option>
@@ -510,7 +545,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
-                placeholder="Ej: ABC, Netflix, CBS"
+                placeholder="Ej: The CW, CBC, Netflix"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
