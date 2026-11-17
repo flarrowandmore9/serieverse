@@ -15,9 +15,4 @@
 - Adding a column does not remove or alter any existing data.
 */
 
-ALTER TABLE shows 
-ADD COLUMN IF NOT EXISTS show_type text;
-ADD COLUMN IF NOT EXISTS franchise text;
-ADD COLUMN IF NOT EXISTS tv_type text;
-
-NOTIFY pgrst, 'reload schema';
+ALTER TABLE shows ADD COLUMN IF NOT EXISTS tv_type text;

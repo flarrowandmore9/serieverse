@@ -29,12 +29,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [genres, setGenres] = useState(show.genres ?? '');
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [rating, setRating] = useState(show.rating?.toString() ?? '');
-  
-  // Leemos de forma segura tanto de la propiedad de la base de datos como de localStorage si existiera respaldo
-  const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_custom_${show.id}`) || '{}') : {};
-  const [showType, setShowType] = useState(show.show_type ?? savedCustom.show_type ?? '');
-  const [franchise, setFranchise] = useState(show.franchise ?? savedCustom.franchise ?? '');
-
+  const [showType, setShowType] = useState(show.show_type ?? '');
+  const [franchise, setFranchise] = useState(show.franchise ?? '');
   const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
   const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
@@ -79,6 +75,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
         if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
 
+        // Inserción directa de episodios si vienen en TVMaze
         const rawEpisodes = data._embedded?.episodes ?? [];
         if (rawEpisodes.length > 0) {
           const episodesPayload = rawEpisodes
@@ -118,15 +115,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setSaving(true);
     setError(null);
     try {
-      // Guardamos también en localStorage para compatibilidad inmediata con el modal de detalle
-      if (typeof window !== 'undefined') {
-        const currentCustom = JSON.parse(localStorage.getItem(`show_custom_${show.id}`) || '{}');
-        localStorage.setItem(
-          `show_custom_${show.id}`,
-          JSON.stringify({ ...currentCustom, show_type: showType, franchise })
-        );
-      }
-
       const updated = await updateShow(show.id, {
         tvmaze_id: tvmazeId.trim() ? Number(tvmazeId) : null,
         rating: rating.trim() ? Number(rating.replace(',', '.')) : null,
@@ -137,8 +125,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         network_name: network.trim() || null,
         genres: genres.trim() || null,
         runtime: runtime.trim() ? Number(runtime) : null,
-        show_type: showType || null,
-        franchise: franchise.trim() || null,
         us_platforms: usPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         poster_url: poster.trim() || null,
@@ -225,26 +211,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Puntuación / Score</span>
           <input type="text" inputMode="decimal" value={rating} onChange={(e) => setRating(e.target.value)} className={inputClass} />
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
-          <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
-            <option value="">Seleccionar tipo...</option>
-            {SHOW_TYPES_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
-          <input
-            value={franchise}
-            onChange={(e) => setFranchise(e.target.value)}
-            className={inputClass}
-            placeholder="Ej: One Chicago"
-          />
         </label>
 
         <label className="block space-y-1.5">
