@@ -3,7 +3,6 @@ import { Loader2, Sparkles } from 'lucide-react';
 import CastListEditor from '@/components/CastListEditor';
 import PosterField from '@/components/PosterField';
 import { SHOW_STATUS_OPTIONS, SHOW_TYPES_OPTIONS, formatPlatforms } from '@/lib/format';
-import { updateShow } from '@/lib/admin';
 import { supabase } from '@/lib/supabase';
 import type { Character, Show, ShowListItem } from '@/lib/types';
 
@@ -31,7 +30,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [rating, setRating] = useState(show.rating?.toString() ?? '');
   
-  // Ahora leemos directamente de la propiedad oficial del show
   const [showType, setShowType] = useState((show as any).show_type ?? '');
   const [franchise, setFranchise] = useState((show as any).franchise ?? '');
   
@@ -79,7 +77,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
         if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
 
-        // Sincronización automática de temporadas y episodios en Supabase
         const rawEpisodes = data._embedded?.episodes ?? [];
         if (rawEpisodes.length > 0) {
           const episodesPayload = rawEpisodes
@@ -121,10 +118,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setSaving(true);
     setError(null);
     try {
-      // Limpiamos el localStorage antiguo si existiera para usar exclusivamente la base de datos
-      localStorage.removeItem(`show_custom_${show.id}`);
-
-      const updated = await updateShow(show.id, {
+      const payload = {
         tvmaze_id: tvmazeId.trim() ? Number(tvmazeId) : null,
         rating: rating.trim() ? Number(rating.replace(',', '.')) : null,
         title: cleanTitle,
@@ -137,14 +131,23 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         us_platforms: usPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         poster_url: poster.trim() || null,
-        show_type: showType || null,         // Guardado oficial en BD para todo el mundo
-        franchise: franchise.trim() || null, // Guardado oficial en BD para todo el mundo
+        show_type: showType || null,
+        franchise: franchise.trim() || null,
         characters: cast.map((c) => ({ actor: c.actor.trim(), character: c.character.trim(), image: c.image.trim() })).filter((c) => c.actor),
-      });
+      };
 
-      onSaved(updated);
-    } catch (err) {
-      setError('Error al guardar los cambios en la base de datos.');
+      const { data, error: sbError } = await supabase
+        .from('shows')
+        .update(payload)
+        .eq('id', show.id)
+        .select()
+        .single();
+
+      if (sbError) throw sbError;
+
+      onSaved(data as unknown as ShowListItem);
+    } catch (err: any) {
+      setError(err?.message || 'Error al guardar los cambios en la base de datos.');
     } finally {
       setSaving(false);
     }
@@ -156,7 +159,7 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3.5 dark:border-slate-700 dark:bg-slate-800/50">
         <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          Autocompletar mediante ID Externo (Descarga temporadas y episodios automáticamente)
+          Autocompletar mediante ID Externo
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="block space-y-1">
