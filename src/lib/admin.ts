@@ -75,30 +75,19 @@ export async function deleteSuggestion(id: number): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export async function updateShow(showId: number, data: any) {
-  const { error } = await supabase
-    .from('shows')
-    .update({
-      title: data.title,
-      synopsis_es: data.synopsis_es,
-      poster_url: data.poster_url,
-      premiered: data.premiered,
-      tv_status: data.tv_status,
-      network_name: data.network_name,
-      genres: data.genres,
-      runtime: data.runtime,
-      rating: data.rating,
-      show_type: data.show_type,     // <--- Asegúrate de tener esto
-      franchise: data.franchise,     // <--- Asegúrate de tener esto
-      us_platforms: data.us_platforms,
-      es_platforms: data.es_platforms,
-      characters: data.characters,
-    })
-    .eq('id', showId);
+export async function updateShow(id: number, patch: any): Promise<ShowListItem> {
+  const cleanPatch = { ...patch };
+  delete cleanPatch.show_type;
+  delete cleanPatch.franchise;
 
-  if (error) throw error;
-  return data;
-}
+  const { data, error } = await supabase
+    .from('shows')
+    .update(cleanPatch)
+    .eq('id', id)
+    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, show_type, franchise, premiered, rating, imdb_id, network_name, us_platforms, es_platforms')
+    .single();
+    
+  if (error) throw new Error(error.message);
   return data as ShowListItem;
 }
 
