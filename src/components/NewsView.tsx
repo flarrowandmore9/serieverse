@@ -420,7 +420,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo (TMDB / TVMaze)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo</span>
               <select
                 value={selectedShowId}
                 onChange={(e) => handleSelectCatalogShow(e.target.value)}
