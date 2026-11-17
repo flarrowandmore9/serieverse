@@ -16,6 +16,9 @@ const inputClass =
   'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
 
 export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormProps) {
+  // Recuperamos de forma segura de localStorage o de las propiedades del show
+  const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_custom_${show.id}`) || '{}') : {};
+
   const [tvmazeId, setTvmazeId] = useState(show.tvmaze_id?.toString() ?? '');
   const [tmdbIdInput, setTmdbIdInput] = useState('');
   const [fetchingExternal, setFetchingExternal] = useState(false);
@@ -29,8 +32,11 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [genres, setGenres] = useState(show.genres ?? '');
   const [runtime, setRuntime] = useState(show.runtime?.toString() ?? '');
   const [rating, setRating] = useState(show.rating?.toString() ?? '');
-  const [showType, setShowType] = useState(show.show_type ?? '');
-  const [franchise, setFranchise] = useState(show.franchise ?? '');
+  
+  // Inicialización correcta para que no aparezcan en blanco al volver a editar
+  const [showType, setShowType] = useState(savedCustom.show_type ?? (show as any).show_type ?? '');
+  const [franchise, setFranchise] = useState(savedCustom.franchise ?? (show as any).franchise ?? '');
+  
   const [usPlatforms, setUsPlatforms] = useState(show.us_platforms.join(', '));
   const [esPlatforms, setEsPlatforms] = useState(show.es_platforms.join(', '));
   const [cast, setCast] = useState<Character[]>(show.characters ?? []);
@@ -114,7 +120,10 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
     setSaving(true);
     setError(null);
     try {
-      // INCLUIDOS SHOW_TYPE Y FRANCHISE AQUÍ PARA QUE SE GUARDEN EN SUPABASE
+      // Guardamos también en localStorage como respaldo inmediato
+      const customPayload = { show_type: showType, franchise };
+      localStorage.setItem(`show_custom_${show.id}`, JSON.stringify(customPayload));
+
       const updated = await updateShow(show.id, {
         tvmaze_id: tvmazeId.trim() ? Number(tvmazeId) : null,
         rating: rating.trim() ? Number(rating.replace(',', '.')) : null,
@@ -125,11 +134,11 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
         network_name: network.trim() || null,
         genres: genres.trim() || null,
         runtime: runtime.trim() ? Number(runtime) : null,
-        show_type: showType.trim() || null,
-        franchise: franchise.trim() || null,
         us_platforms: usPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         es_platforms: esPlatforms.split(',').map((s) => s.trim()).filter(Boolean),
         poster_url: poster.trim() || null,
+        show_type: showType || null,       // <-- Enviado a la BD para que lo vea todo el mundo
+        franchise: franchise.trim() || null, // <-- Enviado a la BD para que lo vea todo el mundo
         characters: cast.map((c) => ({ actor: c.actor.trim(), character: c.character.trim(), image: c.image.trim() })).filter((c) => c.actor),
       });
 
