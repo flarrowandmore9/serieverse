@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { ChevronDown, Loader2, Pencil, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { ChevronDown, Loader2, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import AdminCalendarEditor from '@/components/AdminCalendarEditor';
 import { formatDate, toIsoDate } from '@/lib/format';
 import { deleteEpisode, updateEpisode } from '@/lib/admin';
@@ -25,7 +25,6 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
 
   const seasons = useMemo(() => [...new Set(episodes.map((episode) => episode.season))].sort((a, b) => a - b), [episodes]);
 
-  // Botón de emergencia/refuerzo para descargar episodios al vuelo si están a 0
   const handleForceSyncEpisodes = async () => {
     if (!show.tvmaze_id) {
       setError('Esta serie no tiene un ID de TVMaze asignado. Edita la serie y asígnale su ID de TVMaze primero.');
@@ -78,18 +77,21 @@ export default function AdminEpisodeEditor({ show, episodes, onChanged }: AdminE
     setError(null);
     try {
       const roleOverrideVal = String(data.get('role_override') ?? '');
+      const specialTagVal = String(data.get('special_tag') ?? '');
+
       await updateEpisode(episode.tvmaze_episode_id, {
         name: String(data.get('name') ?? '').trim() || null,
         airdate: String(data.get('airdate') ?? episode.airdate),
         runtime: data.get('runtime') ? Number(data.get('runtime')) : null,
-        episode_type: episode.episode_type ?? null,
+        episode_type: episode.episode_type ?? 'regular',
         role_override: roleOverrideVal ? (roleOverrideVal as EpisodeRole) : null,
-        special_tag: (String(data.get('special_tag') ?? '') || null) as Episode['special_tag'],
+        special_tag: specialTagVal ? (specialTagVal as Episode['special_tag']) : null,
       });
       setEditingId(null);
       onChanged();
-    } catch {
-      setError('No se pudo guardar el episodio.');
+    } catch (err) {
+      console.error('Error al guardar episodio:', err);
+      setError('No se pudo guardar el episodio. Comprueba los datos.');
     } finally {
       setBusyId(null);
     }
