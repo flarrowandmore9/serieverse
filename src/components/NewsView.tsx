@@ -20,7 +20,7 @@ type NewsViewProps = {
   onOpenShow: (showId: number) => void;
 };
 
-const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v6';
+const EDITORIAL_CARDS_KEY = 'serieverse_exact_editorial_cards_v7';
 const BLOGGER_FEED_KEY = 'serieverse_blogger_feed_url';
 
 const CATEGORY_META = {
@@ -69,13 +69,14 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
   const [posterUrl, setPosterUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Carga inicial optimizada cargando un catálogo más amplio (hasta 5000 registros) para asegurar que incluye TMDB y TVMaze
   useEffect(() => {
     let isMounted = true;
     async function init() {
       try {
         const [cardsData, showsData, savedUrl] = await Promise.all([
           fetchCards(),
-          fetchCatalog({ search: '', genre: '', sort: 'title' }, 3000).catch(() => []),
+          fetchCatalog({ search: '', genre: '', sort: 'title' }, 5000).catch(() => []),
           fetchBloggerConfig(),
         ]);
         if (isMounted) {
@@ -168,6 +169,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
         else if (lower.includes('estreno')) cat = 'estrenos';
         else if (lower.includes('nueva')) cat = 'nuevas';
 
+        // Búsqueda cruzada exhaustiva en el catálogo (soporta TMDB y TVMaze)
         const matchedShow = catalog.find((s) => text.toLowerCase().includes(s.title.toLowerCase()));
 
         if (matchedShow) {
@@ -190,7 +192,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       await saveCards(tempCards);
       alert('¡Sincronización completada con éxito!');
     } catch {
-      alert('No se ha podido sincronizar debido a restricciones del navegador.');
+      alert('No se ha podido sincronizar automáticamente debido a restricciones del navegador.');
     } finally {
       setSyncing(false);
     }
@@ -238,9 +240,15 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     setSaving(true);
     try {
       let finalPoster = posterUrl.trim();
-      if (selectedShowId && !finalPoster) {
+      let finalShowId: number | null = selectedShowId ? Number(selectedShowId) : null;
+
+      // Si seleccionó del catálogo, aseguramos su póster e ID
+      if (selectedShowId) {
         const found = catalog.find((s) => String(s.id) === selectedShowId);
-        if (found?.poster_url) finalPoster = found.poster_url;
+        if (found) {
+          if (!finalPoster && found.poster_url) finalPoster = found.poster_url;
+          finalShowId = found.id;
+        }
       }
 
       if (editingId) {
@@ -248,7 +256,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           c.id === editingId
             ? {
                 ...c,
-                showId: selectedShowId ? Number(selectedShowId) : null,
+                showId: finalShowId,
                 title: title.trim(),
                 season: season.trim(),
                 category,
@@ -262,7 +270,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
       } else {
         const newCard: EditorialCard = {
           id: crypto.randomUUID(),
-          showId: selectedShowId ? Number(selectedShowId) : null,
+          showId: finalShowId,
           title: title.trim(),
           season: season.trim(),
           category,
@@ -293,11 +301,16 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [cards]);
 
-  const filteredCards = cards.filter((c) => {
-    const matchesTab = activeTab === 'all' || c.category === activeTab;
-    const matchesNetwork = selectedNetwork === 'all' || c.network === selectedNetwork;
-    return matchesTab && matchesNetwork;
-  });
+  // Filtrado y orden alfabético estricto por título de la serie
+  const filteredCards = useMemo(() => {
+    const filtered = cards.filter((c) => {
+      const matchesTab = activeTab === 'all' || c.category === activeTab;
+      const matchesNetwork = selectedNetwork === 'all' || c.network === selectedNetwork;
+      return matchesTab && matchesNetwork;
+    });
+
+    return filtered.sort((a, b) => a.title.localeCompare(b.title, 'es', { sensitivity: 'base' }));
+  }, [cards, activeTab, selectedNetwork]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
@@ -398,7 +411,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <label className="block space-y-1">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo (Carátula automática)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Buscar en Catálogo (TMDB / TVMaze)</span>
               <select
                 value={selectedShowId}
                 onChange={(e) => handleSelectCatalogShow(e.target.value)}
@@ -417,7 +430,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej: Criminal Minds"
+                placeholder="Ej: Wild Cards"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -427,7 +440,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <input
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
-                placeholder="Ej: Season 3 / Evolution S3"
+                placeholder="Ej: Season 2"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -437,7 +450,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
-                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
+                className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <option value="renewed">🟢 Renovada</option>
                 <option value="canceled">🔴 Cancelada o Terminada</option>
@@ -452,7 +465,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 required
                 value={network}
                 onChange={(e) => setNetwork(e.target.value)}
-                placeholder="Ej: Paramount+, CBS, Netflix"
+                placeholder="Ej: The CW, CBC, Netflix"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -468,11 +481,11 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
             </label>
 
             <label className="block space-y-1 sm:col-span-2 lg:col-span-3">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la Carátula (Manual por si no está en el catálogo)</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">URL de la Carátula (Manual por si no la autocompleta)</span>
               <input
                 value={posterUrl}
                 onChange={(e) => setPosterUrl(e.target.value)}
-                placeholder="https://image.tmdb.org/t/p/w500/... o enlace directo de imagen"
+                placeholder="https://image.tmdb.org/t/p/w500/... o enlace directo"
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               />
             </label>
@@ -522,14 +535,14 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
           aria-label="Filtrar por cadena o plataforma"
           className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm focus:border-pastel-accent focus:outline-none dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
         >
-          <option value="all">Todas las cadenas y plataformas</option>
+          <option value="all">🌐 Todas las cadenas y plataformas</option>
           {networksList.map((net) => (
             <option key={net} value={net}>{net}</option>
           ))}
         </select>
       </div>
 
-      {/* Cuadrícula de Tarjetas con Alineación Perfecta Vertical */}
+      {/* Cuadrícula de Tarjetas Ordenadas Alfabéticamente */}
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-7 w-7 animate-spin text-pastel-accent" />
@@ -550,7 +563,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 key={card.id}
                 className="group relative flex items-center overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-3 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
               >
-                {/* Carátula Oficial (Medida exacta y optimizada para ocupar mejor el espacio) */}
+                {/* Carátula Oficial clicable que abre la ficha completa */}
                 <div 
                   onClick={() => card.showId && onOpenShow(card.showId)}
                   title={card.showId ? "Ver ficha completa de la serie" : "Serie personalizada"}
@@ -565,7 +578,7 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                   )}
                 </div>
 
-                {/* Contenido alineado verticalmente al centro */}
+                {/* Contenido centrado verticalmente */}
                 <div className="ml-3.5 flex flex-1 flex-col justify-center space-y-1.5 py-1">
                   <div>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${meta.badgeClass}`}>
