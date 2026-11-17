@@ -529,10 +529,10 @@ export default function NewsView({ onOpenShow }: NewsViewProps) {
                 onChange={(e) => setCategory(e.target.value as EditorialCard['category'])}
                 className="w-full rounded-xl border border-slate-200 bg-pastel-cream px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800"
               >
-                <option value="renewed">🟢 Renovada</option>
-                <option value="canceled">🔴 Cancelada o Terminada</option>
-                <option value="estrenos">🔵 Estrenos del año</option>
-                <option value="nuevas">🟣 Series Nuevas</option>
+                <option value="renewed">Renovada</option>
+                <option value="canceled">Cancelada o Terminada</option>
+                <option value="estrenos">Estreno del Año</option>
+                <option value="nuevas">Series Nuevas</option>
               </select>
             </label>
 
