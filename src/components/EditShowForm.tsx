@@ -213,7 +213,6 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           <input type="text" inputMode="decimal" value={rating} onChange={(e) => setRating(e.target.value)} className={inputClass} />
         </label>
 
-        {/* 11. Tipo de Serie */}
         <label className="block space-y-1.5">
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Tipo de Serie</span>
           <select value={showType} onChange={(e) => setShowType(e.target.value)} className={inputClass}>
@@ -223,9 +222,8 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
           </select>
         </label>
 
-        {/* 12. Pertenece a (Franquicia / Serie Madre) */}
         <label className="block space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie Madre)</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pertenece a (Franquicia / Serie madre)</span>
           <input
             value={franchise}
             onChange={(e) => setFranchise(e.target.value)}
