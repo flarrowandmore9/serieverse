@@ -15,6 +15,10 @@ type EditShowFormProps = {
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
 
+const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_custom_${show.id}`) || '{}') : {};
+const [showType, setShowType] = useState(savedCustom.show_type ?? show.show_type ?? '');
+const [franchise, setFranchise] = useState(savedCustom.franchise ?? show.franchise ?? '');
+
 export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormProps) {
   const [tvmazeId, setTvmazeId] = useState(show.tvmaze_id?.toString() ?? '');
   const [tmdbIdInput, setTmdbIdInput] = useState('');
