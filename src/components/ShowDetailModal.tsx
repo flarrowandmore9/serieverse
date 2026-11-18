@@ -82,9 +82,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
-                  {show.is_miniseries && (
-                    <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
-                  )}
+                  
                 </div>
 
                 {/* Fila 1: Estreno · Cadena · Duración */}
@@ -93,7 +91,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <span aria-hidden="true">·</span>
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Emisión:</span> {show.network_name ?? 'Sin datos'}</span>
                   <span aria-hidden="true">·</span>
-                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración Media:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
+                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
                 </p>
 
                 {/* Fila 2: Género · Tipo de serie · Franquicia/Serie Madre */}

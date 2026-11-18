@@ -77,7 +77,7 @@ export type ListEntry = ListMembership & {
 export const SUGGESTION_STATUSES = ['Por hacer', 'Prioridad', 'En proceso', 'Completada'] as const;
 export type SuggestionStatus = (typeof SUGGESTION_STATUSES)[number];
 
-export type ViewId = 'catalog' | 'calendar' | 'platforms' | 'library' | 'suggestions' | 'account' | 'admin';
+export type ViewId = 'catalog' | 'calendar' | 'platforms' | 'library' | 'suggestions' | 'news' | 'admin' | 'account';
 
 export type Suggestion = {
   id: number;
