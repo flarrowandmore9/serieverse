@@ -82,7 +82,9 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl">{show.title}</h2>
                   <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
-                  
+                  {show.is_miniseries && (
+                    <span className="rounded-lg bg-pastel-gold px-2.5 py-1 text-xs font-bold text-amber-800">Miniserie</span>
+                  )}
                 </div>
 
                 {/* Fila 1: Estreno · Cadena · Duración */}
@@ -91,7 +93,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <span aria-hidden="true">·</span>
                   <span><span className="font-semibold text-slate-700 dark:text-slate-300">Emisión:</span> {show.network_name ?? 'Sin datos'}</span>
                   <span aria-hidden="true">·</span>
-                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
+                  <span><span className="font-semibold text-slate-700 dark:text-slate-300">Duración Media:</span> {show.runtime ? `${show.runtime} min` : 'Sin datos'}</span>
                 </p>
 
                 {/* Fila 2: Género · Tipo de serie · Franquicia/Serie Madre */}
@@ -185,7 +187,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Reparto Principal</h4>
                   <ul className="grid grid-cols-2 gap-2">
                     {show.characters.slice(0, 8).map((member) => (
-                      <li key={`${member.actor}-${member.character}`} className="flex items-center gap-2.5 rounded-xl bg-pastel-cream p-2 dark:bg-slate-800">
+                      <li key={`member.actor-{member.character}`} className="flex items-center gap-2.5 rounded-xl bg-pastel-cream p-2 dark:bg-slate-800">
                         <img src={member.image} alt={member.character} loading="lazy" className="h-10 w-10 shrink-0 rounded-full object-cover" />
                         <div className="min-w-0">
                           <p className="truncate text-xs font-semibold text-slate-900 dark:text-slate-100">{member.character}</p>
