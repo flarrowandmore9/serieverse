@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type { CalendarEpisode, Episode, EpisodeRole, Show, ShowListItem, SpecialTag } from '@/lib/types';
+import { normalizeList, normalizePlatformOrNetwork } from '@/lib/platforms';
+import type { ShowListItem } from '@/lib/types';
 
 const LIST_COLUMNS =
   'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
@@ -11,6 +13,21 @@ export type CatalogQuery = {
   genre: string;
   sort: CatalogSort;
 };
+
+export function matchesNetworkOrPlatform(show: ShowListItem, selectedFilter: string): boolean {
+  if (!selectedFilter || selectedFilter === 'all') return true;
+
+  const target = normalizePlatformOrNetwork(selectedFilter) ?? selectedFilter.trim();
+  const showNetwork = normalizePlatformOrNetwork(show.network_name);
+  const usList = normalizeList(show.us_platforms);
+  const esList = normalizeList(show.es_platforms);
+
+  return (
+    showNetwork === target ||
+    usList.includes(target) ||
+    esList.includes(target)
+  );
+}
 
 function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
