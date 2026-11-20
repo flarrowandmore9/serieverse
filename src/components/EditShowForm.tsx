@@ -43,69 +43,41 @@ export default function EditShowForm({ show, onSaved, onCancel }: EditShowFormPr
   const [error, setError] = useState<string | null>(null);
 
   const handleAutoFill = async () => {
-    setError(null);
-    setFetchingExternal(true);
-    try {
-      if (tmdbIdInput.trim()) {
-        const apiKey = import.meta.env.VITE_TMDB_API_KEY;
-        if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en .env');
-        
-        const res = await fetch(`https://api.themoviedb.org/3/tv/${tmdbIdInput.trim()}?api_key=${apiKey}&language=es-ES`);
-        if (!res.ok) throw new Error('No se encontró la serie en TMDB.');
-        const data = await res.json();
+  setError(null);
+  setFetchingExternal(true);
+  try {
+    const synced = tmdbIdInput.trim()
+      ? await fetchFromTmdbById(Number(tmdbIdInput.trim()))
+      : tvmazeId.trim()
+      ? await fetchFromTvmazeById(Number(tvmazeId.trim()))
+      : null;
 
-        if (data.name) setTitle(data.name);
-        if (data.overview) setSynopsis(data.overview);
-        if (data.poster_path) setPoster(`https://image.tmdb.org/t/p/original${data.poster_path}`);
-        if (data.vote_average) setRating(Number(data.vote_average).toFixed(1));
-        if (data.status) setStatus(data.status);
-        if (data.first_air_date) setPremiered(data.first_air_date.split('T')[0]);
-        if (data.genres?.length) setGenres(data.genres.map((g: any) => g.name).join(', '));
-        if (data.networks?.[0]?.name) setNetwork(data.networks[0].name);
-        if (data.episode_run_time?.[0]) setRuntime(String(data.episode_run_time[0]));
-
-      } else if (tvmazeId.trim()) {
-        const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId.trim()}?embed[]=episodes&embed[]=cast`);
-        if (!res.ok) throw new Error('No se encontró la serie en TVMaze.');
-        const data = await res.json();
-
-        if (data.name) setTitle(data.name);
-        if (data.summary) setSynopsis(data.summary.replace(/<[^>]*>/g, '').trim());
-        if (data.image?.original || data.image?.medium) setPoster(data.image.original ?? data.image.medium);
-        if (data.rating?.average) setRating(String(data.rating.average));
-        if (data.status) setStatus(data.status);
-        if (data.premiered) setPremiered(data.premiered.split('T')[0]);
-        if (data.genres?.length) setGenres(data.genres.join(', '));
-        if (data.network?.name || data.webChannel?.name) setNetwork(data.network?.name ?? data.webChannel?.name);
-        if (data.averageRuntime || data.runtime) setRuntime(String(data.averageRuntime ?? data.runtime));
-
-        const rawEpisodes = data._embedded?.episodes ?? [];
-        if (rawEpisodes.length > 0) {
-          const episodesPayload = rawEpisodes
-            .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
-            .map((e: any) => ({
-              tvmaze_episode_id: e.id,
-              show_id: show.id,
-              season: e.season,
-              number: e.number,
-              name: e.name,
-              airdate: e.airdate,
-              runtime: e.runtime,
-              episode_type: e.type,
-            }));
-
-          const { supabase } = await import('@/lib/supabase');
-          await supabase.from('episodes').upsert(episodesPayload, { onConflict: 'tvmaze_episode_id' });
-        }
-      } else {
-        setError('Introduce un ID de TVMaze o TMDB.');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al obtener datos.');
-    } finally {
-      setFetchingExternal(false);
+    if (!synced) {
+      setError('Introduce un ID de TVMaze o TMDB.');
+      return;
     }
-  };
+
+    if (synced.tvmaze_id) setTvmazeId(String(synced.tvmaze_id));
+    if (synced.title) setTitle(synced.title);
+    if (synced.synopsis_es) setSynopsis(synced.synopsis_es);
+    if (synced.poster_url) setPoster(synced.poster_url);
+    if (synced.rating != null) setRating(String(synced.rating));
+    if (synced.tv_status) setStatus(synced.tv_status);
+    if (synced.premiered) setPremiered(synced.premiered);
+    if (synced.genres) setGenres(synced.genres);
+    if (synced.network_name) setNetwork(synced.network_name);
+    if (synced.runtime != null) setRuntime(String(synced.runtime));
+    if (synced.us_platforms.length) setUsPlatforms(synced.us_platforms.join(', '));
+    if (synced.es_platforms.length) setEsPlatforms(synced.es_platforms.join(', '));
+    if (synced.characters.length) setCast(synced.characters);
+
+    await saveSyncedEpisodes(show.id, synced.episodes);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Error al obtener datos.');
+  } finally {
+    setFetchingExternal(false);
+  }
+};
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
