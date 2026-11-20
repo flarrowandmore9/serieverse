@@ -1,4 +1,67 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
+import { normalizeList, normalizePlatformOrNetwork } from '../../../src/lib/platforms.ts';
+
+const TMDB_PROVIDER_MAP: Record<number, string> = {
+  8: 'Netflix',
+  119: 'Prime Video',
+  337: 'Disney+',
+  350: 'Apple TV',
+  531: 'Paramount+',
+  1773: 'SkyShowtime',
+  149: 'Movistar Plus+',
+  63: 'Filmin',
+  384: 'HBO Max',
+  15: 'Hulu',
+  386: 'Peacock',
+};
+
+export async function fetchTmdbWatchProviders(tmdbId: number, apiKey: string) {
+  const url = `https://api.themoviedb.org/3/tv/${tmdbId}/watch/providers?api_key=${apiKey}`;
+  const res = await fetch(url);
+  if (!res.ok) return { us: [] as string[], es: [] as string[] };
+  const json = await res.json();
+  const results = json?.results ?? {};
+
+  const extractRegion = (regionCode: string) => {
+    const region = results[regionCode];
+    if (!region) return [];
+    const bucket = [
+      ...(region.flatrate ?? []),
+      ...(region.ads ?? []),
+      ...(region.free ?? []),
+    ];
+    const names: string[] = [];
+    for (const provider of bucket) {
+      const mapped = TMDB_PROVIDER_MAP[provider.provider_id] ?? provider.provider_name;
+      const norm = normalizePlatformOrNetwork(mapped);
+      if (norm) names.push(norm);
+    }
+    return names;
+  };
+
+  return {
+    us: normalizeList(extractRegion('US')),
+    es: normalizeList(extractRegion('ES')),
+  };
+}
+
+export async function discoverTmdbShowsByRegion(
+  apiKey: string,
+  region: 'ES' | 'US',
+  pages = 3,
+) {
+  const collected: any[] = [];
+  for (let page = 1; page <= pages; page++) {
+    const url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&language=es-ES&watch_region=${region}&sort_by=popularity.desc&page=${page}`;
+    const res = await fetch(url);
+    if (!res.ok) break;
+    const data = await res.json();
+    if (Array.isArray(data.results)) {
+      collected.push(...data.results);
+    }
+  }
+  return collected;
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
