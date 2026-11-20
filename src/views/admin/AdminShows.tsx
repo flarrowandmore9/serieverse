@@ -1,16 +1,122 @@
-import { useState, type FormEvent } from 'react';
-import { Loader2, Pencil, Trash2 } from 'lucide-react';
-import { EmptyState, ErrorState, LoadingState } from '@/components/PageStates';
-import { useAsyncData } from '@/hooks/useAsyncData';
-import { addShow, deleteShow } from '@/lib/admin';
-import { fetchCatalog } from '@/lib/catalog';
-
+import { useState } from 'react';
+import { Loader2, Sparkles } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import {
+  fetchFromTmdbById,
+  fetchFromTvmazeById,
+  saveSyncedEpisodes,
+} from '@/lib/externalSync';
 type AdminShowsProps = {
   onOpenShow: (showId: number) => void;
 };
 
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-pastel-cream px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-pastel-accent focus:outline-none focus:ring-2 focus:ring-pastel-accent/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100';
+
+export function QuickImportShowBox({ onImported }: { onImported: () => void }) {
+  const [source, setSource] = useState<'tvmaze' | 'tmdb'>('tmdb');
+  const [externalId, setExternalId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleImport = async () => {
+    const numericId = Number(externalId.trim());
+    if (!numericId || Number.isNaN(numericId)) {
+      setError('Introduce un ID numérico válido.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const synced =
+        source === 'tmdb'
+          ? await fetchFromTmdbById(numericId)
+          : await fetchFromTvmazeById(numericId);
+
+      const { data: insertedShow, error: insertError } = await supabase
+        .from('shows')
+        .insert({
+          tvmaze_id: synced.tvmaze_id,
+          imdb_id: synced.imdb_id,
+          title: synced.title,
+          synopsis_es: synced.synopsis_es,
+          poster_url: synced.poster_url,
+          rating: synced.rating,
+          tv_status: synced.tv_status,
+          premiered: synced.premiered,
+          genres: synced.genres,
+          network_name: synced.network_name,
+          runtime: synced.runtime,
+          us_platforms: synced.us_platforms,
+          es_platforms: synced.es_platforms,
+          characters: synced.characters,
+        })
+        .select('id, title')
+        .single();
+
+      if (insertError) throw new Error(insertError.message);
+
+      await saveSyncedEpisodes(insertedShow.id, synced.episodes);
+
+      setMessage(
+        `¡"${insertedShow.title}" importada con ${synced.episodes.length} episodios!`,
+      );
+      setExternalId('');
+      onImported();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al importar la serie.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-pastel-accent/30 bg-pastel-cream/60 p-4 dark:bg-slate-800/60">
+      <p className="text-sm font-bold text-slate-900 dark:text-white">
+        Añadir serie automática por ID (TVMaze o TMDB)
+      </p>
+      <p className="mt-0.5 text-xs text-slate-500">
+        Descarga ficha completa, carátula, reparto, plataformas y todas las temporadas y episodios.
+      </p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <select
+          value={source}
+          onChange={(e) => setSource(e.target.value as 'tvmaze' | 'tmdb')}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        >
+          <option value="tmdb">TMDB ID</option>
+          <option value="tvmaze">TVMaze ID</option>
+        </select>
+
+        <input
+          inputMode="numeric"
+          value={externalId}
+          onChange={(e) => setExternalId(e.target.value)}
+          placeholder={source === 'tmdb' ? 'Ej: 1399' : 'Ej: 82'}
+          className="w-44 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+        />
+
+        <button
+          type="button"
+          onClick={handleImport}
+          disabled={loading}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-pastel-accent px-4 py-2 text-sm font-bold text-white transition hover:bg-pastel-accentHover disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          Importar serie completa
+        </button>
+      </div>
+
+      {message && <p className="mt-2 text-xs font-semibold text-emerald-700">{message}</p>}
+      {error && <p className="mt-2 text-xs font-semibold text-rose-700">{error}</p>}
+    </div>
+  );
+}
 
 export default function AdminShows({ onOpenShow }: AdminShowsProps) {
   const shows = useAsyncData(() => fetchCatalog({ search: '', genre: '', sort: 'recent' }, 1000), []);
