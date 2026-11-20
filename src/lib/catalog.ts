@@ -1,10 +1,9 @@
 import { supabase } from '@/lib/supabase';
 import type { CalendarEpisode, Episode, EpisodeRole, Show, ShowListItem, SpecialTag } from '@/lib/types';
 import { normalizeList, normalizePlatformOrNetwork } from '@/lib/platforms';
-import type { ShowListItem } from '@/lib/types';
 
 const LIST_COLUMNS =
-  'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
+  'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, show_type, franchise, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
 
 export type CatalogSort = 'all' | 'popular' | 'recent' | 'visited';
 
@@ -71,25 +70,63 @@ export async function fetchEpisodes(showId: number): Promise<Episode[]> {
 }
 
 export async function fetchShowsForPlatform(platforms: string[], scope: 'us' | 'es'): Promise<ShowListItem[]> {
-  const column = scope === 'us' ? 'us_platforms' : 'es_platforms';
+  if (!platforms || platforms.length === 0) return [];
+
+  const loweredTargets = platforms
+    .flatMap((n) => n.split(','))
+    .map((n) => n.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (loweredTargets.length === 0) return [];
+
   const { data, error } = await supabase
     .from('shows')
     .select(LIST_COLUMNS)
-    .overlaps(column, platforms)
     .order('title');
   if (error) throw new Error(error.message);
-  return (data ?? []) as ShowListItem[];
+
+  const allShows = (data ?? []) as ShowListItem[];
+
+  return allShows.filter((show) => {
+    const net = (show.network_name ?? '').toLowerCase();
+    const regionPlatforms =
+      scope === 'es'
+        ? (Array.isArray(show.es_platforms) ? show.es_platforms : [])
+        : (Array.isArray(show.us_platforms) ? show.us_platforms : []);
+    const fallbackPlatforms =
+      scope === 'es'
+        ? (Array.isArray(show.us_platforms) ? show.us_platforms : [])
+        : (Array.isArray(show.es_platforms) ? show.es_platforms : []);
+
+    const matchesNetwork = loweredTargets.some(
+      (target) => net === target || net.includes(target),
+    );
+    const matchesRegionPlatform = regionPlatforms.some((plat) => {
+      const p = String(plat ?? '').toLowerCase();
+      return loweredTargets.some((target) => p === target || p.includes(target));
+    });
+    const matchesFallbackPlatform = fallbackPlatforms.some((plat) => {
+      const p = String(plat ?? '').toLowerCase();
+      return loweredTargets.some((target) => p === target || p.includes(target));
+    });
+
+    return matchesNetwork || matchesRegionPlatform || matchesFallbackPlatform;
+  });
 }
 
 export async function fetchPlatformOptions(): Promise<{ us: string[]; es: string[] }> {
-  const { data, error } = await supabase.from('shows').select('us_platforms, es_platforms');
+  const { data, error } = await supabase.from('shows').select('us_platforms, es_platforms, network_name');
   if (error) throw new Error(error.message);
 
   const us = new Set<string>();
   const es = new Set<string>();
-  for (const row of (data ?? []) as { us_platforms: string[]; es_platforms: string[] }[]) {
-    row.us_platforms.forEach((name) => us.add(name));
-    row.es_platforms.forEach((name) => es.add(name));
+  for (const row of (data ?? []) as { us_platforms: string[]; es_platforms: string[]; network_name?: string | null }[]) {
+    (row.us_platforms ?? []).forEach((name) => us.add(name));
+    (row.es_platforms ?? []).forEach((name) => es.add(name));
+    if (row.network_name) {
+      us.add(row.network_name);
+      es.add(row.network_name);
+    }
   }
   return {
     us: [...us].sort((a, b) => a.localeCompare(b, 'es')),
