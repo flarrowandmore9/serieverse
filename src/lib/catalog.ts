@@ -3,7 +3,7 @@ import type { CalendarEpisode, Episode, EpisodeRole, Show, ShowListItem, Special
 import { normalizeList, normalizePlatformOrNetwork } from '@/lib/platforms';
 
 const LIST_COLUMNS =
-  'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, show_type, franchise, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
+  'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
 
 export type CatalogSort = 'all' | 'popular' | 'recent' | 'visited';
 
@@ -82,7 +82,8 @@ export async function fetchShowsForPlatform(platforms: string[], scope: 'us' | '
   const { data, error } = await supabase
     .from('shows')
     .select(LIST_COLUMNS)
-    .order('title');
+    .order('title')
+    .limit(1000);
   if (error) throw new Error(error.message);
 
   const allShows = (data ?? []) as ShowListItem[];
@@ -115,18 +116,14 @@ export async function fetchShowsForPlatform(platforms: string[], scope: 'us' | '
 }
 
 export async function fetchPlatformOptions(): Promise<{ us: string[]; es: string[] }> {
-  const { data, error } = await supabase.from('shows').select('us_platforms, es_platforms, network_name');
+  const { data, error } = await supabase.from('shows').select('us_platforms, es_platforms');
   if (error) throw new Error(error.message);
 
   const us = new Set<string>();
   const es = new Set<string>();
-  for (const row of (data ?? []) as { us_platforms: string[]; es_platforms: string[]; network_name?: string | null }[]) {
+  for (const row of (data ?? []) as { us_platforms: string[]; es_platforms: string[] }[]) {
     (row.us_platforms ?? []).forEach((name) => us.add(name));
     (row.es_platforms ?? []).forEach((name) => es.add(name));
-    if (row.network_name) {
-      us.add(row.network_name);
-      es.add(row.network_name);
-    }
   }
   return {
     us: [...us].sort((a, b) => a.localeCompare(b, 'es')),
