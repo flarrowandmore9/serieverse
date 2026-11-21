@@ -187,7 +187,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Reparto Principal</h4>
                   <ul className="grid grid-cols-2 gap-2">
                     {show.characters.slice(0, 8).map((member) => (
-                      <li key={`member.actor-{member.character}`} className="flex items-center gap-2.5 rounded-xl bg-pastel-cream p-2 dark:bg-slate-800">
+                      <li key={`${member.actor}-${member.character}`} className="flex items-center gap-2.5 rounded-xl bg-pastel-cream p-2 dark:bg-slate-800">
                         <img src={member.image} alt={member.character} loading="lazy" className="h-10 w-10 shrink-0 rounded-full object-cover" />
                         <div className="min-w-0">
                           <p className="truncate text-xs font-semibold text-slate-900 dark:text-slate-100">{member.character}</p>
