@@ -47,6 +47,20 @@ const TMDB_PROVIDER_NAMES: Record<number, string> = {
   386: 'Peacock',
 };
 
+let resolvedTvmazeId: number | null = null;
+  const imdbId = data.external_ids?.imdb_id ?? null;
+  if (imdbId) {
+    try {
+      const lookupRes = await fetch(`https://api.tvmaze.com/lookup/shows?imdb=${encodeURIComponent(imdbId)}`);
+      if (lookupRes.ok) {
+        const lookupData = await lookupRes.json();
+        if (lookupData?.id) resolvedTvmazeId = Number(lookupData.id);
+      }
+    } catch {
+      // Opcional
+    }
+  }
+
 export async function fetchFromTmdbById(tmdbId: number): Promise<SyncedShowData> {
   const apiKey = import.meta.env.VITE_TMDB_API_KEY;
   if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en el archivo .env');
