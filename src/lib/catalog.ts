@@ -66,20 +66,54 @@ export async function fetchEpisodes(showId: number): Promise<Episode[]> {
       .eq('show_id', showId)
       .order('season')
       .order('number');
-    if (error) throw new Error(error.message);
-    if (data && data.length > 0) return data as Episode[];
+    if (!error && data && data.length > 0) {
+      return data as Episode[];
+    }
   } catch {
-    // Continúa al respaldo local si existe
+    // Continúa a los respaldos
   }
 
+  // Respaldo 1: almacenamiento local si estamos en el mismo navegador
   try {
     const raw = localStorage.getItem(`serieverse_synced_episodes_${showId}`);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed as Episode[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed as Episode[];
     }
   } catch {
-    // Ignorar errores de parseo
+    // Ignorar
+  }
+
+  // Respaldo 2: si la serie tiene tvmaze_id en Supabase, cargamos sus episodios directamente desde TVMaze (público para todos)
+  try {
+    const { data: showRow } = await supabase
+      .from('shows')
+      .select('tvmaze_id')
+      .eq('id', showId)
+      .maybeSingle();
+
+    const tvmazeId = (showRow as { tvmaze_id?: number | null } | null)?.tvmaze_id;
+    if (tvmazeId) {
+      const res = await fetch(`https://api.tvmaze.com/shows/${tvmazeId}/episodes`);
+      if (res.ok) {
+        const rawEpisodes = await res.json();
+        return (rawEpisodes ?? [])
+          .filter((e: any) => e.season !== null && e.number !== null && e.airdate)
+          .map((e: any) => ({
+            tvmaze_episode_id: Number(e.id),
+            season: Number(e.season),
+            number: Number(e.number),
+            name: e.name ? String(e.name) : `Episodio ${e.number}`,
+            airdate: String(e.airdate),
+            runtime: e.runtime ? Number(e.runtime) : null,
+            episode_type: e.type ? String(e.type) : 'regular',
+            role_override: null,
+            special_tag: null,
+          })) as Episode[];
+      }
+    }
+  } catch {
+    // Ignorar si falla la red
   }
 
   return [];
