@@ -41,11 +41,11 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
   const show = detail.data?.show ?? null;
   const status = statusLabel(show?.tv_status ?? null);
 
-  // Leemos de forma segura los datos personalizados guardados localmente para esta serie
+ // Leemos primero de la base de datos (para todos los usuarios/dominios) y usamos localStorage como respaldo
   const savedCustom = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem(`show_custom_${showId}`) || '{}') : {};
-  const rawShowType = savedCustom.show_type ?? (show as any)?.show_type;
+  const rawShowType = (show as any)?.show_type ?? savedCustom.show_type;
   const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
-  const franchise = savedCustom.franchise ?? (show as any)?.franchise;
+  const franchise = (show as any)?.franchise ?? savedCustom.franchise;
 
   return (
     <Modal title={editing ? 'Editar serie' : (show?.title ?? 'Serie')} onClose={onClose} maxWidth="max-w-4xl">
