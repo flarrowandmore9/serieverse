@@ -122,7 +122,7 @@ export async function fetchFromTmdbById(tmdbId: number): Promise<SyncedShowData>
   const rawNetwork = data.networks?.[0]?.name ?? null;
 
   return {
-    tvmaze_id: null,
+    tvmaze_id: resolvedTvmazeId,
     tmdb_id: tmdbId,
     imdb_id: data.external_ids?.imdb_id ?? null,
     title: data.name ?? data.original_name ?? `Serie TMDB #${tmdbId}`,
