@@ -230,11 +230,21 @@ export async function saveSyncedEpisodes(
     episode_type: ep.episode_type,
   }));
 
-  for (let i = 0; i < rows.length; i += 100) {
-    const batch = rows.slice(i, i + 100);
-    const { error } = await supabase
-      .from('episodes')
-      .upsert(batch, { onConflict: 'tvmaze_episode_id' });
-    if (error) throw new Error(error.message);
+  try {
+    for (let i = 0; i < rows.length; i += 100) {
+      const batch = rows.slice(i, i + 100);
+      const { error } = await supabase
+        .from('episodes')
+        .upsert(batch, { onConflict: 'tvmaze_episode_id' });
+      if (error) throw new Error(error.message);
+    }
+  } catch {
+    // Respaldo local si la base de datos bloquea escritura en 'episodes'
+    try {
+      const key = `serieverse_synced_episodes_${showId}`;
+      localStorage.setItem(key, JSON.stringify(episodes));
+    } catch {
+      // Ignorar si el almacenamiento local está lleno
+    }
   }
 }
