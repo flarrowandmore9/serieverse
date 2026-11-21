@@ -85,6 +85,7 @@ export async function fetchEpisodes(showId: number): Promise<Episode[]> {
   return [];
 }
 
+
 export async function fetchShowsForPlatform(platforms: string[], scope: 'us' | 'es'): Promise<ShowListItem[]> {
   if (!platforms || platforms.length === 0) return [];
 
