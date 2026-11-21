@@ -76,20 +76,37 @@ export async function deleteSuggestion(id: number): Promise<void> {
 }
 
 export async function updateShow(id: number, patch: any): Promise<ShowListItem> {
-  // Limpiamos los campos opcionales que puedan no existir en la base de datos para evitar errores al guardar
-  const cleanPatch = { ...patch };
-  delete cleanPatch.show_type;
-  delete cleanPatch.franchise;
+  const selectColumns =
+    'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, show_type, franchise, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
 
   const { data, error } = await supabase
     .from('shows')
-    .update(cleanPatch)
+    .update(patch)
     .eq('id', id)
-    .select('id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms')
+    .select(selectColumns)
     .single();
-    
-  if (error) throw new Error(error.message);
-  return data as ShowListItem;
+
+  if (!error && data) {
+    return data as ShowListItem;
+  }
+
+  // Respaldo por si las columnas show_type o franchise aún no existen en la tabla shows de Supabase
+  const fallbackPatch = { ...patch };
+  delete fallbackPatch.show_type;
+  delete fallbackPatch.franchise;
+
+  const fallbackSelect =
+    'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
+
+  const { data: fallbackData, error: fallbackError } = await supabase
+    .from('shows')
+    .update(fallbackPatch)
+    .eq('id', id)
+    .select(fallbackSelect)
+    .single();
+
+  if (fallbackError) throw new Error(fallbackError.message);
+  return fallbackData as ShowListItem;
 }
 
 export async function deleteShow(id: number): Promise<void> {
