@@ -47,8 +47,6 @@ const TMDB_PROVIDER_NAMES: Record<number, string> = {
   386: 'Peacock',
 };
 
-
-
 export async function fetchFromTmdbById(tmdbId: number): Promise<SyncedShowData> {
   const apiKey = import.meta.env.VITE_TMDB_API_KEY;
   if (!apiKey) throw new Error('Falta VITE_TMDB_API_KEY en el archivo .env');
@@ -219,9 +217,8 @@ export async function fetchFromTvmazeById(tvmazeId: number): Promise<SyncedShowD
 export async function saveSyncedEpisodes(
   showId: number,
   episodes: Omit<SyncedEpisodePayload, 'show_id'>[],
-): Promise<{ savedToDb: boolean; total: number }> {
-  if (!episodes.length) return { savedToDb: true, total: 0 };
-
+) {
+  if (!episodes.length) return;
   const rows = episodes.map((ep) => ({
     tvmaze_episode_id: ep.tvmaze_episode_id,
     show_id: showId,
@@ -234,12 +231,6 @@ export async function saveSyncedEpisodes(
   }));
 
   try {
-    localStorage.setItem(`serieverse_synced_episodes_${showId}`, JSON.stringify(episodes));
-  } catch {
-    // Ignorar si no hay espacio local
-  }
-
-  try {
     for (let i = 0; i < rows.length; i += 100) {
       const batch = rows.slice(i, i + 100);
       const { error } = await supabase
@@ -247,8 +238,13 @@ export async function saveSyncedEpisodes(
         .upsert(batch, { onConflict: 'tvmaze_episode_id' });
       if (error) throw new Error(error.message);
     }
-    return { savedToDb: true, total: rows.length };
   } catch {
-    return { savedToDb: false, total: rows.length };
+    // Respaldo local si la base de datos bloquea escritura en 'episodes'
+    try {
+      const key = `serieverse_synced_episodes_${showId}`;
+      localStorage.setItem(key, JSON.stringify(episodes));
+    } catch {
+      // Ignorar si el almacenamiento local está lleno
+    }
   }
 }
