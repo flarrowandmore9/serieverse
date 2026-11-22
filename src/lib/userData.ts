@@ -209,33 +209,3 @@ export async function toggleSeasonWatched(showId: number, episodeIds: number[], 
   }
 }
 
-export async function toggleShowWatched(showId: number, allEpisodeIds: number[], watched: boolean): Promise<void> {
-  const localShows = readLocalIds(LOCAL_SHOWS_KEY);
-  if (watched) localShows.add(showId);
-  else localShows.delete(showId);
-  writeLocalIds(LOCAL_SHOWS_KEY, localShows);
-
-  await toggleSeasonWatched(showId, allEpisodeIds, watched);
-
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
-    if (!userId) return;
-
-    if (watched) {
-      const { error } = await supabase
-        .from('user_watched_shows')
-        .upsert({ user_id: userId, show_id: showId }, { onConflict: 'user_id,show_id' });
-      if (error) throw new Error(error.message);
-    } else {
-      const { error } = await supabase
-        .from('user_watched_shows')
-        .delete()
-        .eq('user_id', userId)
-        .eq('show_id', showId);
-      if (error) throw new Error(error.message);
-    }
-  } catch {
-    // Mantiene el estado local
-  }
-}
