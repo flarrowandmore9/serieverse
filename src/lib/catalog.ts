@@ -73,7 +73,7 @@ export async function fetchEpisodes(showId: number): Promise<Episode[]> {
   try {
     const { data, error } = await supabase
       .from('episodes')
-      .select('tvmaze_episode_id, season, number, name, airdate, runtime, episode_type, role_override, special_tag, overview_es')
+      .select('tvmaze_episode_id, season, number, name, airdate, runtime, episode_type, role_override, special_tag')
       .eq('show_id', showId)
       .order('season')
       .order('number');
