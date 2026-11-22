@@ -1,5 +1,7 @@
-import { Star, Tv } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Check, Star, Tv } from 'lucide-react';
 import ListToggle from '@/components/ListToggle';
+import { fetchWatchedState } from '@/lib/userData';
 import type { ShowListItem } from '@/lib/types';
 
 type ShowCardProps = {
@@ -22,9 +24,35 @@ const showTypeLabels: Record<string, string> = {
 export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps) {
   const platform = show.es_platforms?.[0] ?? show.us_platforms?.[0] ?? show.network_name ?? 'Sin plataforma';
 
-  const rawShowType = show.show_type;
+  const [customData, setCustomData] = useState<{ show_type?: string; franchise?: string }>({});
+  const [isWatched, setIsWatched] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(`show_custom_${show.id}`);
+      if (saved) {
+        setCustomData(JSON.parse(saved));
+      }
+    } catch {
+      // Ignorar errores de formato JSON
+    }
+  }, [show.id]);
+
+  useEffect(() => {
+    let active = true;
+    fetchWatchedState(show.id)
+      .then((state) => {
+        if (active) setIsWatched(state.showWatched || state.episodeIds.length > 0);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [show.id]);
+
+  const rawShowType = show.show_type ?? customData.show_type;
   const showType = rawShowType ? (showTypeLabels[rawShowType] ?? rawShowType) : null;
-  const franchise = show.franchise;
+  const franchise = show.franchise ?? customData.franchise;
 
   const genresText = show.genres ?? 'Sin género';
   const subtitleText = [genresText, showType, franchise].filter(Boolean).join(' · ');
@@ -74,6 +102,13 @@ export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps
               {show.rating}
             </span>
           ) : <span />}
+
+          {isWatched && (
+            <span className="inline-flex items-center gap-0.5 rounded-md bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+              <Check className="h-2.5 w-2.5" />
+              Vista
+            </span>
+          )}
         </div>
       </div>
     </article>
