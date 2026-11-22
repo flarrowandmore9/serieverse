@@ -8,6 +8,7 @@ import type { Episode, EpisodeRole } from '@/lib/types';
 type ShowSeasonsProps = {
   episodes: Episode[];
   showId?: number;
+  onRequireLogin?: () => void;
 };
 
 const ROLE_LABELS: Partial<Record<EpisodeRole, string>> = {
@@ -24,7 +25,7 @@ const ROLE_STYLES: Partial<Record<EpisodeRole, string>> = {
   season_finale: 'mt-1 ml-1 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-100 ',
 };
 
-export default function ShowSeasons({ episodes, showId = 0 }: ShowSeasonsProps) {
+export default function ShowSeasons({ episodes, showId = 0, onRequireLogin }: ShowSeasonsProps) {
   const [watchedIds, setWatchedIds] = useState<Set<number>>(() => new Set());
   const [openSeason, setOpenSeason] = useState<number | null>(null);
 
@@ -52,19 +53,28 @@ export default function ShowSeasons({ episodes, showId = 0 }: ShowSeasonsProps) 
 
   const handleToggleEpisode = async (episodeId: number) => {
     const nextWatched = !watchedIds.has(episodeId);
+    const ok = await toggleEpisodeWatched(showId, episodeId, nextWatched);
+    if (!ok) {
+      onRequireLogin?.();
+      return;
+    }
     setWatchedIds((prev) => {
       const copy = new Set(prev);
       if (nextWatched) copy.add(episodeId);
       else copy.delete(episodeId);
       return copy;
     });
-    await toggleEpisodeWatched(showId, episodeId, nextWatched);
   };
 
   const handleToggleSeason = async (list: Episode[]) => {
     const ids = list.map((e) => e.tvmaze_episode_id);
     const allWatched = ids.length > 0 && ids.every((id) => watchedIds.has(id));
     const nextWatched = !allWatched;
+    const ok = await toggleSeasonWatched(showId, ids, nextWatched);
+    if (!ok) {
+      onRequireLogin?.();
+      return;
+    }
     setWatchedIds((prev) => {
       const copy = new Set(prev);
       for (const id of ids) {
@@ -73,7 +83,6 @@ export default function ShowSeasons({ episodes, showId = 0 }: ShowSeasonsProps) 
       }
       return copy;
     });
-    await toggleSeasonWatched(showId, ids, nextWatched);
   };
 
   if (seasons.length === 0) {
@@ -96,11 +105,9 @@ export default function ShowSeasons({ episodes, showId = 0 }: ShowSeasonsProps) 
                 aria-expanded={isOpen}
                 className="flex flex-1 items-center justify-between text-left"
               >
-                <div>
-                  <p className="text-xs font-black uppercase tracking-wide text-pastel-accent">
-                    Temporada {season} · {list.length} episodios · {seasonWatchedCount}/{list.length} vistos
-                  </p>
-                </div>
+                <p className="text-xs font-black uppercase tracking-wide text-pastel-accent">
+                  Temporada {season} · {list.length} episodios
+                </p>
                 <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -126,23 +133,17 @@ export default function ShowSeasons({ episodes, showId = 0 }: ShowSeasonsProps) 
                   const showRoleBadge = role !== 'regular';
                   const showSpecialBadge = episode.special_tag !== null && episode.special_tag !== undefined;
                   const isWatched = watchedIds.has(episode.tvmaze_episode_id);
-                  const overview = (episode as Episode & { overview_es?: string | null }).overview_es;
 
                   return (
-                    <li key={episode.tvmaze_episode_id} className="flex items-start justify-between gap-3 px-4 py-2.5 text-sm">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
-                          <span className="shrink-0 font-bold text-pastel-accent">E{episode.number}</span>
-                          <span className={isWatched ? 'line-through opacity-70' : ''}>{episode.name ?? 'Sin título'}</span>
-                          {showRoleBadge && (
-                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_STYLES[role]}`}>{ROLE_LABELS[role]}</span>
-                          )}
-                          {showSpecialBadge && episode.special_tag !== null && (
-                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${SPECIAL_TAG_STYLES[episode.special_tag]}`}>{SPECIAL_TAG_LABELS[episode.special_tag]}</span>
-                          )}
-                        </div>
-                        {overview && (
-                          <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">{overview}</p>
+                    <li key={episode.tvmaze_episode_id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                      <div className="min-w-0 flex-1 text-xs font-bold text-slate-900 dark:text-white">
+                        <span className="mr-1.5 shrink-0 font-bold text-pastel-accent">E{episode.number}</span>
+                        <span className={isWatched ? 'line-through opacity-70' : ''}>{episode.name ?? 'Sin título'}</span>
+                        {showRoleBadge && (
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${ROLE_STYLES[role]}`}>{ROLE_LABELS[role]}</span>
+                        )}
+                        {showSpecialBadge && episode.special_tag !== null && (
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${SPECIAL_TAG_STYLES[episode.special_tag]}`}>{SPECIAL_TAG_LABELS[episode.special_tag]}</span>
                         )}
                       </div>
 
