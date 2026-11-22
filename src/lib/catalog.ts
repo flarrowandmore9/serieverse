@@ -3,7 +3,7 @@ import type { CalendarEpisode, Episode, EpisodeRole, Show, ShowListItem, Special
 import { normalizeList, normalizePlatformOrNetwork } from '@/lib/platforms';
 
 const LIST_COLUMNS =
-  'id, tvmaze_id, tmdb_id, title, poster_url, synopsis_es, genres, tv_status, show_type, franchise, is_miniseries, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
+  'id, tvmaze_id, tmdb_id, title, poster_url, synopsis_es, genres, tv_status, is_miniseries, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
 
 export type CatalogSort = 'all' | 'popular' | 'recent' | 'visited';
 
