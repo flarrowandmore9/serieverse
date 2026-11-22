@@ -273,12 +273,7 @@ export default function ShowDetailModal({ showId, onClose, onRequireLogin }: Sho
                   onChanged={detail.reload}
                 />
               ) : (
-                <ShowSeasons
-                  episodes={episodes}
-                  watchedIds={watchedIds}
-                  onToggleEpisode={handleToggleEpisodeWatched}
-                  onToggleSeason={handleToggleSeasonWatched}
-                />
+                <ShowSeasons episodes={detail.data?.episodes ?? []} showId={show.id} />
               )}
             </section>
           )}
