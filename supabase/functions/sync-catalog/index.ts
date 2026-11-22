@@ -1,67 +1,4 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { normalizeList, normalizePlatformOrNetwork } from '../../../src/lib/platforms.ts';
-
-const TMDB_PROVIDER_MAP: Record<number, string> = {
-  8: 'Netflix',
-  119: 'Prime Video',
-  337: 'Disney+',
-  350: 'Apple TV',
-  531: 'Paramount+',
-  1773: 'SkyShowtime',
-  149: 'Movistar Plus+',
-  63: 'Filmin',
-  384: 'HBO Max',
-  15: 'Hulu',
-  386: 'Peacock',
-};
-
-export async function fetchTmdbWatchProviders(tmdbId: number, apiKey: string) {
-  const url = `https://api.themoviedb.org/3/tv/${tmdbId}/watch/providers?api_key=${apiKey}`;
-  const res = await fetch(url);
-  if (!res.ok) return { us: [] as string[], es: [] as string[] };
-  const json = await res.json();
-  const results = json?.results ?? {};
-
-  const extractRegion = (regionCode: string) => {
-    const region = results[regionCode];
-    if (!region) return [];
-    const bucket = [
-      ...(region.flatrate ?? []),
-      ...(region.ads ?? []),
-      ...(region.free ?? []),
-    ];
-    const names: string[] = [];
-    for (const provider of bucket) {
-      const mapped = TMDB_PROVIDER_MAP[provider.provider_id] ?? provider.provider_name;
-      const norm = normalizePlatformOrNetwork(mapped);
-      if (norm) names.push(norm);
-    }
-    return names;
-  };
-
-  return {
-    us: normalizeList(extractRegion('US')),
-    es: normalizeList(extractRegion('ES')),
-  };
-}
-
-export async function discoverTmdbShowsByRegion(
-  apiKey: string,
-  region: 'ES' | 'US',
-  pages = 3,
-) {
-  const collected: any[] = [];
-  for (let page = 1; page <= pages; page++) {
-    const url = `https://api.themoviedb.org/3/discover/tv?api_key=${apiKey}&language=es-ES&watch_region=${region}&sort_by=popularity.desc&page=${page}`;
-    const res = await fetch(url);
-    if (!res.ok) break;
-    const data = await res.json();
-    if (Array.isArray(data.results)) {
-      collected.push(...data.results);
-    }
-  }
-  return collected;
-}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -72,71 +9,69 @@ const corsHeaders = {
 const TVMAZE = "https://api.tvmaze.com";
 const TMDB_API = "https://api.themoviedb.org/3";
 const STALE_AFTER_MS = 20 * 60 * 60 * 1000;
-const TIME_BUDGET_MS = 90_000;
-const REQUEST_SPACING_MS = 550;
-const MAX_PAGES_PER_DISCOVER = 80;
-const BATCH_SIZE = 500;
+const TIME_BUDGET_MS = 85_000;
+const REQUEST_SPACING_MS = 350;
+const BATCH_SIZE = 250;
 
-// Lista ampliada con TODAS tus cadenas y plataformas de EE.UU. y España
-const US_NETWORKS = new Set(
-  [
-    "The CW", "ABC", "NBC", "CBS", "FOX", "AMC", "FX", "Starz", "Freeform", "Showtime",
-    "Netflix", "Prime Video", "Amazon", "HBO", "HBO Max", "Max", "Warner Bros.", "Disney+", 
-    "Disney", "Marvel", "Star Wars", "Hulu", "Apple TV", "Apple TV+", "Paramount", 
-    "Paramount+", "Paramount Network", "Peacock", "Universal", "Epix", "MGM+",
-  ].map((name) => name.toLowerCase()),
-);
-
-const ES_NETWORKS = new Set(
-  [
-    "RTVE", "TVE", "La 1", "La 2", "Antena 3", "A3Series", "Cuatro", "Telecinco", "La Sexta", "AXN", "FOX",
-    "RTVE Play", "Atresmedia", "Atresplayer", "Atresplayer Premium", "Atresplayer Originals", "Atresmedia Televisión", 
-    "Mediaset", "Movistar+", "Movistar Plus+", "Movistar Plus", "Movistar", "SkyShowtime", "Filmin", 
-    "HBO España", "HBO Max España", "Disney+ España", "Amazon Prime Video España",
-  ].map((name) => name.toLowerCase()),
-);
-
-const SERIES_TYPES = new Set(["scripted", "animation"]);
-
-type CastMember = {
-  person: { name: string; image: { medium?: string } | null } | null;
-  character: { name: string; image: { medium?: string } | null } | null;
+const ALIAS_MAP: Record<string, string> = {
+  "cw": "The CW", "the cw": "The CW",
+  "abc": "ABC", "cbs": "CBS", "nbc": "NBC",
+  "fox": "FOX", "fox (us)": "FOX",
+  "amc": "AMC", "amc+": "AMC",
+  "fx": "FX", "fx networks": "FX", "fxx": "FX",
+  "starz": "Starz",
+  "freeform": "Freeform",
+  "showtime": "Showtime",
+  "netflix": "Netflix",
+  "amazon prime video": "Prime Video", "prime video": "Prime Video", "amazon": "Prime Video",
+  "hbo": "HBO", "hbo max": "HBO Max", "max": "HBO Max",
+  "disney": "Disney", "disney+": "Disney+", "disney plus": "Disney+",
+  "hulu": "Hulu",
+  "apple tv": "Apple TV", "apple tv+": "Apple TV", "apple tv plus": "Apple TV",
+  "paramount": "Paramount", "paramount network": "Paramount",
+  "paramount+": "Paramount+", "paramount plus": "Paramount+",
+  "peacock": "Peacock", "peacock tv": "Peacock",
+  "skyshowtime": "SkyShowtime",
+  "rtve": "RTVE Play", "rtve play": "RTVE Play", "la 1": "RTVE Play", "la 2": "RTVE Play", "tve": "RTVE Play",
+  "atresmedia": "Atresmedia", "antena 3": "Atresmedia", "atresplayer": "Atresmedia", "atresplayer premium": "Atresmedia",
+  "mediaset": "Mediaset", "telecinco": "Mediaset", "cuatro": "Mediaset", "mitele": "Mediaset",
+  "movistar plus+": "Movistar Plus+", "movistar+": "Movistar Plus+", "movistar plus": "Movistar Plus+", "movistar": "Movistar Plus+",
+  "filmin": "Filmin",
 };
 
-type TvmazeEpisode = {
-  id: number;
-  season: number | null;
-  number: number | null;
-  name: string | null;
-  airdate: string | null;
-  runtime: number | null;
-  type: string | null;
+// IDs de Networks y Watch Providers en TMDB para las plataformas solicitadas
+const TMDB_US_NETWORK_IDS = [71, 2, 16, 6, 19, 174, 88, 318, 75, 67, 213, 1024, 49, 3186, 2739, 453, 2552, 4330, 3353];
+const TMDB_ES_PROVIDER_IDS = [8, 119, 337, 350, 1773, 149, 63, 384, 62, 456, 541]; // Netflix, Prime, Disney+, Apple TV, SkyShowtime, Movistar+, Filmin, Max, Atresplayer, Mitele, RTVE Play
+const TMDB_US_PROVIDER_IDS = [8, 9, 337, 350, 531, 384, 15, 386, 43, 37]; // Netflix, Prime, Disney+, Apple, Paramount+, Max, Hulu, Peacock, Starz, Showtime
+
+const TMDB_PROVIDER_MAP: Record<number, string> = {
+  8: "Netflix", 9: "Prime Video", 119: "Prime Video",
+  337: "Disney+", 350: "Apple TV", 531: "Paramount+",
+  1773: "SkyShowtime", 149: "Movistar Plus+", 63: "Filmin",
+  384: "HBO Max", 15: "Hulu", 386: "Peacock",
+  43: "Starz", 37: "Showtime", 62: "Atresmedia",
+  456: "Mediaset", 541: "RTVE Play",
 };
 
-type TvmazeShow = {
-  id: number;
-  name: string;
-  status: string | null;
-  premiered: string | null;
-  ended: string | null;
-  rating: { average: number | null } | null;
-  averageRuntime: number | null;
-  runtime: number | null;
-  network: { name: string; country: { code: string } | null } | null;
-  webChannel: { name: string; country: { code: string } | null } | null;
-  genres: string[] | null;
-  image: { medium?: string; original?: string } | null;
-  summary: string | null;
-  type: string | null;
-  _embedded?: { episodes?: TvmazeEpisode[]; cast?: CastMember[] };
-};
+function normalizeName(raw?: string | null): string | null {
+  if (!raw) return null;
+  const key = raw.trim().toLowerCase();
+  if (!key) return null;
+  if (ALIAS_MAP[key]) return ALIAS_MAP[key];
+  for (const [alias, canonical] of Object.entries(ALIAS_MAP)) {
+    if (alias.length >= 3 && key.includes(alias)) return canonical;
+  }
+  return raw.trim();
+}
 
-type ShowRow = { 
-  id: number; 
-  tvmaze_id: number | null; 
-  tmdb_id: number | null; 
-  title: string 
-};
+function normalizeList(items: (string | null | undefined)[]): string[] {
+  const out = new Set<string>();
+  for (const item of items) {
+    const n = normalizeName(item);
+    if (n) out.add(n);
+  }
+  return [...out];
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -146,23 +81,21 @@ function json(body: unknown, status = 200) {
 }
 
 function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function fetchTvmaze(path: string): Promise<Response> {
-  let res = await fetch(`${TVMAZE}${path}`);
-  for (let attempt = 1; attempt <= 3 && res.status === 429; attempt++) {
-    await sleep(3000 * attempt);
-    res = await fetch(`${TVMAZE}${path}`);
-  }
-  return res;
+  return new Promise((r) => setTimeout(r, ms));
 }
 
 async function fetchTmdb(path: string, apiKey: string): Promise<any | null> {
+  if (!apiKey) return null;
+  const sep = path.includes("?") ? "&" : "?";
+  const isBearer = apiKey.startsWith("eyJ");
+  const url = isBearer
+    ? `${TMDB_API}${path}${sep}language=es-ES`
+    : `${TMDB_API}${path}${sep}api_key=${apiKey}&language=es-ES`;
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (isBearer) headers.Authorization = `Bearer ${apiKey}`;
+
   try {
-    const separator = path.includes("?") ? "&" : "?";
-    const url = `${TMDB_API}${path}${separator}api_key=${apiKey}&language=es-ES`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -170,216 +103,239 @@ async function fetchTmdb(path: string, apiKey: string): Promise<any | null> {
   }
 }
 
-function stripHtml(html: string | null): string | null {
-  if (!html) return null;
-  return html.replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").replace(/&#39;/g, "'").replace(/&quot;/g, '"').trim();
+async function discoverFromTmdb(supabase: ReturnType<typeof createClient>, apiKey: string) {
+  if (!apiKey) return 0;
+  const discoveredMap = new Map<number, any>();
+
+  // 1. Cadenas de EE. UU. (FX, Starz, Freeform, Showtime, Paramount, Peacock, etc.)
+  for (const netId of TMDB_US_NETWORK_IDS) {
+    for (let page = 1; page <= 2; page++) {
+      const data = await fetchTmdb(`/discover/tv?with_networks=${netId}&sort_by=popularity.desc&page=${page}`, apiKey);
+      for (const item of data?.results ?? []) {
+        if (item?.id) discoveredMap.set(item.id, item);
+      }
+      await sleep(150);
+    }
+  }
+
+  // 2. Plataformas en España (Movistar Plus+, Filmin, SkyShowtime, Atresmedia, Mediaset, etc.)
+  for (const provId of TMDB_ES_PROVIDER_IDS) {
+    for (let page = 1; page <= 2; page++) {
+      const data = await fetchTmdb(
+        `/discover/tv?watch_region=ES&with_watch_providers=${provId}&sort_by=popularity.desc&page=${page}`,
+        apiKey,
+      );
+      for (const item of data?.results ?? []) {
+        if (item?.id) discoveredMap.set(item.id, item);
+      }
+      await sleep(150);
+    }
+  }
+
+  // 3. Plataformas en EE. UU. (Paramount+, Peacock, Showtime, Starz, etc.)
+  for (const provId of TMDB_US_PROVIDER_IDS) {
+    const data = await fetchTmdb(
+      `/discover/tv?watch_region=US&with_watch_providers=${provId}&sort_by=popularity.desc&page=1`,
+      apiKey,
+    );
+    for (const item of data?.results ?? []) {
+      if (item?.id) discoveredMap.set(item.id, item);
+    }
+    await sleep(150);
+  }
+
+  let insertedOrUpdated = 0;
+  for (const [tmdbId, basic] of discoveredMap.entries()) {
+    const { data: existing } = await supabase
+      .from("shows")
+      .select("id")
+      .eq("tmdb_id", tmdbId)
+      .maybeSingle();
+
+    if (existing) continue;
+
+    // También buscamos por título exacto para enlazar series ya creadas por TVMaze sin duplicar
+    const title = basic.name || basic.original_name;
+    if (!title) continue;
+
+    const { data: byTitle } = await supabase
+      .from("shows")
+      .select("id, tmdb_id")
+      .ilike("title", title)
+      .limit(1)
+      .maybeSingle();
+
+    if (byTitle) {
+      if (!byTitle.tmdb_id) {
+        await supabase.from("shows").update({ tmdb_id: tmdbId, tv_synced_at: null }).eq("id", byTitle.id);
+      }
+      continue;
+    }
+
+    const { error } = await supabase.from("shows").insert({
+      tmdb_id: tmdbId,
+      title,
+      synopsis_es: basic.overview || null,
+      poster_url: basic.poster_path ? `https://image.tmdb.org/t/p/original${basic.poster_path}` : null,
+      premiered: basic.first_air_date || null,
+      rating: basic.vote_average ? Number(Number(basic.vote_average).toFixed(1)) : null,
+      tv_type: "scripted",
+      tv_synced_at: null,
+    });
+
+    if (!error) insertedOrUpdated += 1;
+  }
+
+  return insertedOrUpdated;
 }
 
-function medianRuntime(episodes: TvmazeEpisode[]): number | null {
-  const runtimes = episodes.map((e) => e.runtime).filter((r): r is number => typeof r === "number" && r > 0).sort((a, b) => a - b);
-  if (runtimes.length === 0) return null;
-  return runtimes[Math.floor(runtimes.length / 2)];
-}
-
-function toCharacters(cast: CastMember[] | undefined) {
-  return (cast ?? [])
-    .filter((c) => c.character?.image?.medium && c.person?.name)
-    .slice(0, 12)
-    .map((c) => ({
-      actor: c.person!.name,
-      character: c.character!.name,
-      image: c.character!.image!.medium,
-    }));
-}
-
-function platformFields(networkName: string | null) {
-  const key = networkName?.toLowerCase() ?? "";
-  return {
-    us_platforms: networkName !== null && US_NETWORKS.has(key) ? [networkName] : [],
-    es_platforms: networkName !== null && ES_NETWORKS.has(key) ? [networkName] : [],
-  };
-}
-
-function isNamedNetwork(show: TvmazeShow): boolean {
-  const name = show.network?.name ?? show.webChannel?.name ?? null;
-  if (!name) return false;
-  const key = name.toLowerCase();
-  const allNetworks = [...US_NETWORKS, ...ES_NETWORKS];
-  // Coincidencia flexible: detecta la plataforma aunque TVMaze devuelva variantes en el nombre
-  return allNetworks.some((net) => key.includes(net) || net.includes(key));
-}
-
-async function syncShow(supabase: ReturnType<typeof createClient>, show: ShowRow, tmdbApiKey: string): Promise<void> {
-  let tvmazeData: TvmazeShow | null = null;
-  let episodesData: TvmazeEpisode[] = [];
-  let tmdbData: any = null;
-  let tmdbId = show.tmdb_id;
-  let tvmazeId = show.tvmaze_id;
+async function syncSingleShow(supabase: ReturnType<typeof createClient>, show: any, apiKey: string) {
+  let tvmazeData: any = null;
+  let episodesData: any[] = [];
+  let tmdbId: number | null = show.tmdb_id ?? null;
+  let tvmazeId: number | null = show.tvmaze_id ?? null;
 
   if (tvmazeId) {
-    const res = await fetchTvmaze(`/shows/${tvmazeId}?embed[]=episodes&embed[]=cast`);
+    const res = await fetch(`${TVMAZE}/shows/${tvmazeId}?embed[]=episodes&embed[]=cast`);
     if (res.ok) {
-      tvmazeData = (await res.json()) as TvmazeShow;
+      tvmazeData = await res.json();
       episodesData = tvmazeData._embedded?.episodes ?? [];
     }
   } else if (show.title) {
-    try {
-      const searchRes = await fetchTvmaze(`/singlesearch/shows?q=${encodeURIComponent(show.title)}&embed[]=episodes&embed[]=cast`);
-      if (searchRes.ok) {
-        tvmazeData = (await searchRes.json()) as TvmazeShow;
-        if (tvmazeData?.id) {
-          tvmazeId = tvmazeData.id;
-          episodesData = tvmazeData._embedded?.episodes ?? [];
-        }
+    const res = await fetch(`${TVMAZE}/singlesearch/shows?q=${encodeURIComponent(show.title)}&embed[]=episodes&embed[]=cast`);
+    if (res.ok) {
+      tvmazeData = await res.json();
+      if (tvmazeData?.id) {
+        tvmazeId = tvmazeData.id;
+        episodesData = tvmazeData._embedded?.episodes ?? [];
       }
-    } catch {
-      // Ignorar si no está en TVMaze
     }
   }
 
-  if (!tmdbId && (show.title || tvmazeData?.name)) {
-    const searchTitle = show.title || tvmazeData?.name;
-    const searchRes = await fetchTmdb(`/search/tv?query=${encodeURIComponent(searchTitle)}`, tmdbApiKey);
-    if (searchRes?.results?.[0]) {
-      tmdbId = searchRes.results[0].id;
-    }
+  if (!tmdbId && apiKey && (show.title || tvmazeData?.name)) {
+    const search = await fetchTmdb(`/search/tv?query=${encodeURIComponent(show.title || tvmazeData.name)}`, apiKey);
+    if (search?.results?.[0]?.id) tmdbId = search.results[0].id;
   }
 
-  if (tmdbId) {
-    tmdbData = await fetchTmdb(`/tv/${tmdbId}`, tmdbApiKey);
+  let tmdbData: any = null;
+  if (tmdbId && apiKey) {
+    tmdbData = await fetchTmdb(`/tv/${tmdbId}?append_to_response=credits,watch/providers,external_ids`, apiKey);
   }
 
-  const networkName = tmdbData?.networks?.[0]?.name ?? tvmazeData?.network?.name ?? tvmazeData?.webChannel?.name ?? null;
-  const platforms = platformFields(networkName);
+  const rawNet = tmdbData?.networks?.[0]?.name ?? tvmazeData?.network?.name ?? tvmazeData?.webChannel?.name ?? show.network_name ?? null;
+  const networkName = normalizeName(rawNet) ?? rawNet;
 
-  const posterUrl = tmdbData?.poster_path 
-    ? `https://image.tmdb.org/t/p/original${tmdbData.poster_path}` 
-    : (tvmazeData?.image?.original ?? tvmazeData?.image?.medium ?? null);
-
-  const synopsis = tmdbData?.overview || stripHtml(tvmazeData?.summary) || null;
-  const rating = tmdbData?.vote_average ?? tvmazeData?.rating?.average ?? null;
-  const runtime = medianRuntime(episodesData) ?? tvmazeData?.averageRuntime ?? tvmazeData?.runtime ?? null;
-  const genres = tmdbData?.genres ? tmdbData.genres.map((g: any) => g.name).join(", ") : ((tvmazeData?.genres ?? []).join(", ") || null);
-
-  const updatePayload: any = {
-    tv_type: "scripted", // Forzamos minúscula para que nunca desaparezca del catálogo
-    ...platforms,
-    tv_status: tmdbData?.status ?? tvmazeData?.status,
-    premiered: tmdbData?.first_air_date ?? tvmazeData?.premiered,
-    ended: tmdbData?.last_air_date ?? tvmazeData?.ended,
-    rating,
-    runtime,
-    network_name: networkName,
-    genres,
-    poster_url: posterUrl,
-    synopsis_es: synopsis,
-    tv_synced_at: new Date().toISOString(),
+  const providers = tmdbData?.["watch/providers"]?.results ?? {};
+  const extractProv = (regCode: "US" | "ES") => {
+    const reg = providers[regCode];
+    if (!reg) return [];
+    const bucket = [...(reg.flatrate ?? []), ...(reg.ads ?? []), ...(reg.free ?? [])];
+    return normalizeList(bucket.map((p: any) => TMDB_PROVIDER_MAP[p.provider_id] ?? p.provider_name));
   };
 
-  if (tmdbId) updatePayload.tmdb_id = tmdbId;
-  if (tvmazeId) updatePayload.tvmaze_id = tvmazeId;
+  const usPlatforms = normalizeList([...(show.us_platforms ?? []), ...extractProv("US"), ...(networkName ? [networkName] : [])]);
+  const esPlatforms = normalizeList([...(show.es_platforms ?? []), ...extractProv("ES")]);
 
-  if (tvmazeData?._embedded?.cast) {
-    updatePayload.characters = toCharacters(tvmazeData._embedded.cast);
-  }
+  const characters = tmdbData?.credits?.cast?.length
+    ? tmdbData.credits.cast.slice(0, 12).map((c: any) => ({
+        actor: c.name ?? "",
+        character: c.character ?? "",
+        image: c.profile_path ? `https://image.tmdb.org/t/p/w300${c.profile_path}` : "",
+      })).filter((c: any) => c.actor)
+    : (tvmazeData?._embedded?.cast ?? []).slice(0, 12).map((c: any) => ({
+        actor: c.person?.name ?? "",
+        character: c.character?.name ?? "",
+        image: c.character?.image?.medium ?? c.person?.image?.medium ?? "",
+      })).filter((c: any) => c.actor);
 
-  const { error: updateError } = await supabase
-    .from("shows")
-    .update(updatePayload)
-    .eq("id", show.id);
-
-  if (updateError) throw new Error(updateError.message);
-
-  if (episodesData.length > 0) {
-    const episodes = episodesData
-      .filter((e) => e.season !== null && e.number !== null && e.airdate)
-      .map((e) => ({
-        tvmaze_episode_id: e.id,
-        show_id: show.id,
-        season: e.season!,
-        number: e.number!,
-        name: e.name,
-        airdate: e.airdate!,
-        runtime: e.runtime,
-        episode_type: e.type,
-      }));
-
-    if (episodes.length > 0) {
-      await supabase
-        .from("episodes")
-        .upsert(episodes, { onConflict: "tvmaze_episode_id" });
-    }
-  }
-}
-
-async function discover(supabase: ReturnType<typeof createClient>, fromPage: number, toPage: number, _tmdbApiKey: string) {
-  const rows: any[] = [];
-  let pages = 0;
-  let reachedEnd = false;
-
-  for (let page = fromPage; page <= toPage; page++) {
-    const res = await fetchTvmaze(`/shows?page=${page}`);
-    if (res.status === 404) {
-      reachedEnd = true;
-      break;
-    }
-    if (!res.ok) throw new Error(`TVMaze ${res.status} en la página ${page}`);
-    const shows = (await res.json()) as TvmazeShow[];
-    
-    for (const show of shows) {
-      if (SERIES_TYPES.has((show.type ?? "").toLowerCase()) && isNamedNetwork(show)) {
-        const networkName = show.network?.name ?? show.webChannel?.name ?? null;
-        rows.push({
-          tvmaze_id: show.id,
-          title: show.name,
-          tv_type: "scripted",
-          network_name: networkName,
-          ...platformFields(networkName),
+  // Obtener sinopsis en español de los episodios desde TMDB
+  const esEpisodeMap = new Map<string, { name?: string; overview?: string; airdate?: string; runtime?: number }>();
+  if (tmdbId && apiKey && Array.isArray(tmdbData?.seasons)) {
+    for (const s of tmdbData.seasons.filter((s: any) => s.season_number > 0)) {
+      const sData = await fetchTmdb(`/tv/${tmdbId}/season/${s.season_number}`, apiKey);
+      for (const ep of sData?.episodes ?? []) {
+        esEpisodeMap.set(`${s.season_number}-${ep.episode_number}`, {
+          name: ep.name,
+          overview: ep.overview,
+          airdate: ep.air_date,
+          runtime: ep.runtime,
         });
       }
+      await sleep(120);
     }
-    pages += 1;
-    await sleep(REQUEST_SPACING_MS);
   }
 
-  // PROTECCIÓN ABSOLUTA: NUNCA SE BORRA NINGUNA SERIE
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    await supabase
-      .from("shows")
-      .upsert(rows.slice(i, i + BATCH_SIZE), { onConflict: "tvmaze_id", ignoreDuplicates: false });
+  const posterUrl = tmdbData?.poster_path
+    ? `https://image.tmdb.org/t/p/original${tmdbData.poster_path}`
+    : (tvmazeData?.image?.original ?? tvmazeData?.image?.medium ?? show.poster_url ?? null);
+
+  await supabase.from("shows").update({
+    tvmaze_id: tvmazeId,
+    tmdb_id: tmdbId,
+    imdb_id: tmdbData?.external_ids?.imdb_id ?? tvmazeData?.externals?.imdb ?? show.imdb_id ?? null,
+    synopsis_es: tmdbData?.overview || show.synopsis_es || (tvmazeData?.summary ? tvmazeData.summary.replace(/<[^>]*>/g, "").trim() : null),
+    poster_url: posterUrl,
+    tv_status: tmdbData?.status ?? tvmazeData?.status ?? show.tv_status ?? null,
+    premiered: tmdbData?.first_air_date ?? tvmazeData?.premiered ?? show.premiered ?? null,
+    ended: tmdbData?.last_air_date ?? tvmazeData?.ended ?? null,
+    rating: tmdbData?.vote_average ? Number(Number(tmdbData.vote_average).toFixed(1)) : (tvmazeData?.rating?.average ?? show.rating ?? null),
+    runtime: tmdbData?.episode_run_time?.[0] ?? tvmazeData?.averageRuntime ?? tvmazeData?.runtime ?? show.runtime ?? null,
+    network_name: networkName,
+    genres: tmdbData?.genres?.length ? tmdbData.genres.map((g: any) => g.name).join(", ") : ((tvmazeData?.genres ?? []).join(", ") || show.genres || null),
+    us_platforms: usPlatforms,
+    es_platforms: esPlatforms,
+    characters: characters.length ? characters : (show.characters ?? []),
+    tv_type: "scripted",
+    tv_synced_at: new Date().toISOString(),
+  }).eq("id", show.id);
+
+  // Guardar episodios combinando TVMaze + sinopsis en español de TMDB
+  const epRows: any[] = [];
+  const seenSeasonEp = new Set<string>();
+
+  for (const e of episodesData) {
+    if (e.season == null || e.number == null || !e.airdate) continue;
+    const key = `${e.season}-${e.number}`;
+    seenSeasonEp.add(key);
+    const esInfo = esEpisodeMap.get(key);
+    epRows.push({
+      tvmaze_episode_id: e.id,
+      show_id: show.id,
+      season: e.season,
+      number: e.number,
+      name: esInfo?.name || e.name,
+      overview_es: esInfo?.overview || null,
+      airdate: e.airdate,
+      runtime: e.runtime ?? esInfo?.runtime ?? null,
+      episode_type: e.type ?? "regular",
+    });
   }
 
-  return { pages, series: rows.length, removed: 0, reachedEnd, nextPage: toPage + 1 };
-}
-
-async function syncBatch(supabase: ReturnType<typeof createClient>, tmdbApiKey: string) {
-  const started = Date.now();
-  const cutoff = new Date(Date.now() - STALE_AFTER_MS).toISOString();
-  
-  const { data: shows, error } = await supabase
-    .from("shows")
-    .select("id, tvmaze_id, tmdb_id, title")
-    .or(`tv_synced_at.is.null,tv_synced_at.lt.${cutoff}`)
-    .order("tv_synced_at", { ascending: true, nullsFirst: true })
-    .order("id", { ascending: false })
-    .limit(BATCH_SIZE);
-
-  if (error) throw new Error(error.message);
-
-  let synced = 0;
-  const failures: string[] = [];
-  
-  for (const show of (shows ?? []) as ShowRow[]) {
-    if (Date.now() - started > TIME_BUDGET_MS) break;
-    try {
-      await syncShow(supabase, show, tmdbApiKey);
-      synced += 1;
-    } catch (err) {
-      failures.push(err instanceof Error ? err.message : String(err));
+  // Si la serie solo está en TMDB (como muchas españolas de Atresmedia, Movistar+, Filmin), creamos sus episodios desde TMDB
+  if (tmdbId && esEpisodeMap.size > 0) {
+    for (const [key, info] of esEpisodeMap.entries()) {
+      if (seenSeasonEp.has(key) || !info.airdate) continue;
+      const [sStr, eStr] = key.split("-");
+      const sNum = Number(sStr);
+      const eNum = Number(eStr);
+      const syntheticId = -(tmdbId * 10000 + sNum * 100 + eNum);
+      epRows.push({
+        tvmaze_episode_id: syntheticId,
+        show_id: show.id,
+        season: sNum,
+        number: eNum,
+        name: info.name || `Episodio ${eNum}`,
+        overview_es: info.overview || null,
+        airdate: info.airdate,
+        runtime: info.runtime ?? null,
+        episode_type: "regular",
+      });
     }
-    await sleep(REQUEST_SPACING_MS);
   }
-  return { synced, failed: failures.length, failures };
+
+  for (let i = 0; i < epRows.length; i += 100) {
+    await supabase.from("episodes").upsert(epRows.slice(i, i + 100), { onConflict: "tvmaze_episode_id" });
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -389,28 +345,40 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
     const tmdbApiKey = Deno.env.get("TMDB_API_KEY") || "";
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const discovered = await discoverFromTmdb(supabase, tmdbApiKey);
 
-    if (body.mode === "discover") {
-      const expected = `Bearer ${supabaseServiceKey}`;
-      if (req.headers.get("Authorization") !== expected) {
-        return json({ error: "No autorizado" }, 403);
+    const started = Date.now();
+    const cutoff = new Date(Date.now() - STALE_AFTER_MS).toISOString();
+    let query = supabase.from("shows").select("*");
+    if (!body.force) {
+      query = query.or(`tv_synced_at.is.null,tv_synced_at.lt.${cutoff}`);
+    }
+    const { data: shows, error } = await query
+      .order("tv_synced_at", { ascending: true, nullsFirst: true })
+      .limit(BATCH_SIZE);
+
+    if (error) throw new Error(error.message);
+
+    let synced = 0;
+    for (const show of shows ?? []) {
+      if (Date.now() - started > TIME_BUDGET_MS) break;
+      try {
+        await syncSingleShow(supabase, show, tmdbApiKey);
+        synced += 1;
+      } catch {
+        // Continuar con la siguiente serie sin interrumpir el lote
       }
-      const fromPage = Number(body.fromPage);
-      const toPage = Number(body.toPage);
-      if (!Number.isInteger(fromPage) || !Number.isInteger(toPage) || fromPage < 0 || toPage < fromPage || toPage - fromPage >= MAX_PAGES_PER_DISCOVER) {
-        return json({ error: "Rango de páginas no válido" }, 400);
-      }
-      return json(await discover(supabase, fromPage, toPage, tmdbApiKey));
+      await sleep(REQUEST_SPACING_MS);
     }
 
-    return json(await syncBatch(supabase, tmdbApiKey));
+    return json({ ok: true, discovered, synced });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return json({ error: message }, 500);
+    return json({ error: err instanceof Error ? err.message : "Error desconocido" }, 500);
   }
 });
