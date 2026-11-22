@@ -3,7 +3,7 @@ import type { CalendarEpisode, Episode, EpisodeRole, Show, ShowListItem, Special
 import { normalizeList, normalizePlatformOrNetwork } from '@/lib/platforms';
 
 const LIST_COLUMNS =
-  'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
+  'id, tvmaze_id, tmdb_id, title, poster_url, synopsis_es, genres, tv_status, show_type, franchise, is_miniseries, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
 
 export type CatalogSort = 'all' | 'popular' | 'recent' | 'visited';
 
@@ -21,11 +21,7 @@ export function matchesNetworkOrPlatform(show: ShowListItem, selectedFilter: str
   const usList = normalizeList(show.us_platforms);
   const esList = normalizeList(show.es_platforms);
 
-  return (
-    showNetwork === target ||
-    usList.includes(target) ||
-    esList.includes(target)
-  );
+  return showNetwork === target || usList.includes(target) || esList.includes(target);
 }
 
 function escapeLike(value: string): string {
@@ -59,75 +55,57 @@ export async function fetchShow(showId: number): Promise<Show | null> {
 }
 
 export async function fetchEpisodes(showId: number): Promise<Episode[]> {
-  try {
-    const { data, error } = await supabase
-      .from('episodes')
-      .select('tvmaze_episode_id, season, number, name, airdate, runtime, episode_type, role_override, special_tag')
-      .eq('show_id', showId)
-      .order('season')
-      .order('number');
-    if (error) throw new Error(error.message);
-    if (data && data.length > 0) return data as Episode[];
-  } catch {
-    // Continúa al respaldo local si existe
-  }
-
-  try {
-    const raw = localStorage.getItem(`serieverse_synced_episodes_${showId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed as Episode[];
-    }
-  } catch {
-    // Ignorar errores de parseo
-  }
-
-  return [];
+  const { data, error } = await supabase
+    .from('episodes')
+    .select('tvmaze_episode_id, season, number, name, overview_es, airdate, runtime, episode_type, role_override, special_tag')
+    .eq('show_id', showId)
+    .order('season')
+    .order('number');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Episode[];
 }
 
 export async function fetchShowsForPlatform(platforms: string[], scope: 'us' | 'es'): Promise<ShowListItem[]> {
   if (!platforms || platforms.length === 0) return [];
 
-  const loweredTargets = platforms
+  const canonicalTargets = new Set(
+    platforms
+      .flatMap((n) => n.split(','))
+      .map((n) => normalizePlatformOrNetwork(n) ?? n.trim())
+      .filter(Boolean)
+      .map((n) => n.toLowerCase()),
+  );
+
+  const rawTargets = platforms
     .flatMap((n) => n.split(','))
     .map((n) => n.trim().toLowerCase())
     .filter(Boolean);
-
-  if (loweredTargets.length === 0) return [];
 
   const { data, error } = await supabase
     .from('shows')
     .select(LIST_COLUMNS)
     .order('title')
-    .limit(1000);
+    .limit(5000);
   if (error) throw new Error(error.message);
 
   const allShows = (data ?? []) as ShowListItem[];
 
   return allShows.filter((show) => {
-    const net = (show.network_name ?? '').toLowerCase();
-    const regionPlatforms =
-      scope === 'es'
-        ? (Array.isArray(show.es_platforms) ? show.es_platforms : [])
-        : (Array.isArray(show.us_platforms) ? show.us_platforms : []);
-    const fallbackPlatforms =
-      scope === 'es'
-        ? (Array.isArray(show.us_platforms) ? show.us_platforms : [])
-        : (Array.isArray(show.es_platforms) ? show.es_platforms : []);
+    const netCanonical = (normalizePlatformOrNetwork(show.network_name) ?? show.network_name ?? '').toLowerCase();
+    const rawNet = (show.network_name ?? '').toLowerCase();
 
-    const matchesNetwork = loweredTargets.some(
-      (target) => net === target || net.includes(target),
-    );
-    const matchesRegionPlatform = regionPlatforms.some((plat) => {
-      const p = String(plat ?? '').toLowerCase();
-      return loweredTargets.some((target) => p === target || p.includes(target));
-    });
-    const matchesFallbackPlatform = fallbackPlatforms.some((plat) => {
-      const p = String(plat ?? '').toLowerCase();
-      return loweredTargets.some((target) => p === target || p.includes(target));
-    });
+    const regionList = scope === 'es' ? (show.es_platforms ?? []) : (show.us_platforms ?? []);
+    const allPlatforms = normalizeList([...(show.us_platforms ?? []), ...(show.es_platforms ?? [])]);
 
-    return matchesNetwork || matchesRegionPlatform || matchesFallbackPlatform;
+    const matchesCanonical =
+      canonicalTargets.has(netCanonical) ||
+      allPlatforms.some((p) => canonicalTargets.has(p.toLowerCase()));
+
+    const matchesRaw =
+      rawTargets.some((t) => rawNet === t || rawNet.includes(t)) ||
+      regionList.some((p) => rawTargets.some((t) => p.toLowerCase().includes(t)));
+
+    return matchesCanonical || matchesRaw;
   });
 }
 
@@ -151,7 +129,7 @@ export async function fetchCalendarEpisodes(start: string, end: string): Promise
   const { data, error } = await supabase
     .from('episodes')
     .select(
-      'tvmaze_episode_id, season, number, name, airdate, runtime, role_override, special_tag, show:shows!inner(id, title, poster_url, tv_status)',
+      'tvmaze_episode_id, season, number, name, overview_es, airdate, runtime, role_override, special_tag, show:shows!inner(id, title, poster_url, tv_status)',
     )
     .gte('airdate', start)
     .lte('airdate', end)
