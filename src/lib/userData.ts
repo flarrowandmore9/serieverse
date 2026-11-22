@@ -113,9 +113,6 @@ export async function fetchWatchedState(showId: number): Promise<WatchedState> {
     return { episodeIds: [], showWatched: false, isAuthenticated: false };
   }
 
-  const localEp = readIds(EP_KEY);
-  const localShows = readIds(SHOW_KEY);
-
   try {
     const [epRes, showRes] = await Promise.all([
       supabase.from('user_watched_episodes').select('tvmaze_episode_id').eq('user_id', userId).eq('show_id', showId),
@@ -123,16 +120,15 @@ export async function fetchWatchedState(showId: number): Promise<WatchedState> {
     ]);
 
     const dbEp = (epRes.data ?? []).map((r: { tvmaze_episode_id: number }) => r.tvmaze_episode_id);
-    const mergedEp = new Set<number>([...dbEp, ...localEp]);
     return {
-      episodeIds: [...mergedEp],
-      showWatched: Boolean(showRes.data) || localShows.has(showId),
+      episodeIds: epRes.error ? [] : dbEp,
+      showWatched: showRes.error ? false : Boolean(showRes.data),
       isAuthenticated: true,
     };
   } catch {
     return {
-      episodeIds: [...localEp],
-      showWatched: localShows.has(showId),
+      episodeIds: [],
+      showWatched: false,
       isAuthenticated: true,
     };
   }
