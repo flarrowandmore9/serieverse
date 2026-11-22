@@ -2,8 +2,10 @@ import { supabase } from '@/lib/supabase';
 import type { CalendarEpisode, Episode, EpisodeRole, Show, ShowListItem, SpecialTag } from '@/lib/types';
 import { normalizeList, normalizePlatformOrNetwork } from '@/lib/platforms';
 
-const LIST_COLUMNS =
+const BASE_LIST_COLUMNS =
   'id, tvmaze_id, title, poster_url, synopsis_es, genres, tv_status, premiered, rating, imdb_id, network_name, us_platforms, es_platforms';
+
+const EXTENDED_LIST_COLUMNS = `${BASE_LIST_COLUMNS}, show_type, franchise`;
 
 export type CatalogSort = 'all' | 'popular' | 'recent' | 'visited';
 
@@ -32,8 +34,8 @@ function escapeLike(value: string): string {
   return value.replace(/[\\%_]/g, (char) => `\\${char}`);
 }
 
-export async function fetchCatalog({ search, genre, sort }: CatalogQuery, limit: number): Promise<ShowListItem[]> {
-  let query = supabase.from('shows').select(LIST_COLUMNS);
+async function runCatalogSelect(columns: string, { search, genre, sort }: CatalogQuery, limit: number) {
+  let query = supabase.from('shows').select(columns);
   const term = search.trim();
   if (term) query = query.ilike('title', `%${escapeLike(term)}%`);
   if (genre) query = query.ilike('genres', `%${escapeLike(genre)}%`);
@@ -42,9 +44,18 @@ export async function fetchCatalog({ search, genre, sort }: CatalogQuery, limit:
   else if (sort === 'visited') query = query.order('views_count', { ascending: false });
   else if (sort === 'popular') query = query.order('rating', { ascending: false, nullsFirst: false });
 
-  const { data, error } = await query.order('title').limit(limit);
-  if (error) throw new Error(error.message);
-  return (data ?? []) as ShowListItem[];
+  return await query.order('title').limit(limit);
+}
+
+export async function fetchCatalog(params: CatalogQuery, limit: number): Promise<ShowListItem[]> {
+  const first = await runCatalogSelect(EXTENDED_LIST_COLUMNS, params, limit);
+  if (!first.error) {
+    return (first.data ?? []) as ShowListItem[];
+  }
+
+  const fallback = await runCatalogSelect(BASE_LIST_COLUMNS, params, limit);
+  if (fallback.error) throw new Error(fallback.error.message);
+  return (fallback.data ?? []) as ShowListItem[];
 }
 
 export async function registerShowView(showId: number): Promise<void> {
@@ -62,7 +73,7 @@ export async function fetchEpisodes(showId: number): Promise<Episode[]> {
   try {
     const { data, error } = await supabase
       .from('episodes')
-      .select('tvmaze_episode_id, season, number, name, airdate, runtime, episode_type, role_override, special_tag')
+      .select('tvmaze_episode_id, season, number, name, airdate, runtime, episode_type, role_override, special_tag, overview_es')
       .eq('show_id', showId)
       .order('season')
       .order('number');
@@ -95,14 +106,14 @@ export async function fetchShowsForPlatform(platforms: string[], scope: 'us' | '
 
   if (loweredTargets.length === 0) return [];
 
-  const { data, error } = await supabase
-    .from('shows')
-    .select(LIST_COLUMNS)
-    .order('title')
-    .limit(1000);
-  if (error) throw new Error(error.message);
+  const first = await supabase.from('shows').select(EXTENDED_LIST_COLUMNS).order('title').limit(1000);
+  const res = first.error
+    ? await supabase.from('shows').select(BASE_LIST_COLUMNS).order('title').limit(1000)
+    : first;
 
-  const allShows = (data ?? []) as ShowListItem[];
+  if (res.error) throw new Error(res.error.message);
+
+  const allShows = (res.data ?? []) as ShowListItem[];
 
   return allShows.filter((show) => {
     const net = (show.network_name ?? '').toLowerCase();
@@ -151,7 +162,7 @@ export async function fetchCalendarEpisodes(start: string, end: string): Promise
   const { data, error } = await supabase
     .from('episodes')
     .select(
-      'tvmaze_episode_id, season, number, name, airdate, runtime, role_override, special_tag, show:shows!inner(id, title, poster_url, tv_status)',
+      'tvmaze_episode_id, season, number, name, airdate, runtime, role_override, special_tag, overview_es, show:shows!inner(id, title, poster_url, tv_status)',
     )
     .gte('airdate', start)
     .lte('airdate', end)
