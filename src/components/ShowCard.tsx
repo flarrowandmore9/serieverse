@@ -42,7 +42,7 @@ export default function ShowCard({ show, onOpen, onRequireLogin }: ShowCardProps
     let active = true;
     fetchWatchedState(show.id)
       .then((state) => {
-        if (active) setIsWatched(state.showWatched || state.episodeIds.length > 0);
+        if (active) setIsWatched(state.isAuthenticated && state.showWatched);
       })
       .catch(() => {});
     return () => {
