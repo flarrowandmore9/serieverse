@@ -70,30 +70,14 @@ export async function fetchShow(showId: number): Promise<Show | null> {
 }
 
 export async function fetchEpisodes(showId: number): Promise<Episode[]> {
-  try {
-    const { data, error } = await supabase
-      .from('episodes')
-      .select('tvmaze_episode_id, season, number, name, airdate, runtime, episode_type, role_override, special_tag')
-      .eq('show_id', showId)
-      .order('season')
-      .order('number');
-    if (error) throw new Error(error.message);
-    if (data && data.length > 0) return data as Episode[];
-  } catch {
-    // Continúa al respaldo local si existe
-  }
-
-  try {
-    const raw = localStorage.getItem(`serieverse_synced_episodes_${showId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed as Episode[];
-    }
-  } catch {
-    // Ignorar errores de parseo
-  }
-
-  return [];
+  const { data, error } = await supabase
+    .from('episodes')
+    .select('tvmaze_episode_id, season, number, name, airdate, runtime, episode_type, role_override, special_tag')
+    .eq('show_id', showId)
+    .order('season')
+    .order('number');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Episode[];
 }
 
 export async function fetchShowsForPlatform(platforms: string[], scope: 'us' | 'es'): Promise<ShowListItem[]> {
