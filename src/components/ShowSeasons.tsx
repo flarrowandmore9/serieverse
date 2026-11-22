@@ -40,7 +40,7 @@ function EpisodeOverview({ text }: { text: string }) {
     <div className="mt-1 space-y-0.5">
       <p
         ref={pRef}
-        className={`text-xs leading-relaxed text-slate-600 dark:text-slate-300 ${expanded ? '' : 'line-clamp-3'}`}
+        className={`text-xs leading-relaxed text-slate-600 dark:text-slate-300 ${expanded ? '' : 'line-clamp-2'}`}
       >
         {text}
       </p>
