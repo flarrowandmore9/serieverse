@@ -81,131 +81,137 @@ export async function deleteOwnAccount(): Promise<void> {
 export type WatchedState = {
   episodeIds: number[];
   showWatched: boolean;
+  isAuthenticated: boolean;
 };
 
-const LOCAL_EPISODES_KEY = 'serieverse_watched_episodes_v1';
-const LOCAL_SHOWS_KEY = 'serieverse_watched_shows_v1';
+const EP_KEY = 'serieverse_watched_episodes_v1';
+const SHOW_KEY = 'serieverse_watched_shows_v1';
 
-function readLocalIds(key: string): Set<number> {
+function readIds(key: string): Set<number> {
   if (typeof window === 'undefined') return new Set();
   try {
-    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.map(Number).filter((n) => Number.isFinite(n)));
+    const raw = JSON.parse(localStorage.getItem(key) || '[]');
+    return new Set(Array.isArray(raw) ? raw.map(Number).filter(Number.isFinite) : []);
   } catch {
     return new Set();
   }
 }
 
-function writeLocalIds(key: string, ids: Set<number>): void {
+function writeIds(key: string, set: Set<number>): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(key, JSON.stringify([...ids]));
+    localStorage.setItem(key, JSON.stringify([...set]));
   } catch {
-    // Ignorar errores de almacenamiento
+    // Ignorar
   }
 }
 
 export async function fetchWatchedState(showId: number): Promise<WatchedState> {
-  const localEp = readLocalIds(LOCAL_EPISODES_KEY);
-  const localShows = readLocalIds(LOCAL_SHOWS_KEY);
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+  if (!userId) {
+    return { episodeIds: [], showWatched: false, isAuthenticated: false };
+  }
+
+  const localEp = readIds(EP_KEY);
+  const localShows = readIds(SHOW_KEY);
 
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
-    if (!userId) {
-      return { episodeIds: [...localEp], showWatched: localShows.has(showId) };
-    }
-
     const [epRes, showRes] = await Promise.all([
-      supabase
-        .from('user_watched_episodes')
-        .select('tvmaze_episode_id')
-        .eq('user_id', userId)
-        .eq('show_id', showId),
-      supabase
-        .from('user_watched_shows')
-        .select('show_id')
-        .eq('user_id', userId)
-        .eq('show_id', showId)
-        .maybeSingle(),
+      supabase.from('user_watched_episodes').select('tvmaze_episode_id').eq('user_id', userId).eq('show_id', showId),
+      supabase.from('user_watched_shows').select('show_id').eq('user_id', userId).eq('show_id', showId).maybeSingle(),
     ]);
 
-    if (epRes.error || showRes.error) {
-      return { episodeIds: [...localEp], showWatched: localShows.has(showId) };
-    }
-
-    const dbEpIds = ((epRes.data ?? []) as { tvmaze_episode_id: number }[]).map((r) => r.tvmaze_episode_id);
-    const merged = new Set<number>([...dbEpIds, ...localEp]);
+    const dbEp = (epRes.data ?? []).map((r: { tvmaze_episode_id: number }) => r.tvmaze_episode_id);
+    const mergedEp = new Set<number>([...dbEp, ...localEp]);
     return {
-      episodeIds: [...merged],
+      episodeIds: [...mergedEp],
       showWatched: Boolean(showRes.data) || localShows.has(showId),
+      isAuthenticated: true,
     };
   } catch {
-    return { episodeIds: [...localEp], showWatched: localShows.has(showId) };
+    return {
+      episodeIds: [...localEp],
+      showWatched: localShows.has(showId),
+      isAuthenticated: true,
+    };
   }
 }
 
-export async function toggleEpisodeWatched(showId: number, episodeId: number, watched: boolean): Promise<void> {
-  const localEp = readLocalIds(LOCAL_EPISODES_KEY);
+export async function toggleEpisodeWatched(showId: number, episodeId: number, watched: boolean): Promise<boolean> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+  if (!userId) return false;
+
+  const localEp = readIds(EP_KEY);
   if (watched) localEp.add(episodeId);
   else localEp.delete(episodeId);
-  writeLocalIds(LOCAL_EPISODES_KEY, localEp);
+  writeIds(EP_KEY, localEp);
 
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
-    if (!userId) return;
-
     if (watched) {
-      const { error } = await supabase
+      await supabase
         .from('user_watched_episodes')
         .upsert({ user_id: userId, show_id: showId, tvmaze_episode_id: episodeId }, { onConflict: 'user_id,tvmaze_episode_id' });
-      if (error) throw new Error(error.message);
     } else {
-      const { error } = await supabase
+      await supabase
         .from('user_watched_episodes')
         .delete()
         .eq('user_id', userId)
         .eq('tvmaze_episode_id', episodeId);
-      if (error) throw new Error(error.message);
     }
   } catch {
-    // Mantiene el estado local
+    // Mantiene estado local
   }
+  return true;
 }
 
-export async function toggleSeasonWatched(showId: number, episodeIds: number[], watched: boolean): Promise<void> {
-  if (episodeIds.length === 0) return;
+export async function toggleSeasonWatched(showId: number, episodeIds: number[], watched: boolean): Promise<boolean> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+  if (!userId || episodeIds.length === 0) return false;
 
-  const localEp = readLocalIds(LOCAL_EPISODES_KEY);
+  const localEp = readIds(EP_KEY);
   for (const id of episodeIds) {
     if (watched) localEp.add(id);
     else localEp.delete(id);
   }
-  writeLocalIds(LOCAL_EPISODES_KEY, localEp);
+  writeIds(EP_KEY, localEp);
 
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData.session?.user?.id;
-    if (!userId) return;
-
     if (watched) {
-      const rows = episodeIds.map((id) => ({ user_id: userId, show_id: showId, tvmaze_episode_id: id }));
-      const { error } = await supabase
-        .from('user_watched_episodes')
-        .upsert(rows, { onConflict: 'user_id,tvmaze_episode_id' });
-      if (error) throw new Error(error.message);
+      const rows = episodeIds.map((tvmaze_episode_id) => ({ user_id: userId, show_id: showId, tvmaze_episode_id }));
+      await supabase.from('user_watched_episodes').upsert(rows, { onConflict: 'user_id,tvmaze_episode_id' });
     } else {
-      const { error } = await supabase
-        .from('user_watched_episodes')
-        .delete()
-        .eq('user_id', userId)
-        .in('tvmaze_episode_id', episodeIds);
-      if (error) throw new Error(error.message);
+      await supabase.from('user_watched_episodes').delete().eq('user_id', userId).in('tvmaze_episode_id', episodeIds);
     }
   } catch {
-    // Mantiene el estado local
+    // Mantiene estado local
   }
+  return true;
+}
+
+export async function toggleShowWatched(showId: number, allEpisodeIds: number[], watched: boolean): Promise<boolean> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const userId = sessionData.session?.user?.id;
+  if (!userId) return false;
+
+  const localShows = readIds(SHOW_KEY);
+  if (watched) localShows.add(showId);
+  else localShows.delete(showId);
+  writeIds(SHOW_KEY, localShows);
+
+  await toggleSeasonWatched(showId, allEpisodeIds, watched);
+
+  try {
+    if (watched) {
+      await supabase.from('user_watched_shows').upsert({ user_id: userId, show_id: showId }, { onConflict: 'user_id,show_id' });
+    } else {
+      await supabase.from('user_watched_shows').delete().eq('user_id', userId).eq('show_id', showId);
+    }
+  } catch {
+    // Mantiene estado local
+  }
+  return true;
 }
 
