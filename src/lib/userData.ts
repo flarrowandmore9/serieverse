@@ -77,3 +77,72 @@ export async function deleteOwnAccount(): Promise<void> {
   const { error } = await supabase.rpc('delete_my_account');
   if (error) throw new Error(error.message);
 }
+
+export async function fetchWatchedState(showId: number): Promise<{ watchedEpisodeIds: Set<number>; isShowWatched: boolean }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
+    return { watchedEpisodeIds: new Set(), isShowWatched: false };
+  }
+
+  const [epRes, showRes] = await Promise.all([
+    supabase.from('user_watched_episodes').select('tvmaze_episode_id').eq('show_id', showId),
+    supabase.from('user_watched_shows').select('show_id').eq('show_id', showId).maybeSingle(),
+  ]);
+
+  const watchedEpisodeIds = new Set<number>(
+    ((epRes.data ?? []) as { tvmaze_episode_id: number }[]).map((r) => r.tvmaze_episode_id),
+  );
+  return {
+    watchedEpisodeIds,
+    isShowWatched: Boolean(showRes.data),
+  };
+}
+
+export async function toggleEpisodeWatched(showId: number, episodeId: number, watched: boolean): Promise<void> {
+  if (watched) {
+    const { error } = await supabase
+      .from('user_watched_episodes')
+      .upsert({ show_id: showId, tvmaze_episode_id: episodeId }, { onConflict: 'user_id,tvmaze_episode_id' });
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabase
+      .from('user_watched_episodes')
+      .delete()
+      .eq('tvmaze_episode_id', episodeId);
+    if (error) throw new Error(error.message);
+  }
+}
+
+export async function toggleSeasonWatched(showId: number, episodeIds: number[], watched: boolean): Promise<void> {
+  if (episodeIds.length === 0) return;
+  if (watched) {
+    const rows = episodeIds.map((id) => ({ show_id: showId, tvmaze_episode_id: id }));
+    const { error } = await supabase
+      .from('user_watched_episodes')
+      .upsert(rows, { onConflict: 'user_id,tvmaze_episode_id' });
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabase
+      .from('user_watched_episodes')
+      .delete()
+      .in('tvmaze_episode_id', episodeIds);
+    if (error) throw new Error(error.message);
+  }
+}
+
+export async function toggleShowWatched(showId: number, allEpisodeIds: number[], watched: boolean): Promise<void> {
+  if (watched) {
+    const { error } = await supabase
+      .from('user_watched_shows')
+      .upsert({ show_id: showId }, { onConflict: 'user_id,show_id' });
+    if (error) throw new Error(error.message);
+    await toggleSeasonWatched(showId, allEpisodeIds, true);
+  } else {
+    const { error } = await supabase
+      .from('user_watched_shows')
+      .delete()
+      .eq('show_id', showId);
+    if (error) throw new Error(error.message);
+    await toggleSeasonWatched(showId, allEpisodeIds, false);
+  }
+}
